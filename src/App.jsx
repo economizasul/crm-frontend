@@ -15,7 +15,7 @@ function App() {
       const navigate = useNavigate(); // Hook para navegação SPA
 
       return (
-            <div className="min-h-screen flex items-center justify-center bg-indigo-50">
+            <div className="min-h-screen bg-indigo-50">
                 <div className="p-8 bg-white rounded-xl shadow-2xl text-center">
                   <h1 className="text-4xl font-extrabold text-indigo-800 mb-4">
                        Bem-vindo ao Dashboard!
