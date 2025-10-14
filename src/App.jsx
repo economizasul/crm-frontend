@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Login from './Login.jsx'; 
-import Register from './Register.jsx'; 
+import Register from './Register.jsx';
+import LeadForm from './LeadForm.jsx'; 
 
 function App() {
   // Simples verificação de autenticação (verifica se há um token)
@@ -48,6 +49,11 @@ function App() {
           path="/dashboard" 
           element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" replace />} 
          />
+                 {/* NOVO: Rota Protegida para o Cadastro de Leads */}
+        <Route 
+          path="/leads/cadastro" 
+          element={isAuthenticated() ? <LeadForm /> : <Navigate to="/login" replace />} 
+          />
 
          {/* Redirecionamento padrão para o dashboard (se logado) ou login (se deslogado) */}
          <Route path="/" element={<Navigate to={isAuthenticated() ? "/dashboard" : "/login"} replace />} />
