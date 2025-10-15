@@ -7,7 +7,7 @@ import App from './App.jsx'
 createRoot(document.getElementById('root')).render(
   // Use <React.StrictMode> se preferir, mas o StrictMode sozinho é suficiente
   <React.StrictMode> 
-    <BrowserRouter> // ENVOLVER A APLICAÇÃO NO ROTEADOR
+    <BrowserRouter>
       <App />
     </BrowserRouter>
   </React.StrictMode>,

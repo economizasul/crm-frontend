@@ -14,10 +14,10 @@ import LeadForm from './LeadForm.jsx';
 
 // Componente ProtectedRoute (Mantido na sintaxe antiga que funciona para você)
 const ProtectedRoute = ({ component: Component }) => {
-    const isAuthenticated = !!localStorage.getItem('token');
-    
-    // Usa a sintaxe v5 que sua base de código parece favorecer para funcionar
-    return isAuthenticated ? <Component /> : <Navigate to="/login" replace />;
+    const isAuthenticated = !!localStorage.getItem('token');
+ 
+    // Usa a sintaxe v5 que sua base de código parece favorecer para funcionar
+    return isAuthenticated ? <Component /> : <Navigate to="/login" replace />;
 };
 
 function App() {
