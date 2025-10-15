@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+// Se você está usando 'fetch' nativo, esta linha está OK e não precisa de axios.
 
 // URL DO BACKEND CORRIGIDA
-const API_BASE_URL = 'https://crm-app-cnf7.onrender.com';
+// ATENÇÃO: Corrigi 'cnf7' para 'cnr7' (o correto) e usei a URL de produção.
+const API_BASE_URL = 'https://crm-app-cnr7.onrender.com'; 
 
 function Login() {
     const [email, setEmail] = useState('');
@@ -15,6 +17,7 @@ function Login() {
         setMessage('Tentando login...');
 
         try {
+            // Chamada com o URL corrigido e endpoint correto:
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -31,14 +34,14 @@ function Login() {
                 setMessage('Login realizado com sucesso! Redirecionando...');
                 
                 // Redireciona para o dashboard
-                navigate('/dashboard');
+                navigate('/dashboard', { replace: true }); // Adicionei { replace: true } para evitar voltar
             } else {
                 const errorData = await response.json();
                 setMessage(`Falha no login: ${errorData.message || response.statusText}`);
             }
         } catch (error) {
             console.error('Erro de rede ou na requisição:', error);
-            setMessage('Falha ao conectar ao servidor. Verifique se a URL do backend está correta e se ele está ativo.');
+            setMessage('Falha ao conectar ao servidor. Verifique a URL e a atividade do backend.');
         }
     };
 
@@ -108,7 +111,3 @@ function Login() {
 }
 
 export default Login;
-
-/* =======================================================
-   FIM DO CONTEÚDO PARA: crm-frontend/src/Login.js
-========================================================== */
