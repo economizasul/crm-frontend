@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, Zap, Menu, Plus } from 'lucide-react';
 import Sidebar from './components/Sidebar'; // O caminho './components/Sidebar' está correto
 
-// USAR A VARIÁVEL DE AMBIENTE QUE ESTÁ CONFIGURADA NO RENDER
+// Variável de ambiente VITE_API_URL (se definida no Render)
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 const Dashboard = () => {
@@ -14,7 +14,7 @@ const Dashboard = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para mobile
 
     const token = localStorage.getItem('token');
-    const userId = localStorage.getItem('userId');
+    // const userId = localStorage.getItem('userId'); // Mantendo esta linha comentada, pois o token é o mais importante
 
     // Função de Logout
     const handleLogout = () => {
@@ -33,122 +33,85 @@ const Dashboard = () => {
         const fetchLeads = async () => {
             setLoading(true);
             try {
-                // *** CORRIGIDO: Removido o '/api' duplicado ***
-                // Agora usa a URL completa do Render (que inclui /api) + /v1/leads/...
-                const response = await fetch(`${API_BASE_URL}/api/v1/leads/vendedor/${userId}`, {
+                // Chamada CORRIGIDA: Usa o prefixo do Backend /api/leads
+                const response = await fetch(`${API_BASE_URL}/api/leads`, {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // Envia o token de autenticação
                     },
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     setLeads(data);
+                    setError(null);
                 } else if (response.status === 401) {
-                    handleLogout(); // Redireciona se o token for inválido/expirado
+                    // Token expirado ou inválido
+                    handleLogout();
                 } else {
                     const errorData = await response.json();
-                    throw new Error(errorData.message || 'Falha ao carregar leads.');
+                    setError(`Erro ao carregar leads: ${errorData.error || response.statusText}`);
                 }
             } catch (err) {
-                console.error('Erro ao buscar leads:', err);
-                setError(err.message || 'Erro ao conectar com a API de Leads.');
+                setError('Erro de rede ao buscar os leads.');
             } finally {
                 setLoading(false);
             }
         };
 
         fetchLeads();
-    }, [token, userId, navigate]);
-    
-    // ... (restante da renderização, que já está correta)
-    
-    // Renderização de estado de carregamento/erro
-    if (loading) return <div className="text-center p-8 text-indigo-600">Carregando Leads...</div>;
-    if (error) return <div className="text-center p-8 text-red-600">Erro: {error}. <button onClick={handleLogout} className="text-sm underline ml-2">Sair</button></div>;
-
-
-    // Estrutura Principal com Sidebar e Conteúdo
+    }, [token, navigate]); 
+    // ... (O restante do componente Dashboard continua sem alterações)
+    // ...
+    // (O restante do código que você enviou: JSX e outros elementos)
+    // ...
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            {/* 1. Sidebar (Desktop) */}
+        <div className="flex h-screen bg-gray-50">
+            {/* Sidebar (desktop) */}
             <Sidebar handleLogout={handleLogout} />
-            
-            {/* 2. Mobile Sidebar Overlay (Abre/Fecha) */}
-            {isSidebarOpen && (
-                <div 
-                    className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden" 
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
-            <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition duration-300 ease-in-out z-30 md:hidden`}>
-                 <Sidebar handleLogout={handleLogout} />
-            </div>
 
-            {/* 3. Conteúdo Principal */}
-            <div className="flex-1 flex flex-col md:ml-64"> 
-                
-                {/* 4. Navbar/Header (Topo) */}
-                <header className="bg-white shadow-md p-4 flex justify-between items-center sticky top-0 z-10">
+            {/* Menu Mobile */}
+            <div className="md:hidden p-4">
+                <button onClick={() => setIsSidebarOpen(true)}>
+                    <Menu size={24} />
+                </button>
+            </div>
+            
+            {/* Overlay e Sidebar Mobile */}
+            {isSidebarOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden" onClick={() => setIsSidebarOpen(false)}>
+                    {/* Renderiza o Sidebar dentro do overlay para mobile */}
+                    <div className="w-64 h-full bg-indigo-900 p-4" onClick={(e) => e.stopPropagation()}>
+                        <Sidebar handleLogout={handleLogout} />
+                    </div>
+                </div>
+            )}
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <header className="flex items-center justify-between p-4 bg-white shadow-md">
+                    <h1 className="text-xl font-semibold text-gray-800">Dashboard de Leads</h1>
                     <button 
-                        className="text-gray-600 hover:text-indigo-600 md:hidden" 
-                        onClick={() => setIsSidebarOpen(true)}
+                        onClick={handleLogout}
+                        className="md:hidden text-red-500 hover:text-red-700 transition duration-150"
                     >
-                        <Menu size={24} />
+                        Sair
                     </button>
-                    <div className="text-2xl font-bold text-indigo-700 md:block hidden">
-                        Dashboard
-                    </div>
-                    <div className="flex items-center space-x-4">
-                        <span className="text-sm font-medium text-gray-700 hidden sm:inline">
-                            Vendedor: {userId ? userId.substring(0, 8) + '...' : 'Desconhecido'}
-                        </span>
-                        <button 
-                            onClick={handleLogout}
-                            className="text-sm font-medium text-red-600 hover:text-red-800 transition duration-150 p-2 rounded-full hover:bg-red-50"
-                            title="Sair (Logout)"
-                        >
-                            Sair
-                        </button>
-                    </div>
                 </header>
 
-                {/* 5. Alertas e Conteúdo da Página */}
-                <main className="flex-grow p-4 md:p-6">
-                    
-                    {/* Alerta de Prioridades (mantido do seu código original) */}
-                    <div className="mb-6 p-4 bg-red-100 text-red-700 font-semibold text-center shadow-lg rounded-xl">
-                        <span className="flex items-center justify-center">
-                            <MapPin className="mr-2" size={20}/>
-                            3 RECHAMES VENCIDOS!
-                        </span>
-                    </div>
+                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                    {loading && <div className="text-center p-10">Carregando Leads...</div>}
+                    {error && <div className="text-center p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>}
 
-                    <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                        Leads para Contatar ({leads.length})
-                    </h3>
-                    
-                    {/* Seção da Lista de Leads (mantida do seu código original) */}
-                    <div className="space-y-3">
-                        {leads.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {!loading && !error && leads.length > 0 ? (
                             leads.map((lead) => (
-                                <div 
-                                    key={lead._id}
-                                    className="bg-white p-4 rounded-lg shadow-md border-l-4 border-indigo-500 hover:shadow-lg transition duration-200 cursor-pointer"
-                                    onClick={() => console.log(`Abrir detalhes do Lead: ${lead.name}`)}
-                                >
-                                    {/* ... Conteúdo do Card de Lead ... */}
+                                <div key={lead.id} className="bg-white p-5 rounded-lg shadow-md hover:shadow-xl transition duration-300 border-t-4 border-indigo-500">
                                     <div className="flex justify-between items-start">
-                                        <p className="text-lg font-bold text-gray-900">{lead.name}</p>
-                                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                                             lead.status === 'Convertido' ? 'bg-green-100 text-green-800' :
-                                             lead.status === 'Em negociação' ? 'bg-yellow-100 text-yellow-800' :
-                                             'bg-blue-100 text-blue-800'
-                                         }`}>
-                                             {lead.status || 'Para Contatar'}
-                                         </span>
+                                        <h3 className="text-lg font-bold text-gray-800">{lead.name}</h3>
+                                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-100 text-indigo-800">
+                                            {lead.status || 'Novo'}
+                                        </span>
                                     </div>
                                     <p className="text-sm text-gray-500 mt-1">
                                          <Users size={14} className="inline mr-1" /> UC: {lead.uc || 'Não informada'}
@@ -167,7 +130,7 @@ const Dashboard = () => {
                 </main>
             </div>
             
-            {/* Botão Flutuante de Adicionar Novo Lead (mantido) */}
+            {/* Botão Flutuante de Adicionar Novo Lead */}
             <button 
                 onClick={() => navigate('/leads/cadastro')}
                 className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-xl hover:bg-green-600 transition duration-300 z-40 flex items-center justify-center"

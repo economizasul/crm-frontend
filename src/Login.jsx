@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// Se você está usando 'fetch' nativo, esta linha está OK e não precisa de axios.
 
-// URL DO BACKEND CORRIGIDA
-// ATENÇÃO: Corrigi 'cnf7' para 'cnr7' (o correto) e usei a URL de produção.
-const API_BASE_URL = 'https://crm-app-cnf7.onrender.com/api';
+
+// Variável de ambiente VITE_API_URL (se definida no Render)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 function Login() {
     const [email, setEmail] = useState('');
@@ -17,7 +16,7 @@ function Login() {
         setMessage('Tentando login...');
 
         try {
-            // Chamada com o URL:
+            // Chamada CORRIGIDA: Usa o prefixo do Backend /api/v1/auth
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -29,30 +28,29 @@ function Login() {
                 
                 // Salva o token e o userId no localStorage
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('userId', data.userId);
+                localStorage.setItem('userId', data.id); // Pelo seu Backend, o ID é 'id'
                 
                 setMessage('Login realizado com sucesso! Redirecionando...');
                 
-                // Redireciona para o dashboard
-                navigate('/dashboard', { replace: true }); // Adicionei { replace: true } para evitar voltar
+                // Redireciona para o Dashboard após login
+                navigate('/dashboard'); 
             } else {
                 const errorData = await response.json();
-                setMessage(`Falha no login: ${errorData.message || response.statusText}`);
+                setMessage(`Falha no login: ${errorData.error || response.statusText}`);
             }
         } catch (error) {
-            console.error('Erro de rede ou na requisição:', error);
-            setMessage('Falha ao conectar ao servidor. Verifique a URL e a atividade do backend.');
+            console.error('Erro de rede ou na API:', error);
+            setMessage('Erro ao tentar conectar com o servidor. Tente novamente.');
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-2xl space-y-6">
-                <h2 className="text-3xl font-extrabold text-gray-900 text-center">
-                    Acessar CRM
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    Acesso ao Sistema
                 </h2>
-                
-                <form onSubmit={handleLogin} className="space-y-4">
+                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                             Email
@@ -61,6 +59,7 @@ function Login() {
                             id="email"
                             name="email"
                             type="email"
+                            autoComplete="email"
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -76,6 +75,7 @@ function Login() {
                             id="password"
                             name="password"
                             type="password"
+                            autoComplete="current-password"
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
