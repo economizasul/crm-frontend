@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 // Ícones Lucide-React
 import { Menu, Plus, Search, Loader2, Zap } from 'lucide-react'; 
 // Componentes
-import Sidebar from './components/Sidebar'; // ✅ Caminho corrigido e verificado
+import Sidebar from '../components/Sidebar'; // ✅ Caminho corrigido e verificado
 import LeadCard from './components/LeadCard'; // ✅ Novo componente importado
 
 // URL da API
