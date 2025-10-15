@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Ícones Lucide-React
-import { Menu, Plus, Search, Loader2, Zap } from 'lucide-react'; 
+import { Menu, Plus, Search, Loader2, Zap, MapPin, Users } from 'lucide-react'; 
 // Componentes
-import Sidebar from './components/Sidebar'; // ✅ Caminho corrigido e verificado
-import LeadCard from './components/LeadCard'; // ✅ Novo componente importado
+import Sidebar from './components/Sidebar'; // ✅ CORREÇÃO APLICADA AQUI
+import LeadCard from './components/LeadCard'; 
 
 // URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+
+// Componente para exibir o Status com estilo de badge (Mantido no LeadCard.jsx)
+// A StatusBadge não precisa estar aqui, mas vou deixar a função para evitar falha no componente se você a estiver usando.
+const StatusBadge = ({ status }) => {
+    let classes = "text-xs font-semibold px-2.5 py-0.5 rounded-full";
+    if (status === 'Fechado') classes += " bg-green-100 text-green-800";
+    else if (status === 'Em Negociação') classes += " bg-yellow-100 text-yellow-800";
+    else if (status === 'Para Contatar') classes += " bg-red-100 text-red-800";
+    else classes += " bg-gray-100 text-gray-800";
+    return <span className={classes}>{status}</span>;
+};
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -28,7 +39,6 @@ const Dashboard = () => {
 
     // Lógica de Fetch de Leads
     useEffect(() => {
-        // ... (Mesma lógica de fetch de leads)
         if (!token) {
             handleLogout(); 
             return;
@@ -57,7 +67,7 @@ const Dashboard = () => {
         };
 
         fetchLeads();
-    }, [token, navigate]);
+    }, [token, navigate]); 
 
     // Filtragem de Leads
     const filteredLeads = leads.filter(lead =>
@@ -65,7 +75,6 @@ const Dashboard = () => {
         (lead.address && lead.address.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // Função que o LeadCard chamará ao ser clicado
     const handleCardClick = (leadId) => {
         navigate(`/leads/${leadId}`);
     };
@@ -99,7 +108,7 @@ const Dashboard = () => {
                         </h1>
                     </div>
                     
-                    {/* Campo de Busca */}
+                    {/* Campo de Busca (Destaque) */}
                     <div className="relative w-full max-w-sm md:max-w-md">
                         <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
@@ -128,7 +137,6 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {filteredLeads.length > 0 ? (
                                 filteredLeads.map((lead) => (
-                                    // AQUI USAMOS O NOVO COMPONENTE CLEAN
                                     <LeadCard 
                                         key={lead.id} 
                                         lead={lead} 
