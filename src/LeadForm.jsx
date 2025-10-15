@@ -1,20 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
-import { X, Save } from 'lucide-react'; // Ícones lucide
+import { X, Save, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-// Importe o Toast ou use um componente de notificação se tiver um
-const Toast = ({ message, type }) => (
-    <div className={`p-3 rounded-lg text-white font-medium shadow-lg absolute top-4 right-4 z-50 transition-opacity duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-        {message}
-    </div>
-);
+// 🛑 CORREÇÃO CRÍTICA: Usa a variável de ambiente VITE_API_URL configurada no Render
+// e o fallback para o domínio de produção.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// CORREÇÃO: Usando process.env para maior compatibilidade com diferentes ambientes de build.
-// Use process.env.VITE_APP_BACKEND_URL ou a URL local como fallback.
-const API_URL = process.env.VITE_APP_BACKEND_URL || 'http://localhost:5000/api/v1';
+// Componente simples de Toast para feedback ao usuário
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 3000); // Fecha automaticamente após 3 segundos
+        return () => clearTimeout(timer);
+    }, [onClose]);
 
-const LeadForm = ({ isOpen, onClose, onLeadCreated }) => {
-    // 1. Estado para os campos principais do formulário
+    const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+    
+    // Este useEffect é incluído apenas se for usado como um componente de Toast no LeadForm.
+    // Para simplificar, vou integrá-lo diretamente no JSX para evitar definir um componente extra.
+    // No entanto, vou reescrevê-lo como uma função simples, sem o useEffect aqui.
+    return (
+        <div className={`p-3 rounded-lg text-white font-medium shadow-lg absolute top-4 right-4 z-50 ${bgColor}`}>
+            {message}
+        </div>
+    );
+};
+
+const LeadForm = () => {
+    const navigate = useNavigate();
+    
+    // Estado inicial com todos os campos necessários
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -22,307 +39,284 @@ const LeadForm = ({ isOpen, onClose, onLeadCreated }) => {
         address: '', 
         origin: 'site', 
         status: 'Para Contatar', 
-        notes: [],
+        notes: '', // Alterado para string simples, será formatado para array no envio
         qsa: '', 
         uc: '', 
         avgConsumption: '', 
         estimatedSavings: '',
     });
     
-    // 2. Estados de controle
-    const [currentNote, setCurrentNote] = useState('');
     const [loading, setLoading] = useState(false);
-    const [notification, setNotification] = useState(null);
+    const [toast, setToast] = useState(null); // { message: '', type: '' }
 
-    // Efeito para resetar o formulário ao abrir/fechar o modal
-    useEffect(() => {
-        if (isOpen) {
-            setFormData({
-                name: '',
-                phone: '',
-                document: '',
-                address: '',
-                origin: 'site',
-                status: 'Para Contatar',
-                notes: [],
-                qsa: '',
-                uc: '',
-                avgConsumption: '',
-                estimatedSavings: '',
-            });
-            setCurrentNote('');
-            setNotification(null);
-        }
-    }, [isOpen]);
-
-    // Manipulador de alterações nos campos de texto/seleção
+    // Função genérica para atualizar o estado
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Adiciona anotação à lista
-    const addNote = () => {
-        if (currentNote.trim()) {
-            const timestamp = new Date().toLocaleString('pt-BR');
-            const newNote = `[${timestamp}] - ${currentNote.trim()}`;
-            setFormData(prev => ({
-                ...prev,
-                notes: [...prev.notes, newNote]
-            }));
-            setCurrentNote('');
-        }
-    };
-    
-    // Função principal de submissão do formulário
+    // Função de submissão
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setNotification(null);
-        
-        // 1. Obtém o token (necessário para o middleware 'protect' do Backend)
-        const token = localStorage.getItem('token'); 
+        setToast(null);
+
+        // 1. Obter Token de Autenticação
+        const token = localStorage.getItem('token');
         if (!token) {
-            setNotification({ message: 'Erro: Usuário não autenticado.', type: 'error' });
+            setToast({ message: 'Sessão expirada. Faça login novamente.', type: 'error' });
             setLoading(false);
+            setTimeout(() => navigate('/login'), 2000);
             return;
         }
 
+        // 2. Preparar os dados para envio (formata notes para array, se houver)
+        const dataToSend = {
+            ...formData,
+            // O Backend espera um array de notes, mesmo que seja apenas uma string.
+            notes: formData.notes.trim() ? [formData.notes] : [], 
+        };
+
         try {
-            // 2. Prepara o payload para o Backend
-            // O Backend espera todos esses campos no body, ele cuida de empacotar no JSONB
-            const payload = {
-                ...formData,
-                avgConsumption: parseFloat(formData.avgConsumption) || 0, // Garante que seja float ou 0
-                estimatedSavings: parseFloat(formData.estimatedSavings) || 0, // Garante que seja float ou 0
-                // Garantir que 'notes' seja um array
-                notes: formData.notes || [], 
-            };
-            
-            // 3. Chamada da API
-            const response = await axios.post(`${API_URL}/leads`, payload, {
+            // 3. Requisição POST para o Endpoint de Leads
+            // Rota: https://crm-app-cnf7.onrender.com/api/leads
+            const response = await axios.post(`${API_BASE_URL}/api/leads`, dataToSend, {
                 headers: {
-                    Authorization: `Bearer ${token}`
-                }
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Autenticação
+                },
             });
 
-            // 4. Sucesso: Notifica o usuário e chama o callback para atualizar o Dashboard
-            setNotification({ message: 'Lead cadastrado com sucesso!', type: 'success' });
-            
-            // Chama a função passada pelo Dashboard para recarregar a lista
-            onLeadCreated(response.data); 
+            // 4. Sucesso
+            if (response.status === 201) {
+                setToast({ message: 'Lead cadastrado com sucesso!', type: 'success' });
+                // Limpa o formulário após o sucesso
+                setFormData({
+                    name: '', phone: '', document: '', address: '', origin: 'site', 
+                    status: 'Para Contatar', notes: '', qsa: '', uc: '', avgConsumption: '', 
+                    estimatedSavings: '',
+                });
+                // Redireciona para o Dashboard após 1.5 segundos
+                setTimeout(() => navigate('/dashboard'), 1500); 
 
-            // Fecha o modal após um pequeno delay para mostrar a notificação
-            setTimeout(onClose, 1000); 
+            } else {
+                setToast({ message: 'Erro desconhecido ao cadastrar o lead.', type: 'error' });
+            }
 
         } catch (error) {
-            // 5. Trata Erros
-            const errorMessage = error.response?.data?.error || error.message || 'Erro desconhecido ao cadastrar o lead.';
-            setNotification({ message: errorMessage, type: 'error' });
-            console.error("Erro ao submeter lead:", error);
+            console.error('Erro de API ao cadastrar lead:', error.response?.data || error.message);
+            const errorMessage = error.response?.data?.error || 'Falha na conexão com o servidor. Verifique o console.';
+            setToast({ message: `Erro: ${errorMessage}`, type: 'error' });
+
+            // Se o erro for 401 (Não autorizado), força o logout
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                setTimeout(() => navigate('/login'), 2000);
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    if (!isOpen) return null;
-
-    // Estrutura do Modal
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 p-4">
-            {notification && <Toast message={notification.message} type={notification.type} />}
-
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all duration-300 p-6 sm:p-8">
+        // Usando o componente como uma página completa para a rota /leads/cadastro
+        <div className="min-h-screen bg-gray-100 p-8">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
+            <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
                 
                 {/* Cabeçalho */}
                 <div className="flex justify-between items-center border-b pb-4 mb-6">
-                    <h2 className="text-3xl font-bold text-gray-800">Novo Lead de Energia Solar</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
-                        <X size={24} />
+                    <h2 className="text-3xl font-extrabold text-indigo-800">
+                        Cadastro de Novo Lead
+                    </h2>
+                    <button
+                        onClick={() => navigate('/dashboard')}
+                        className="flex items-center space-x-2 text-gray-500 hover:text-indigo-600 transition duration-150"
+                        title="Voltar ao Dashboard"
+                    >
+                        <ArrowLeft size={24} />
+                        <span>Voltar</span>
                     </button>
                 </div>
-                
+
                 {/* Formulário */}
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    
-                    {/* Seção Principal de Contato */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Seção 1: Dados Principais */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border p-4 rounded-lg bg-gray-50">
+                        <h3 className="md:col-span-2 text-xl font-semibold text-gray-700 mb-2 border-b pb-2">Informações Básicas</h3>
+                        
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo <span className="text-red-500">*</span></label>
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome Completo <span className="text-red-500">*</span></label>
                             <input
-                                type="text"
+                                id="name"
                                 name="name"
+                                type="text"
+                                required
                                 value={formData.name}
                                 onChange={handleChange}
-                                required
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
                             />
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label>
+                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Telefone <span className="text-red-500">*</span></label>
                             <input
-                                type="tel"
+                                id="phone"
                                 name="phone"
+                                type="tel"
+                                required
                                 value={formData.phone}
                                 onChange={handleChange}
-                                required
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                                placeholder="(XX) XXXXX-XXXX"
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="document" className="block text-sm font-medium text-gray-700">CPF/CNPJ</label>
+                            <input
+                                id="document"
+                                name="document"
+                                type="text"
+                                value={formData.document}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
                             />
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
+                            <label htmlFor="address" className="block text-sm font-medium text-gray-700">Endereço</label>
                             <input
+                                id="address"
+                                name="address"
                                 type="text"
-                                name="document"
-                                value={formData.document}
+                                value={formData.address}
                                 onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Unidade Consumidora (UC)</label>
-                            <input
-                                type="text"
-                                name="uc"
-                                value={formData.uc}
-                                onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
                             />
                         </div>
                     </div>
                     
-                    {/* Seção de Origem e Status */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Origem do Lead</label>
-                            <select
-                                name="origin"
-                                value={formData.origin}
-                                onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
-                            >
-                                <option value="site">Site/Landing Page</option>
-                                <option value="indicacao">Indicação</option>
-                                <option value="coldcall">Prospecção Ativa (Cold Call)</option>
-                                <option value="social">Redes Sociais</option>
-                                <option value="outros">Outros</option>
-                            </select>
-                        </div>
+                    {/* Seção 2: Detalhes de Consumo (Específicos do seu CRM) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border p-4 rounded-lg bg-gray-50">
+                        <h3 className="md:col-span-2 text-xl font-semibold text-gray-700 mb-2 border-b pb-2">Dados de Consumo</h3>
+                        
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status Inicial</label>
+                            <label htmlFor="uc" className="block text-sm font-medium text-gray-700">Número da UC (Unidade Consumidora)</label>
+                            <input
+                                id="uc"
+                                name="uc"
+                                type="text"
+                                value={formData.uc}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label htmlFor="avgConsumption" className="block text-sm font-medium text-gray-700">Consumo Médio (kWh)</label>
+                            <input
+                                id="avgConsumption"
+                                name="avgConsumption"
+                                type="number"
+                                value={formData.avgConsumption}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label htmlFor="estimatedSavings" className="block text-sm font-medium text-gray-700">Economia Estimada (R$)</label>
+                            <input
+                                id="estimatedSavings"
+                                name="estimatedSavings"
+                                type="number"
+                                value={formData.estimatedSavings}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            />
+                        </div>
+
+                        <div>
+                            <label htmlFor="qsa" className="block text-sm font-medium text-gray-700">QSA (Quadro de Sócios e Administradores)</label>
+                            <input
+                                id="qsa"
+                                name="qsa"
+                                type="text"
+                                value={formData.qsa}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                    
+                    {/* Seção 3: Status e Notas */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border p-4 rounded-lg bg-gray-50">
+                        
+                        <div className="md:col-span-1">
+                            <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status Inicial</label>
                             <select
+                                id="status"
                                 name="status"
                                 value={formData.status}
                                 onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 bg-white"
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
                             >
+                                {/* Os valores devem corresponder aos possíveis status no seu Backend */}
                                 <option value="Para Contatar">Para Contatar</option>
-                                <option value="Em Negociação">Em Negociação</option>
+                                <option value="Em Contato">Em Contato</option>
                                 <option value="Proposta Enviada">Proposta Enviada</option>
                                 <option value="Fechado">Fechado</option>
                                 <option value="Perdido">Perdido</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    {/* Seção de Endereço e QSA */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
-                        <textarea
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            rows="2"
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                        ></textarea>
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">QSA (Quadro de Sócios e Administradores)</label>
-                        <textarea
-                            name="qsa"
-                            value={formData.qsa}
-                            onChange={handleChange}
-                            rows="2"
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                        ></textarea>
-                    </div>
-                    
-                    {/* Seção de Dados de Consumo (Opcional) */}
-                    <h3 className="text-xl font-semibold text-gray-700 pt-4 border-t mt-6">Estimativa de Consumo</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh/mês)</label>
-                            <input
-                                type="number"
-                                name="avgConsumption"
-                                value={formData.avgConsumption}
+                        
+                        <div className="md:col-span-1">
+                            <label htmlFor="origin" className="block text-sm font-medium text-gray-700">Origem</label>
+                            <select
+                                id="origin"
+                                name="origin"
+                                value={formData.origin}
                                 onChange={handleChange}
-                                step="0.01"
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada (R$/mês)</label>
-                            <input
-                                type="number"
-                                name="estimatedSavings"
-                                value={formData.estimatedSavings}
-                                onChange={handleChange}
-                                step="0.01"
-                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                            />
-                        </div>
-                    </div>
-                    
-                    {/* Seção de Anotações */}
-                    <h3 className="text-xl font-semibold text-gray-700 pt-4 border-t mt-6">Anotações do Vendedor</h3>
-                    <div className="space-y-3">
-                        {/* Lista de Anotações */}
-                        <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto border border-gray-200">
-                            {formData.notes.length === 0 ? (
-                                <p className="text-gray-500 italic text-sm">Nenhuma anotação adicionada ainda.</p>
-                            ) : (
-                                <ul className="space-y-1 text-sm text-gray-700">
-                                    {formData.notes.map((note, index) => (
-                                        <li key={index} className="border-b last:border-b-0 py-1">{note}</li>
-                                    ))}
-                                </ul>
-                            )}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
+                            >
+                                <option value="site">Site</option>
+                                <option value="referral">Referência</option>
+                                <option value="cold_call">Cold Call</option>
+                                <option value="other">Outro</option>
+                            </select>
                         </div>
                         
-                        {/* Campo para nova anotação */}
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                value={currentNote}
-                                onChange={(e) => setCurrentNote(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNote())}
-                                placeholder="Adicionar nova anotação..."
-                                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        <div className="md:col-span-3">
+                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">Observações Iniciais</label>
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                rows="3"
+                                value={formData.notes}
+                                onChange={handleChange}
+                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                disabled={loading}
                             />
-                            <button
-                                type="button"
-                                onClick={addNote}
-                                className="px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-150 disabled:bg-gray-400"
-                                disabled={!currentNote.trim()}
-                            >
-                                Adicionar
-                            </button>
                         </div>
                     </div>
 
                     {/* Botão de Submissão */}
-                    <div className="pt-6 border-t mt-6 flex justify-end">
+                    <div className="pt-6 border-t mt-8">
                         <button
                             type="submit"
                             disabled={loading || !formData.name || !formData.phone}
-                            className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-green-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            className="w-full flex justify-center items-center space-x-2 px-6 py-3 bg-indigo-600 text-white text-lg font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <>
