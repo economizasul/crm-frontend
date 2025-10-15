@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Users, Zap, Menu, Plus } from 'lucide-react';
-import Sidebar from './components/Sidebar'; // Importa a nova Sidebar
+import Sidebar from './components/Sidebar'; // O caminho './components/Sidebar' está correto
 
-// URL DO BACKEND - Garantir que o VITE_API_URL esteja sendo usado
-// NOTA: No seu código anterior, você usou a constante API_BASE_URL. 
-// No Login.jsx usamos import.meta.env.VITE_API_URL.
-// Para consistência, vou usar a constante direto aqui, mas garanta que ela esteja correta.
-const API_BASE_URL = 'https://crm-app-cnr7.onrender.com';
+// USAR A VARIÁVEL DE AMBIENTE QUE ESTÁ CONFIGURADA NO RENDER
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -19,24 +16,26 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     const userId = localStorage.getItem('userId');
 
-    // Função de Logout (Centralizada no Dashboard)
+    // Função de Logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         navigate('/login', { replace: true });
     };
 
-    // Lógica de Fetch de Leads (Inalterada)
+    // Lógica de Fetch de Leads
     useEffect(() => {
         if (!token) {
-            navigate('/login');
+            handleLogout(); // Se não há token, desloga e redireciona
             return;
         }
 
         const fetchLeads = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`${API_BASE_URL}/api/v1/leads/vendedor/${userId}`, {
+                // *** CORRIGIDO: Removido o '/api' duplicado ***
+                // Agora usa a URL completa do Render (que inclui /api) + /v1/leads/...
+                const response = await fetch(`${API_BASE_URL}/v1/leads/vendedor/${userId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -48,7 +47,7 @@ const Dashboard = () => {
                     const data = await response.json();
                     setLeads(data);
                 } else if (response.status === 401) {
-                    navigate('/login');
+                    handleLogout(); // Redireciona se o token for inválido/expirado
                 } else {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Falha ao carregar leads.');
@@ -63,6 +62,8 @@ const Dashboard = () => {
 
         fetchLeads();
     }, [token, userId, navigate]);
+    
+    // ... (restante da renderização, que já está correta)
     
     // Renderização de estado de carregamento/erro
     if (loading) return <div className="text-center p-8 text-indigo-600">Carregando Leads...</div>;
