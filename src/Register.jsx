@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 // URL DO BACKEND CORRIGIDA
-const API_BASE_URL = 'https://crm-app-cnf7.onrender.com';
+const API_BASE_URL = 'https://crm-app-cnr7.onrender.com'; 
 
 function Register() {
     const [name, setName] = useState('');

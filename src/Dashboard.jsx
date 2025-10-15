@@ -4,7 +4,7 @@ import { MapPin, Users, Zap, Menu, Plus } from 'lucide-react';
 import Sidebar from './components/Sidebar'; // O caminho './components/Sidebar' está correto
 
 // USAR A VARIÁVEL DE AMBIENTE QUE ESTÁ CONFIGURADA NO RENDER
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnr7.onrender.com';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -35,7 +35,7 @@ const Dashboard = () => {
             try {
                 // *** CORRIGIDO: Removido o '/api' duplicado ***
                 // Agora usa a URL completa do Render (que inclui /api) + /v1/leads/...
-                const response = await fetch(`${API_BASE_URL}/v1/leads/vendedor/${userId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/v1/leads/vendedor/${userId}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
