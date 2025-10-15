@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 // Ícones Lucide-React
 import { MapPin, Users, Menu, Plus, Search, Loader2 } from 'lucide-react'; 
 // Componentes
-import Sidebar from './Sidebar.jsx'; // Caminho corrigido para o arquivo principal
+import Sidebar from './components/Sidebar'; // Caminho corrigido para o arquivo principal
 import LeadCard from './components/LeadCard'; // **NOVO COMPONENTE: LeadCard.jsx**
 
 // URL da API
