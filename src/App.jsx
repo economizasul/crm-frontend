@@ -7,13 +7,19 @@ import Register from './Register.jsx';
 import Dashboard from './Dashboard.jsx';
 import LeadForm from './LeadForm.jsx'; 
 
-// Componente ProtectedRoute (CORRIGIDO)
-// Agora ele recebe o elemento React a ser renderizado (Element)
-const ProtectedRoute = ({ element }) => {
+// Componente ProtectedRoute (PADRÃO V6 CORRIGIDO - Usando 'children')
+// Recebe os componentes filhos (<Dashboard />) e decide se os renderiza ou redireciona.
+const ProtectedRoute = ({ children }) => {
+    // 1. Verifica se o token existe (se o usuário está logado)
     const isAuthenticated = !!localStorage.getItem('token');
     
-    // Retorna o elemento se autenticado, ou redireciona para o login
-    return isAuthenticated ? element : <Navigate to="/login" replace />;
+    // 2. Se não estiver autenticado, redireciona para o login
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+    
+    // 3. Se estiver autenticado, renderiza os componentes filhos
+    return children;
 };
 
 function App() {
@@ -24,20 +30,20 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 
-                {/* Rotas Protegidas (Usando o ProtectedRoute CORRIGIDO) */}
+                {/* Rotas Protegidas (Envolvidas pelo ProtectedRoute) */}
                 
-                {/* Rota do Dashboard */}
-                <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+                {/* Rota do Dashboard (CORRIGIDA) */}
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 
                 {/* Rotas de Leads */}
-                <Route path="/leads/cadastro" element={<ProtectedRoute element={<LeadForm />} />} />
-                <Route path="/leads" element={<ProtectedRoute element={<Dashboard />} />} /> 
+                <Route path="/leads/cadastro" element={<ProtectedRoute><LeadForm /></ProtectedRoute>} />
+                <Route path="/leads" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} /> 
 
-                {/* Rota Raiz (Redirecionamento inicial para o Dashboard se logado, ou Login) */}
-                {/* Nota: Vamos redirecionar para o dashboard. O ProtectedRoute fará o resto. */}
+                {/* Rota Raiz (Redirecionamento inicial) */}
                 <Route 
                     path="/" 
                     element={
+                        // Redireciona para o Dashboard se tiver token, ou para o Login
                         !!localStorage.getItem('token') 
                             ? <Navigate to="/dashboard" replace /> 
                             : <Navigate to="/login" replace />
@@ -46,7 +52,6 @@ function App() {
 
                 {/* Rota 404 (Redireciona para o Dashboard) */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
-
             </Routes>
         </Router>
     );
