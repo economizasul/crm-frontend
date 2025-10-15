@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 // Ícones Lucide-React
-import { MapPin, Users, Menu, Plus, Search, Loader2 } from 'lucide-react'; 
+import { Menu, Plus, Search, Loader2, Zap } from 'lucide-react'; 
 // Componentes
-import Sidebar from './components/Sidebar'; // Caminho corrigido para o arquivo principal
-import LeadCard from './components/LeadCard'; // **NOVO COMPONENTE: LeadCard.jsx**
+import Sidebar from './components/Sidebar'; // ✅ Caminho corrigido e verificado
+import LeadCard from './components/LeadCard'; // ✅ Novo componente importado
 
 // URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
-
-// Componente para exibir o Status com estilo de badge
-const StatusBadge = ({ status }) => {
-    let classes = "text-xs font-semibold px-2.5 py-0.5 rounded-full";
-    if (status === 'Fechado') classes += " bg-green-100 text-green-800";
-    else if (status === 'Em Negociação') classes += " bg-yellow-100 text-yellow-800";
-    else if (status === 'Para Contatar') classes += " bg-red-100 text-red-800";
-    else classes += " bg-gray-100 text-gray-800";
-    
-    return <span className={classes}>{status}</span>;
-};
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -26,21 +15,20 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    // Estado de controle para o menu mobile
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
 
     const token = localStorage.getItem('token');
-    // const userId = localStorage.getItem('userId'); // Mantive o userId, mas não é usado na lógica de fetch atual
 
-    // 1. Função de Logout
+    // Função de Logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         navigate('/login', { replace: true });
     };
 
-    // 2. Lógica de Fetch de Leads
+    // Lógica de Fetch de Leads
     useEffect(() => {
+        // ... (Mesma lógica de fetch de leads)
         if (!token) {
             handleLogout(); 
             return;
@@ -50,20 +38,16 @@ const Dashboard = () => {
             setLoading(true);
             try {
                 const response = await fetch(`${API_BASE_URL}/api/leads`, {
-                    headers: { 
-                        'Authorization': `Bearer ${token}` 
-                    },
+                    headers: { 'Authorization': `Bearer ${token}` },
                 });
 
                 if (!response.ok) {
-                    // Se o token expirou (401), desloga
                     if (response.status === 401) handleLogout();
                     throw new Error(`Erro ao buscar leads: ${response.statusText}`);
                 }
 
                 const data = await response.json();
                 setLeads(data);
-
             } catch (err) {
                 console.error("Erro no fetch de leads:", err);
                 setError("Falha ao carregar os dados. Tente novamente.");
@@ -73,17 +57,22 @@ const Dashboard = () => {
         };
 
         fetchLeads();
-    }, [token, navigate]); // Dependências
+    }, [token, navigate]);
 
-    // 3. Filtragem de Leads (Visual - Sem API)
+    // Filtragem de Leads
     const filteredLeads = leads.filter(lead =>
         lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (lead.address && lead.address.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
+    // Função que o LeadCard chamará ao ser clicado
+    const handleCardClick = (leadId) => {
+        navigate(`/leads/${leadId}`);
+    };
+
     return (
         <div className="flex min-h-screen bg-gray-50">
-            {/* 1. Sidebar (Componente separado) */}
+            {/* 1. Sidebar */}
             <Sidebar 
                 handleLogout={handleLogout} 
                 isSidebarOpen={isSidebarOpen} 
@@ -110,7 +99,7 @@ const Dashboard = () => {
                         </h1>
                     </div>
                     
-                    {/* Campo de Busca (Destaque) */}
+                    {/* Campo de Busca */}
                     <div className="relative w-full max-w-sm md:max-w-md">
                         <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
@@ -122,7 +111,6 @@ const Dashboard = () => {
                         />
                     </div>
                     
-                    {/* Espaço para futuras notificações/perfil */}
                     <div className="hidden sm:block w-10"></div>
                 </header>
 
@@ -140,32 +128,12 @@ const Dashboard = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {filteredLeads.length > 0 ? (
                                 filteredLeads.map((lead) => (
-                                    <div 
+                                    // AQUI USAMOS O NOVO COMPONENTE CLEAN
+                                    <LeadCard 
                                         key={lead.id} 
-                                        // Usando classes de card limpas e elegantes
-                                        className="bg-white p-5 rounded-xl shadow-lg border border-gray-100 hover:shadow-2xl hover:border-indigo-300 transform transition duration-300 cursor-pointer"
-                                        onClick={() => navigate(`/leads/${lead.id}`)} // Assumindo rota de detalhes
-                                    >
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="text-xl font-bold text-gray-900 truncate pr-2">{lead.name}</h3>
-                                            <StatusBadge status={lead.status} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-sm text-gray-600 flex items-center">
-                                                <Users size={14} className="inline mr-2 text-indigo-500" /> 
-                                                <span className="font-medium">UC:</span> {lead.uc || 'Não informada'}
-                                            </p>
-                                            <p className="text-sm text-gray-600 flex items-center">
-                                                <MapPin size={14} className="inline mr-2 text-indigo-500" /> 
-                                                <span className="font-medium">Endereço:</span> {lead.address || 'Pendente'}
-                                            </p>
-                                            <p className="text-sm text-gray-600 flex items-center">
-                                                <span className="font-medium bg-gray-100 px-1 rounded">
-                                                    {lead.origin || 'Website'}
-                                                </span>
-                                            </p>
-                                        </div>
-                                    </div>
+                                        lead={lead} 
+                                        onClick={handleCardClick} 
+                                    />
                                 ))
                             ) : (
                                 <div className="col-span-full text-center p-12 bg-white rounded-xl shadow-lg border border-gray-200 text-gray-500">
