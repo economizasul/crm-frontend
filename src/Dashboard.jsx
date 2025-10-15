@@ -4,7 +4,7 @@ import { MapPin, Users, Zap, Menu, Plus } from 'lucide-react';
 import Sidebar from './components/Sidebar'; // O caminho './components/Sidebar' está correto
 
 // USAR A VARIÁVEL DE AMBIENTE QUE ESTÁ CONFIGURADA NO RENDER
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnr7.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 const Dashboard = () => {
     const navigate = useNavigate();
