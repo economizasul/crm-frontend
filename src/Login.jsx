@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 
 // URL DO BACKEND CORRIGIDA
 // ATENÇÃO: Corrigi 'cnf7' para 'cnr7' (o correto) e usei a URL de produção.
-const API_BASE_URL = 'https://crm-app-cnr7.onrender.com'; 
+const API_BASE_URL = 'https://crm-app-cnr7.onrender.com/api'; 
 
 function Login() {
     const [email, setEmail] = useState('');

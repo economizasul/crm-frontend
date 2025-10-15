@@ -5,10 +5,12 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   
-  // CORREÇÃO PARA O ERRO DE BUILD DO AXIOS NO RENDER/VITE
+  // CORREÇÃO CRUCIAL: Define a base do aplicativo para a raiz (/)
+  base: '/',
+  
   build: {
     rollupOptions: {
-      // Garante que o Rollup não tente externalizar módulos cruciais como o axios
+      // Mantém a correção do axios
       external: [], 
     }
   }
