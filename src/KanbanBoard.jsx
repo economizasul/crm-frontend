@@ -70,7 +70,7 @@ const KanbanBoard = ({
     const renderStageTabs = () => (
         // flex-wrap para garantir que, se faltar espaço, as abas quebrem
         // space-x-4 para espaçamento horizontal entre os botões
-        <div className="flex flex-wrap space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
+        <div className="flex flex-wrap space-x-6 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
             {STAGES.map(stage => {
                 const isActive = stage.id === activeStage;
                 const activeClasses = 'bg-indigo-600 text-white shadow-lg';
@@ -82,7 +82,7 @@ const KanbanBoard = ({
                         onClick={() => setActiveStage(stage.id)}
                         // ✅ w-[200px] para largura fixa (ideal para 'Proposta Enviada')
                         // ✅ text-center para centralizar o texto
-                        className={`flex-shrink-0 w-[200px] text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
+                        className={`flex-shrink-0 w-48 text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
                             ${isActive ? activeClasses : inactiveClasses}`}
                     >
                         {stage.title}
@@ -117,7 +117,7 @@ const KanbanBoard = ({
                             <Menu size={24} />
                         </button>
                         <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
-                            ®FerreiraNei
+                            ®Ferreira
                         </h1>
                     </div>
                     

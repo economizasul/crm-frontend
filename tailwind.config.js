@@ -9,7 +9,7 @@ export default {
     extend: {
       // Adicione cores ou fontes customizadas aqui, se necessário
       colors: {
-        'econ-roxo': '#4f46e5', // Exemplo de cor customizada
+        'econ-roxo': '#4f46e5ff', 
       }
     },
   },

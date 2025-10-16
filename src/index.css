@@ -2,9 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definindo a fonte global do projeto */
-body {
-  font-family: 'Inter', sans-serif;
-  /* Cor de fundo leve para dar um respiro visual */
-  background-color: #f8fafc; /* Tailwind gray-50 */
-}
