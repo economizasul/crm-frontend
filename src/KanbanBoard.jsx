@@ -1,109 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
+// ✅ Importação da Sidebar
+import Sidebar from './components/Sidebar'; 
 // Importações de ícones Lucide
-import { 
-    ArrowRight, Zap, Loader2, MapPin, Phone, Menu, Search, Plus, 
-    LayoutDashboard, Users, LogOut, X, Settings, FileText, ChevronDown, ChevronUp 
-} from 'lucide-react'; 
-
-// --- SIMULAÇÃO: Componente Sidebar (INCORPORADO TEMPORARIAMENTE para evitar erro de importação) ---
-
-const LinkClass = ({ isActive }) => 
-    `flex items-center space-x-3 p-3 rounded-xl transition duration-200 
-    ${isActive 
-        ? 'bg-indigo-700 text-white shadow-lg' 
-        : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
-
-const Sidebar = ({ handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
-    const [isReportsOpen, setIsReportsOpen] = useState(false);
-
-    const navLinks = [
-        { name: "Kanban Leads", path: "/dashboard", icon: LayoutDashboard },
-        { name: "Cadastrar Lead", path: "/leads/cadastro", icon: Zap },
-        { name: "Transferir Lead", path: "/leads/transferir", icon: Users },
-    ];
-
-    return (
-        <aside 
-            className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-            md:translate-x-0 transition-transform duration-300 w-64 bg-indigo-900 text-white z-50 shadow-2xl flex flex-col`}
-        >
-            
-            <div className="p-6 border-b border-indigo-700 flex justify-between items-center">
-                <h1 className="text-xl font-extrabold tracking-wider leading-none">
-                    ECONOMIZA SUL CRM
-                </h1>
-                <button onClick={() => setIsSidebarOpen(false)} className="text-white p-1 rounded-full hover:bg-indigo-700 md:hidden" aria-label="Fechar Menu">
-                    <X size={24} />
-                </button>
-            </div>
-
-            <nav className="flex-1 p-4 space-y-2">
-                {navLinks.map((link) => (
-                    // NavLink não funcionará totalmente sem o React Router DOM configurado
-                    // no App.jsx, mas o estilo sim.
-                    <a
-                        key={link.name}
-                        href={link.path}
-                        className={LinkClass({ isActive: window.location.pathname === link.path })}
-                        onClick={() => setIsSidebarOpen(false)}
-                    >
-                        <link.icon size={20} />
-                        <span>{link.name}</span>
-                    </a>
-                ))}
-
-                {/* Menu de Relatórios (Dropdown) */}
-                <div>
-                    <button
-                        onClick={() => setIsReportsOpen(!isReportsOpen)}
-                        className={`w-full flex items-center justify-between space-x-3 p-3 rounded-xl transition duration-200 ${isReportsOpen ? 'bg-indigo-700 text-white shadow-lg' : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`}
-                    >
-                        <div className="flex items-center space-x-3">
-                            <FileText size={20} />
-                            <span>Relatórios</span>
-                        </div>
-                        {isReportsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
-
-                    {isReportsOpen && (
-                        <div className="pl-6 pt-1 space-y-1">
-                             <a href="/reports/vendas" className="block py-2 px-3 rounded-md text-sm transition text-indigo-200 hover:bg-indigo-800">
-                                Relatório de Vendas
-                            </a>
-                            <a href="/reports/funil" className="block py-2 px-3 rounded-md text-sm transition text-indigo-200 hover:bg-indigo-800">
-                                Funil de Leads
-                            </a>
-                        </div>
-                    )}
-                </div>
-
-                {/* Link de Configurações */}
-                <a
-                    href="/settings"
-                    className={LinkClass({ isActive: window.location.pathname === '/settings' })}
-                    onClick={() => setIsSidebarOpen(false)}
-                >
-                    <Settings size={20} />
-                    <span>Configurações</span>
-                </a>
-
-            </nav>
-
-            <div className="p-4 border-t border-indigo-700">
-                <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center justify-center space-x-3 p-3 rounded-xl text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200"
-                >
-                    <LogOut size={20} />
-                    <span>Sair</span>
-                </button>
-            </div>
-        </aside>
-    );
-};
-
-// --- FIM DA SIMULAÇÃO SIDEBAR ---
+import { ArrowRight, Zap, Loader2, MapPin, Users, Phone, Menu, Search, Plus } from 'lucide-react'; 
 
 // Simulação das etapas do seu CRM
 const STAGES = [
@@ -117,9 +17,9 @@ const STAGES = [
 // Componente para representar cada coluna do Kanban
 const KanbanColumn = ({ stage, leads }) => {
     
-    // Função para simular a mudança de fase - AGORA APENAS LOG NO CONSOLE
+    // Função para simular a mudança de fase (Avançar Fase)
     const handleStageAdvance = () => {
-        // Esta função deve abrir um modal com a lista de leads para selecionar qual mudar de fase
+        // Implementação futura: Abrir um Modal com a lista de leads para selecionar qual mudar de fase
         console.log(`Ação: Modal de Seleção de Lead para Mudar Fase na etapa: ${stage.title}`);
         alert(`Abrir Modal de Seleção de Lead para Mudar Fase na etapa: ${stage.title}`);
     };
@@ -143,6 +43,7 @@ const KanbanColumn = ({ stage, leads }) => {
 
     return (
         // Estilização da Coluna
+        // A classe min-w-[280px] e max-w-[350px] é fundamental para que as colunas fiquem lado a lado corretamente.
         <div className="flex-1 flex flex-col bg-gray-100 rounded-xl p-4 shadow-inner min-w-[280px] max-w-[350px]">
             {/* Cabeçalho da Coluna */}
             <div className={`p-3 rounded-lg shadow-md text-white font-bold mb-4 flex items-center justify-between ${stage.color}`}>
@@ -161,7 +62,7 @@ const KanbanColumn = ({ stage, leads }) => {
                 )}
             </div>
             
-            {/* BOTÃO ALTERADO: Avançar Fase */}
+            {/* BOTÃO CORRIGIDO: Avançar Fase */}
             <button 
                 onClick={handleStageAdvance}
                 className="mt-4 w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center font-semibold"
@@ -180,14 +81,13 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
     
     const navigate = useNavigate();
 
-    // Lógica para agrupar leads por estágio
+    // Lógica para agrupar leads por estágio e filtrar por termo de busca
     const groupedLeads = STAGES.reduce((acc, stage) => {
-        // Filtra leads que contenham o ID da etapa no status, ou que tenham o status completo
+        // ... (lógica de agrupamento e filtro mantida) ...
         const filteredByStage = leads.filter(lead => 
             (lead.status && (lead.status.toLowerCase().includes(stage.id) || lead.status === stage.title))
         );
         
-        // Filtra leads pelo termo de busca
         const finalFilteredLeads = filteredByStage.filter(lead => {
             const term = searchTerm.toLowerCase();
             return (
@@ -223,14 +123,14 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
             />
 
             {/* 2. Área de Conteúdo Principal */}
-            {/* A classe md:ml-64 garante que o conteúdo não fique por baixo da Sidebar em desktops */}
+            {/* md:ml-64 empurra o conteúdo para a direita, deixando espaço para a Sidebar */}
             <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
                 
-                {/* 2.1. Header Fixo e Moderno */}
+                {/* 2.1. Header Fixo (Barra de Busca e Título) */}
                 <header className="sticky top-0 z-30 bg-white shadow-lg p-4 flex items-center justify-between border-b border-gray-200">
                     
-                    {/* Menu Mobile Button e Título */}
                     <div className="flex items-center">
+                        {/* Botão para abrir a Sidebar no Mobile */}
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
                             className="text-gray-600 p-2 rounded-full hover:bg-gray-100 md:hidden transition"
@@ -239,7 +139,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                             <Menu size={24} />
                         </button>
                         <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
-                            Kanban de Leads
+                            ®FerreiraNei 
                         </h1>
                     </div>
                     
@@ -250,13 +150,11 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                             type="text"
                             placeholder="Buscar leads por nome, endereço ou telefone..."
                             value={searchTerm}
-                            // Uso da prop setSearchTerm
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-inner focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                         />
                     </div>
                     
-                    {/* Espaço para alinhamento */}
                     <div className="hidden sm:block w-10"></div>
                 </header>
 
@@ -271,7 +169,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                             <span className="text-lg text-indigo-500">Carregando Etapas...</span>
                         </div>
                     ) : (
-                        // Kanban Container - Display Flex para as colunas
+                        // Kanban Container: flex e overflow-x-auto são essenciais para as colunas horizontais
                         <div className="flex space-x-6 h-full min-h-[70vh] items-start pb-4">
                             {renderColumns()}
                         </div>
