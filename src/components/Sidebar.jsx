@@ -37,7 +37,7 @@ const Sidebar = ({ handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
                 {/* Cabeçalho/Logo */}
                 <div className="p-6 border-b border-indigo-700 flex justify-between items-center">
                     <h1 className="text-3xl font-extrabold tracking-wider">
-                        GEOCRM
+                        ECONOMIZA SUL CRM
                     </h1>
                     {/* Botão de Fechar no Mobile */}
                     <button 
