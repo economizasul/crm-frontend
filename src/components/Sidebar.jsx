@@ -1,125 +1,80 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-// Ícones Lucide-React
-import { Zap, MapPin, Users, LogOut, PlusCircle, X } from 'lucide-react'; 
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Users, Zap, LogOut, X } from 'lucide-react';
 
-// Adicionamos as props isSidebarOpen e setIsSidebarOpen para o controle mobile
+// Define o estilo de link ativo e inativo (Tailwind)
+const LinkClass = ({ isActive }) => 
+    `flex items-center space-x-3 p-3 rounded-xl transition duration-200 
+    ${isActive 
+        ? 'bg-indigo-700 text-white shadow-lg' 
+        : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
+
 const Sidebar = ({ handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
-    const location = useLocation();
-
-    // Definição dos links da Sidebar
-    const navItems = [
-        { name: 'Dashboard', icon: Zap, path: '/dashboard' },
-        { name: 'Minha Carteira', icon: Users, path: '/leads' }, 
-        { name: 'Cadastro Rápido', icon: PlusCircle, path: '/leads/cadastro' },
-        { name: 'Mapa de Vendas', icon: MapPin, path: '/mapa' },
+    
+    // Links de navegação principais
+    const navLinks = [
+        { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+        { name: "Kanban Leads", path: "/leads/kanban", icon: Users },
+        { name: "Cadastrar Lead", path: "/leads/cadastro", icon: Zap },
     ];
-
-    // Função auxiliar para classes de link
-    const getLinkClasses = (path) => {
-        const isActive = location.pathname === path;
-        
-        // Classes base
-        let classes = "flex items-center p-3 rounded-lg transition duration-200 text-sm font-semibold";
-        
-        // Classes ativas (seção atual) - Mais brilhante, com fundo sólido
-        if (isActive) {
-            classes += ' bg-indigo-700 text-white shadow-lg border-l-4 border-yellow-400';
-        } 
-        // Classes inativas
-        else {
-            classes += ' text-indigo-200 hover:bg-indigo-800 hover:text-white';
-        }
-        
-        return classes;
-    };
 
     return (
         <>
-            {/* 1. Sidebar para Desktop (Fixa e sempre visível) */}
-            <div className="hidden md:flex flex-col w-64 bg-indigo-900 text-white p-5 space-y-6 min-h-screen shadow-2xl">
-                
-                {/* Logo e Título Moderno */}
-                <div className="flex items-center space-x-2 border-b border-indigo-700 pb-5">
-                    <Zap size={36} className="text-yellow-400" />
-                    <span className="text-2xl font-black tracking-wider">GEOCRM</span>
-                </div>
+            {/* Overlay para Mobile (fecha a sidebar ao clicar fora) */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
 
-                {/* Links de Navegação */}
-                <nav className="flex-1 space-y-2">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.name}
-                            to={item.path}
-                            className={getLinkClasses(item.path)}
-                        >
-                            <item.icon size={20} className="mr-4" />
-                            <span>{item.name}</span>
-                        </Link>
-                    ))}
-                </nav>
-
-                {/* Rodapé da Sidebar (Botão Sair) */}
-                <div className="border-t border-indigo-700 pt-5">
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center w-full p-3 rounded-lg text-red-300 hover:bg-red-700 hover:text-white transition duration-200 text-sm font-semibold"
-                    >
-                        <LogOut size={20} className="mr-4" />
-                        <span>Sair do Sistema</span>
-                    </button>
-                    <p className="mt-3 text-xs text-indigo-400 text-center">
-                        &copy; 2025 GEOCRM
-                    </p>
-                </div>
-            </div>
-
-            {/* 2. Sidebar para Mobile (Slide-Out com Transição) */}
-            <div 
-                className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-indigo-900 text-white p-5 space-y-6 transform transition-transform duration-300 ease-in-out md:hidden ${
-                    isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}
+            {/* Sidebar Principal (Design fixo e elegante) */}
+            <aside 
+                className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                md:translate-x-0 transition-transform duration-300 w-64 bg-indigo-900 text-white z-50 shadow-2xl flex flex-col`}
             >
-                {/* Cabeçalho Mobile com botão de Fechar */}
-                <div className="flex justify-between items-center border-b border-indigo-700 pb-5">
-                    <div className="flex items-center space-x-2">
-                        <Zap size={36} className="text-yellow-400" />
-                        <span className="text-2xl font-black tracking-wider">GEOCRM</span>
-                    </div>
+                
+                {/* Cabeçalho/Logo */}
+                <div className="p-6 border-b border-indigo-700 flex justify-between items-center">
+                    <h1 className="text-3xl font-extrabold tracking-wider">
+                        GEOCRM
+                    </h1>
+                    {/* Botão de Fechar no Mobile */}
                     <button 
                         onClick={() => setIsSidebarOpen(false)}
-                        className="text-indigo-200 hover:text-white p-1 rounded-full hover:bg-indigo-700 transition"
+                        className="text-white p-1 rounded-full hover:bg-indigo-700 md:hidden"
+                        aria-label="Fechar Menu"
                     >
                         <X size={24} />
                     </button>
                 </div>
 
-                {/* Links de Navegação Mobile (Reutiliza as mesmas classes) */}
-                <nav className="flex-1 space-y-2">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.name}
-                            to={item.path}
-                            className={getLinkClasses(item.path)}
-                            onClick={() => setIsSidebarOpen(false)} // Fecha ao clicar em um link
+                {/* Links de Navegação */}
+                <nav className="flex-1 p-4 space-y-2">
+                    {navLinks.map((link) => (
+                        <NavLink
+                            key={link.name}
+                            to={link.path}
+                            className={LinkClass}
+                            onClick={() => setIsSidebarOpen(false)} // Fecha no mobile após o clique
                         >
-                            <item.icon size={20} className="mr-4" />
-                            <span>{item.name}</span>
-                        </Link>
+                            <link.icon size={20} />
+                            <span>{link.name}</span>
+                        </NavLink>
                     ))}
                 </nav>
 
-                {/* Botão Sair Mobile */}
-                <div className="border-t border-indigo-700 pt-5">
+                {/* Footer - Logout Button */}
+                <div className="p-4 border-t border-indigo-700">
                     <button
-                        onClick={() => { handleLogout(); setIsSidebarOpen(false); }}
-                        className="flex items-center w-full p-3 rounded-lg text-red-300 hover:bg-red-700 hover:text-white transition duration-200 text-sm font-semibold"
+                        onClick={handleLogout}
+                        className="w-full flex items-center justify-center space-x-3 p-3 rounded-xl text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200"
                     >
-                        <LogOut size={20} className="mr-4" />
-                        <span>Sair do Sistema</span>
+                        <LogOut size={20} />
+                        <span>Sair</span>
                     </button>
                 </div>
-            </div>
+            </aside>
         </>
     );
 };
