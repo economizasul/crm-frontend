@@ -62,6 +62,7 @@ const Dashboard = () => {
             loading={loading}
             error={error}
             searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
             handleLogout={handleLogout}
             isSidebarOpen={isSidebarOpen}
             setIsSidebarOpen={setIsSidebarOpen}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-// ✅ Importações CRÍTICAS para o Kanban funcionar e não ficar vazio
+// Importações CRÍTICAS de componentes e ícones
 import Sidebar from './components/Sidebar'; 
 import { ArrowRight, Zap, Loader2, MapPin, Users, Phone, Menu, Search, Plus } from 'lucide-react'; 
 
@@ -13,9 +13,9 @@ const STAGES = [
     { id: 'perdido', title: '5. Perdido', color: 'bg-gray-500' },
 ];
 
-// Componente para representar cada coluna do Kanban (Mantido)
+// Componente da Coluna (Mantido)
 const KanbanColumn = ({ stage, leads }) => {
-    // Apenas simula o card com um estilo limpo
+    // ... (Código da Coluna) ...
     const renderLeadCard = (lead) => (
         <div key={lead.id} className="bg-white p-4 rounded-lg shadow-md border-t-4 border-indigo-500 mb-3 cursor-grab hover:shadow-xl transition duration-150">
             <h4 className="font-bold text-gray-900 truncate">{lead.name}</h4>
@@ -59,14 +59,12 @@ const KanbanColumn = ({ stage, leads }) => {
 // -----------------------------------------------------------
 // Componente principal que recebe os dados do Dashboard.jsx
 // -----------------------------------------------------------
-const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSidebarOpen, setIsSidebarOpen, setSearchTerm }) => {
+const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
     
     const navigate = useNavigate();
 
     // Lógica para agrupar leads por estágio
     const groupedLeads = STAGES.reduce((acc, stage) => {
-        // Filtra os leads cujo status contenha o ID da etapa (em minúsculas)
-        // Isso é uma simulação, mas funciona para agrupar
         acc[stage.id] = leads.filter(lead => lead.status.toLowerCase().includes(stage.id) || lead.status === stage.title); 
         return acc;
     }, {});
@@ -85,7 +83,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            {/* 1. Sidebar (IMPORTADA E USADA CORRETAMENTE) */}
+            {/* 1. Sidebar */}
             <Sidebar 
                 handleLogout={handleLogout} 
                 isSidebarOpen={isSidebarOpen} 
@@ -95,7 +93,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
             {/* 2. Área de Conteúdo Principal */}
             <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
                 
-                {/* 2.1. Header Fixo e Moderno (ADICIONADO O CÓDIGO DO HEADER AQUI) */}
+                {/* 2.1. Header Fixo e Moderno */}
                 <header className="sticky top-0 z-30 bg-white shadow-lg p-4 flex items-center justify-between border-b border-gray-200">
                     
                     {/* Menu Mobile Button e Título */}
@@ -112,14 +110,14 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
                         </h1>
                     </div>
                     
-                    {/* Campo de Busca */}
+                    {/* Campo de Busca (AGORA USA setSearchTerm CORRETAMENTE) */}
                     <div className="relative w-full max-w-sm md:max-w-md">
                         <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
                             placeholder="Buscar leads por nome, endereço ou status..."
                             value={searchTerm}
-                            // Certifica-se que setSearchTerm está sendo chamado
+                            // ✅ USO DA PROP CORRIGIDO
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-inner focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                         />
