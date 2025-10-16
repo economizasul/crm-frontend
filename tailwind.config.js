@@ -1,15 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // CONFIGURAÇÃO ESSENCIAL: Diz ao Tailwind onde procurar as classes.
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}", // Inclui todos os arquivos .jsx na pasta src
+    // ✅ Alteração: Forçando o Tailwind a ler todos os arquivos dentro de src/
+    "./src/*.{js,ts,jsx,tsx}", // Lê arquivos como App.jsx, KanbanBoard.jsx
+    "./src/**/*.{js,ts,jsx,tsx}", // Mantém o wildcard para subpastas (components)
   ],
   theme: {
     extend: {
-      // Adicione cores ou fontes customizadas aqui, se necessário
       colors: {
-        'econ-roxo': '#4f46e5ff', 
+        'econ-roxo': '#4f46e5',
       }
     },
   },
