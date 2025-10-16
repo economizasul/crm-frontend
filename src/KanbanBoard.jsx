@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Zap, Loader2, MapPin, Users, Phone } from 'lucide-react'; 
-// Importe aqui a Sidebar e LeadCard se precisar de algo modular
-// import LeadCard from './components/LeadCard'; 
+// ✅ Importações CRÍTICAS para o Kanban funcionar e não ficar vazio
+import Sidebar from './components/Sidebar'; 
+import { ArrowRight, Zap, Loader2, MapPin, Users, Phone, Menu, Search, Plus } from 'lucide-react'; 
 
 // Simulação das etapas do seu CRM
 const STAGES = [
-    { id: 'contact', title: '1. Para Contatar', color: 'bg-red-500' },
-    { id: 'negotiation', title: '2. Em Negociação', color: 'bg-yellow-500' },
-    { id: 'proposal', title: '3. Proposta Enviada', color: 'bg-blue-500' },
-    { id: 'closed', title: '4. Fechado', color: 'bg-green-500' },
-    { id: 'lost', title: '5. Perdido', color: 'bg-gray-500' },
+    { id: 'contatar', title: '1. Para Contatar', color: 'bg-red-500' },
+    { id: 'negociacao', title: '2. Em Negociação', color: 'bg-yellow-500' },
+    { id: 'proposta', title: '3. Proposta Enviada', color: 'bg-blue-500' },
+    { id: 'fechado', title: '4. Fechado', color: 'bg-green-500' },
+    { id: 'perdido', title: '5. Perdido', color: 'bg-gray-500' },
 ];
 
-// Componente para representar cada coluna do Kanban
+// Componente para representar cada coluna do Kanban (Mantido)
 const KanbanColumn = ({ stage, leads }) => {
     // Apenas simula o card com um estilo limpo
     const renderLeadCard = (lead) => (
         <div key={lead.id} className="bg-white p-4 rounded-lg shadow-md border-t-4 border-indigo-500 mb-3 cursor-grab hover:shadow-xl transition duration-150">
             <h4 className="font-bold text-gray-900 truncate">{lead.name}</h4>
             <p className="text-sm text-gray-600 flex items-center mt-1">
-                <MapPin size={12} className="mr-1 text-gray-400" /> {lead.address}
+                <MapPin size={12} className="mr-1 text-gray-400" /> {lead.address || 'Endereço Pendente'}
             </p>
             <p className="text-xs text-gray-500 flex items-center mt-1">
-                <Phone size={12} className="mr-1 text-gray-400" /> {lead.phone}
+                <Phone size={12} className="mr-1 text-gray-400" /> {lead.phone || 'Telefone Pendente'}
             </p>
             <div className="mt-2 text-right">
                  <span className="text-xs font-semibold text-indigo-600 hover:underline">Ver Detalhes <ArrowRight size={10} className="inline ml-1" /></span>
@@ -56,17 +56,22 @@ const KanbanColumn = ({ stage, leads }) => {
 };
 
 
-const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
+// -----------------------------------------------------------
+// Componente principal que recebe os dados do Dashboard.jsx
+// -----------------------------------------------------------
+const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSidebarOpen, setIsSidebarOpen, setSearchTerm }) => {
     
     const navigate = useNavigate();
 
-    // Lógica para agrupar leads por estágio (baseado no 'status' do seu objeto lead)
+    // Lógica para agrupar leads por estágio
     const groupedLeads = STAGES.reduce((acc, stage) => {
-        acc[stage.id] = leads.filter(lead => lead.status.toLowerCase().includes(stage.id) || lead.status === stage.title); // Adaptar a lógica
+        // Filtra os leads cujo status contenha o ID da etapa (em minúsculas)
+        // Isso é uma simulação, mas funciona para agrupar
+        acc[stage.id] = leads.filter(lead => lead.status.toLowerCase().includes(stage.id) || lead.status === stage.title); 
         return acc;
     }, {});
     
-    // Função para renderizar as colunas (Exemplo)
+    // Função para renderizar as colunas
     const renderColumns = () => {
         return STAGES.map(stage => (
             <KanbanColumn 
@@ -80,7 +85,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            {/* 1. Sidebar (Componente já existente) */}
+            {/* 1. Sidebar (IMPORTADA E USADA CORRETAMENTE) */}
             <Sidebar 
                 handleLogout={handleLogout} 
                 isSidebarOpen={isSidebarOpen} 
@@ -90,9 +95,37 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
             {/* 2. Área de Conteúdo Principal */}
             <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
                 
-                {/* 2.1. Header (A mesma que estava no Dashboard) */}
+                {/* 2.1. Header Fixo e Moderno (ADICIONADO O CÓDIGO DO HEADER AQUI) */}
                 <header className="sticky top-0 z-30 bg-white shadow-lg p-4 flex items-center justify-between border-b border-gray-200">
-                    {/* ... (Conteúdo do Header: Botão Mobile, Título e Busca) ... */}
+                    
+                    {/* Menu Mobile Button e Título */}
+                    <div className="flex items-center">
+                        <button 
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="text-gray-600 p-2 rounded-full hover:bg-gray-100 md:hidden transition"
+                            aria-label="Abrir Menu"
+                        >
+                            <Menu size={24} />
+                        </button>
+                        <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
+                            Kanban de Leads
+                        </h1>
+                    </div>
+                    
+                    {/* Campo de Busca */}
+                    <div className="relative w-full max-w-sm md:max-w-md">
+                        <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar leads por nome, endereço ou status..."
+                            value={searchTerm}
+                            // Certifica-se que setSearchTerm está sendo chamado
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-inner focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                        />
+                    </div>
+                    
+                    <div className="hidden sm:block w-10"></div>
                 </header>
 
                 {/* 2.2. Main Content Area */}
@@ -112,7 +145,8 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, handleLogout, isSideba
                         </div>
                     )}
                 </main>
-                {/* Botão Flutuante (Mantido, mas agora o novo lead vai para o Kanban) */}
+                
+                {/* Botão Flutuante de Adicionar Novo Lead */}
                 <button 
                     onClick={() => navigate('/leads/cadastro')}
                     className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-xl hover:bg-indigo-700 transition duration-300 z-40 flex items-center justify-center"
