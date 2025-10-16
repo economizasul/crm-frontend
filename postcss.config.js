@@ -1,7 +1,8 @@
-// Exportamos o módulo para garantir que o ambiente de build o encontre.
-module.exports = {
+// Agora, usamos a sintaxe ESM (export default) que é compatível com "type": "module"
+export default {
   plugins: [
-    // Usamos 'require' para carregar os plugins de forma direta, ignorando conflitos de sintaxe ESM.
+    // Usamos o require() dentro do array plugins (que é o formato que o PostCSS espera)
+    // Se isso falhar, a sintaxe alternativa deve ser usada (próximo passo, se necessário)
     require('tailwindcss'),
     require('autoprefixer'),
   ],
