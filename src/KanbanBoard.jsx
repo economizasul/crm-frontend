@@ -68,23 +68,22 @@ const KanbanBoard = ({
 
     // 2. Função para renderizar as abas (Fases)
     const renderStageTabs = () => (
-        // ✅ space-x-4 para espaçamento entre os botões
-        <div className="flex space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
+        // flex-wrap para garantir que, se faltar espaço, as abas quebrem
+        // space-x-4 para espaçamento horizontal entre os botões
+        <div className="flex flex-wrap space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
             {STAGES.map(stage => {
                 const isActive = stage.id === activeStage;
-                // Estilo para a aba ativa (destaque)
                 const activeClasses = 'bg-indigo-600 text-white shadow-lg';
-                // Estilo para a aba inativa
                 const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
 
                 return (
                     <button
                         key={stage.id}
                         onClick={() => setActiveStage(stage.id)}
-                        // ✅ w-[200px] para largura fixa e text-center para centralizar o texto
+                        // ✅ w-[200px] para largura fixa (ideal para 'Proposta Enviada')
+                        // ✅ text-center para centralizar o texto
                         className={`flex-shrink-0 w-[200px] text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
                             ${isActive ? activeClasses : inactiveClasses}`}
-                        // Removida a borda inferior, usando o fundo e a sombra para destaque.
                     >
                         {stage.title}
                     </button>
@@ -140,7 +139,7 @@ const KanbanBoard = ({
                 {/* 2.2. Main Content Area */}
                 <main className="p-4 sm:p-6 flex-1">
                     
-                    {/* ✅ ABAS DE FASES NA PARTE SUPERIOR (CORRIGIDAS) */}
+                    {/* ABAS DE FASES NA PARTE SUPERIOR (CORRIGIDAS) */}
                     {renderStageTabs()}
 
                     {/* Mensagens de Estado */}
