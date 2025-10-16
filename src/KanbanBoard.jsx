@@ -1,8 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-// ✅ Importação da Sidebar
 import Sidebar from './components/Sidebar'; 
-// Importações de ícones Lucide
 import { ArrowRight, Zap, Loader2, MapPin, Users, Phone, Menu, Search, Plus } from 'lucide-react'; 
 
 // Simulação das etapas do seu CRM
@@ -14,81 +12,55 @@ const STAGES = [
     { id: 'perdido', title: '5. Perdido', color: 'bg-gray-500' },
 ];
 
-// Componente para representar cada coluna do Kanban
-const KanbanColumn = ({ stage, leads }) => {
-    
-    // Função para simular a mudança de fase (Avançar Fase)
-    const handleStageAdvance = () => {
-        // Implementação futura: Abrir um Modal com a lista de leads para selecionar qual mudar de fase
-        console.log(`Ação: Modal de Seleção de Lead para Mudar Fase na etapa: ${stage.title}`);
-        alert(`Abrir Modal de Seleção de Lead para Mudar Fase na etapa: ${stage.title}`);
-    };
-    
-    // Renderiza o cartão individual do lead
-    const renderLeadCard = (lead) => (
-        <div key={lead.id} className="bg-white p-4 rounded-lg shadow-md border-t-4 border-indigo-500 mb-3 cursor-grab hover:shadow-xl transition duration-150">
-            <h4 className="font-bold text-gray-900 truncate">{lead.name}</h4>
-            <p className="text-sm text-gray-600 flex items-center mt-1">
-                <MapPin size={12} className="mr-1 text-gray-400" /> {lead.address || 'Endereço Pendente'}
-            </p>
-            <p className="text-xs text-gray-500 flex items-center mt-1">
-                <Phone size={12} className="mr-1 text-gray-400" /> {lead.phone || 'Telefone Pendente'}
-            </p>
-            <div className="mt-2 text-right">
-                 {/* Link para visualização de detalhes do Lead */}
-                 <span className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">Ver Detalhes <ArrowRight size={10} className="inline ml-1" /></span>
-            </div>
-        </div>
-    );
-
+// Componente LeadCard (Visualização em Lista)
+const LeadCard = ({ lead }) => {
     return (
-        // Estilização da Coluna
-        // A classe min-w-[280px] e max-w-[350px] é fundamental para que as colunas fiquem lado a lado corretamente.
-        <div className="flex-1 flex flex-col bg-gray-100 rounded-xl p-4 shadow-inner min-w-[280px] max-w-[350px]">
-            {/* Cabeçalho da Coluna */}
-            <div className={`p-3 rounded-lg shadow-md text-white font-bold mb-4 flex items-center justify-between ${stage.color}`}>
-                <h3 className="text-lg">{stage.title}</h3>
-                <span className="text-sm bg-white text-gray-800 rounded-full px-2 py-0.5 font-extrabold">{leads.length}</span>
+        <div className="bg-white p-4 rounded-xl shadow-md border-l-4 border-indigo-500 mb-4 hover:shadow-lg transition duration-150">
+            <div className="flex justify-between items-start">
+                <div>
+                    <h4 className="font-bold text-gray-900 text-lg">{lead.name}</h4>
+                    <p className="text-sm text-gray-600 flex items-center mt-1">
+                        <MapPin size={12} className="mr-1 text-gray-400" /> {lead.address || 'Endereço Pendente'}
+                    </p>
+                    <p className="text-xs text-gray-500 flex items-center mt-1">
+                        <Phone size={12} className="mr-1 text-gray-400" /> {lead.phone || 'Telefone Pendente'}
+                    </p>
+                </div>
+                <div className="text-right">
+                    <span className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer flex items-center">
+                        Ver Detalhes <ArrowRight size={10} className="inline ml-1" />
+                    </span>
+                    {/* Exemplo de botão de Ação Rápida */}
+                    <button className="mt-2 text-xs bg-indigo-500 text-white px-3 py-1 rounded-full hover:bg-indigo-600 transition">
+                        Mudar Fase
+                    </button>
+                </div>
             </div>
-            
-            {/* Contêiner dos Leads (Scrollable) */}
-            <div className="flex-1 space-y-3 overflow-y-auto">
-                {leads.map(renderLeadCard)}
-                
-                {leads.length === 0 && (
-                    <div className="text-center text-gray-500 p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                        Nenhum Lead nesta etapa.
-                    </div>
-                )}
-            </div>
-            
-            {/* BOTÃO CORRIGIDO: Avançar Fase */}
-            <button 
-                onClick={handleStageAdvance}
-                className="mt-4 w-full py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center font-semibold"
-            >
-                <ArrowRight size={16} className="inline mr-2" /> Avançar Fase
-            </button>
         </div>
     );
 };
 
 
 // -----------------------------------------------------------
-// Componente principal que recebe os dados do Dashboard.jsx
+// Componente principal
 // -----------------------------------------------------------
-const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleLogout, isSidebarOpen, setIsSidebarOpen }) => {
+const KanbanBoard = ({ 
+    leads, loading, error, searchTerm, setSearchTerm, handleLogout, 
+    isSidebarOpen, setIsSidebarOpen, activeStage, setActiveStage 
+}) => {
     
     const navigate = useNavigate();
 
-    // Lógica para agrupar leads por estágio e filtrar por termo de busca
-    const groupedLeads = STAGES.reduce((acc, stage) => {
-        // ... (lógica de agrupamento e filtro mantida) ...
-        const filteredByStage = leads.filter(lead => 
-            (lead.status && (lead.status.toLowerCase().includes(stage.id) || lead.status === stage.title))
-        );
-        
-        const finalFilteredLeads = filteredByStage.filter(lead => {
+    // 1. Lógica para filtrar Leads PELA FASE ATIVA E PELO TERMO DE BUSCA
+    const currentStage = STAGES.find(s => s.id === activeStage);
+    
+    const filteredLeads = leads
+        .filter(lead => 
+            // Filtro por fase
+            (lead.status && (lead.status.toLowerCase().includes(activeStage) || lead.status === currentStage.title))
+        )
+        .filter(lead => {
+            // Filtro por termo de busca
             const term = searchTerm.toLowerCase();
             return (
                 (lead.name && lead.name.toLowerCase().includes(term)) ||
@@ -96,21 +68,30 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                 (lead.phone && lead.phone.toLowerCase().includes(term))
             );
         });
-        
-        acc[stage.id] = finalFilteredLeads;
-        return acc;
-    }, {});
-    
-    // Função para renderizar as colunas
-    const renderColumns = () => {
-        return STAGES.map(stage => (
-            <KanbanColumn 
-                key={stage.id} 
-                stage={stage} 
-                leads={groupedLeads[stage.id] || []} 
-            />
-        ));
-    }
+
+    // 2. Função para renderizar as abas (Fases)
+    const renderStageTabs = () => (
+        <div className="flex space-x-2 md:space-x-4 border-b border-gray-200 overflow-x-auto pb-2 mb-6">
+            {STAGES.map(stage => {
+                const isActive = stage.id === activeStage;
+                // Estilo para a aba ativa (destaque)
+                const activeClasses = 'bg-indigo-600 text-white shadow-lg border-b-2 border-indigo-500';
+                // Estilo para a aba inativa
+                const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border-b-2 border-transparent';
+
+                return (
+                    <button
+                        key={stage.id}
+                        onClick={() => setActiveStage(stage.id)}
+                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base ${isActive ? activeClasses : inactiveClasses}`}
+                        style={{ borderBottomColor: isActive ? stage.color : 'transparent' }} // Destaque de cor opcional
+                    >
+                        {stage.title}
+                    </button>
+                );
+            })}
+        </div>
+    );
 
 
     return (
@@ -123,14 +104,12 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
             />
 
             {/* 2. Área de Conteúdo Principal */}
-            {/* md:ml-64 empurra o conteúdo para a direita, deixando espaço para a Sidebar */}
             <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
                 
                 {/* 2.1. Header Fixo (Barra de Busca e Título) */}
                 <header className="sticky top-0 z-30 bg-white shadow-lg p-4 flex items-center justify-between border-b border-gray-200">
                     
                     <div className="flex items-center">
-                        {/* Botão para abrir a Sidebar no Mobile */}
                         <button 
                             onClick={() => setIsSidebarOpen(true)}
                             className="text-gray-600 p-2 rounded-full hover:bg-gray-100 md:hidden transition"
@@ -139,7 +118,7 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                             <Menu size={24} />
                         </button>
                         <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
-                            ®FerreiraNei 
+                            Gestão de Leads
                         </h1>
                     </div>
                     
@@ -159,19 +138,31 @@ const KanbanBoard = ({ leads, loading, error, searchTerm, setSearchTerm, handleL
                 </header>
 
                 {/* 2.2. Main Content Area */}
-                <main className="p-4 sm:p-6 flex-1 overflow-x-auto">
+                <main className="p-4 sm:p-6 flex-1">
+                    
+                    {/* ✅ NOVO LAYOUT: ABAS DE FASES NA PARTE SUPERIOR */}
+                    {renderStageTabs()}
+
                     {/* Mensagens de Estado */}
                     {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
                     
                     {loading ? (
                         <div className="flex justify-center items-center h-64 bg-white rounded-xl shadow-lg">
                             <Loader2 className="animate-spin h-8 w-8 text-indigo-500 mr-2" />
-                            <span className="text-lg text-indigo-500">Carregando Etapas...</span>
+                            <span className="text-lg text-indigo-500">Carregando Leads...</span>
                         </div>
                     ) : (
-                        // Kanban Container: flex e overflow-x-auto são essenciais para as colunas horizontais
-                        <div className="flex space-x-6 h-full min-h-[70vh] items-start pb-4">
-                            {renderColumns()}
+                        // Lista de Leads Filtrados
+                        <div className="space-y-4">
+                            {filteredLeads.length > 0 ? (
+                                filteredLeads.map(lead => <LeadCard key={lead.id} lead={lead} />)
+                            ) : (
+                                <div className="text-center text-gray-500 p-12 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
+                                    <Zap size={24} className="mx-auto mb-3 text-indigo-400" />
+                                    <p>Nenhum Lead encontrado na fase **{currentStage.title}**.</p>
+                                    <p className="text-sm mt-1">Use a barra de busca ou mude de fase para encontrar Leads.</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// ✅ Importação correta:
 import KanbanBoard from './KanbanBoard'; 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+// ✅ CORREÇÃO: Usando a variável de ambiente padronizada para maior compatibilidade.
+// O valor padrão ('https://crm-app-cnf7.onrender.com') foi mantido como fallback.
+const API_BASE_URL = window.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -12,6 +13,10 @@ const Dashboard = () => {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
+    
+    // ✅ ESTADO: Controla qual fase (aba) está ativa.
+    // 'contatar' é o ID da primeira fase (Para Contatar).
+    const [activeStage, setActiveStage] = useState('contatar');
 
     const token = localStorage.getItem('token');
 
@@ -31,7 +36,7 @@ const Dashboard = () => {
         const fetchLeads = async () => {
             setLoading(true);
             try {
-                // Se a URL da API não for acessível, o erro é pego
+                // Endpoint para buscar todos os leads do usuário
                 const response = await fetch(`${API_BASE_URL}/api/leads`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
@@ -54,8 +59,7 @@ const Dashboard = () => {
         fetchLeads();
     }, [token, navigate]);
 
-    // O Dashboard agora só passa os dados e estados para o KanbanBoard
-    // Se esta função for executada, a tela não fica vazia.
+    // O Dashboard passa todos os dados e estados para o KanbanBoard
     return (
         <KanbanBoard 
             leads={leads}
@@ -66,6 +70,9 @@ const Dashboard = () => {
             handleLogout={handleLogout}
             isSidebarOpen={isSidebarOpen}
             setIsSidebarOpen={setIsSidebarOpen}
+            // ✅ PROPS PASSADAS PARA O NOVO LAYOUT DE ABAS
+            activeStage={activeStage}
+            setActiveStage={setActiveStage}
         />
     );
 };
