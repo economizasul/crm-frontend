@@ -1,9 +1,8 @@
-// Garante que o PostCSS configure o Tailwind para o seu build.
-export default {
-  plugins: {
-    // ✅ CORREÇÃO: Usamos o nome do pacote 'tailwindcss' como chave, 
-    // com um objeto vazio como valor. Esta é a sintaxe preferida para Vite/PostCSS.
-    tailwindcss: {},
-    autoprefixer: {},
-  },
+// Exportamos o módulo para garantir que o ambiente de build o encontre.
+module.exports = {
+  plugins: [
+    // Usamos 'require' para carregar os plugins de forma direta, ignorando conflitos de sintaxe ESM.
+    require('tailwindcss'),
+    require('autoprefixer'),
+  ],
 };
