@@ -6,15 +6,17 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   
-  // 🚨 CONFIGURAÇÃO CRÍTICA PARA RESOLUÇÃO DE MÓDULOS
   resolve: {
+    // 🚨 1. Mantém o alias @/ como fallback (se o seu Dashboard.jsx usar @/Sidebar)
     alias: {
-      // O alias @ agora aponta para a pasta src, garantindo que o caminho seja absoluto
       '@': path.resolve(__dirname, './src'), 
     },
+    
+    // 🚨 2. ADICIONA .jsx e .js para resolução automática de arquivos
+    // Isso garante que ele tente carregar "Sidebar.jsx" ou "Sidebar.js" se for importado como "Sidebar"
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
 
-  // Mantendo sua base e build, mas inserindo o 'resolve'
   base: '/',
   build: {
     rollupOptions: {
