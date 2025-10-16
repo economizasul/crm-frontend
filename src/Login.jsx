@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
 
-// URL DO BACKEND - Usamos a variável de ambiente para ser flexível
+// URL DO BACKEND
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 function Login() {
@@ -27,13 +27,12 @@ function Login() {
             if (response.ok) {
                 const data = await response.json();
                 
-                // Salva o token e o userId no localStorage
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('userId', data.id); // Ajustado para 'id' conforme o backend
+                // ATENÇÃO: Verifique se o backend retorna 'id' ou 'userId'
+                localStorage.setItem('userId', data.id || data.userId); 
                 
                 setMessage('Login realizado com sucesso! Redirecionando...');
                 
-                // Redireciona para o Dashboard (ou Kanban Board)
                 navigate('/dashboard', { replace: true });
             } else {
                 const errorData = await response.json();
@@ -49,25 +48,24 @@ function Login() {
     };
 
     return (
-        // Layout centralizado com fundo degradê
+        // Layout centralizado com fundo sutil
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <div className="w-full max-w-md bg-white p-8 space-y-8 rounded-2xl shadow-2xl border border-gray-100">
                 
                 {/* Cabeçalho */}
                 <div className="text-center">
                     <h1 className="text-4xl font-extrabold text-gray-900">
-                        GEOCRM
+                        ECONOMIZA SUL CRM {/* ✅ TEXTO ALTERADO */}
                     </h1>
                     <h2 className="mt-2 text-xl font-semibold text-gray-600 flex items-center justify-center space-x-2">
                         <LogIn className="w-6 h-6 text-indigo-500" />
-                        <span>Acessar o Painel</span>
+                        <span>ACESSAR</span> {/* ✅ TEXTO ALTERADO */}
                     </h2>
                 </div>
 
-                {/* Formulário */}
+                {/* Formulário (Mantido) */}
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    
-                    {/* Campo E-mail */}
+                    {/* Campos de E-mail e Senha... */}
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
                             <label htmlFor="email" className="sr-only">E-mail</label>
@@ -86,7 +84,6 @@ function Login() {
                             </div>
                         </div>
                         
-                        {/* Campo Senha */}
                         <div>
                             <label htmlFor="password" className="sr-only">Senha</label>
                             <div className="relative">
@@ -120,14 +117,13 @@ function Login() {
                     </button>
                 </form>
                 
-                {/* Mensagens de Erro/Sucesso */}
+                {/* Mensagens de Erro/Sucesso e Link de Cadastro (Mantidos) */}
                 {message && message !== 'Tentando login...' && (
                     <div className={`p-3 rounded-lg text-sm text-center ${message.includes('sucesso') ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
                         {message}
                     </div>
                 )}
                 
-                {/* Link de Cadastro */}
                 <div className="text-center pt-2">
                     <p className="text-sm text-gray-600">
                         Não tem uma conta?{' '}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-// IMPORTAÇÃO CORRETA PRESUMINDO QUE AMBOS ESTÃO EM 'SRC/'
+// ✅ Importação correta:
 import KanbanBoard from './KanbanBoard'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -15,15 +15,14 @@ const Dashboard = () => {
 
     const token = localStorage.getItem('token');
 
-    // Função de Logout
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         navigate('/login', { replace: true });
     };
 
-    // Lógica de Fetch de Leads
     useEffect(() => {
+        // ESSA VERIFICAÇÃO É CRUCIAL PARA NÃO FICAR VAZIA
         if (!token) {
             handleLogout(); 
             return;
@@ -32,13 +31,13 @@ const Dashboard = () => {
         const fetchLeads = async () => {
             setLoading(true);
             try {
+                // Se a URL da API não for acessível, o erro é pego
                 const response = await fetch(`${API_BASE_URL}/api/leads`, {
                     headers: { 'Authorization': `Bearer ${token}` },
                 });
 
                 if (!response.ok) {
                     if (response.status === 401) handleLogout();
-                    // Lança o erro para o bloco catch
                     throw new Error(`Erro ao buscar leads: ${response.statusText}`);
                 }
 
@@ -46,8 +45,7 @@ const Dashboard = () => {
                 setLeads(data);
             } catch (err) {
                 console.error("Erro no fetch de leads:", err);
-                // Exibe erro na tela
-                setError("Falha ao carregar os dados. Verifique a API.");
+                setError("Falha ao carregar os dados. Verifique a API. (Pode ser erro de CORS/Rede)");
             } finally {
                 setLoading(false);
             }
@@ -57,6 +55,7 @@ const Dashboard = () => {
     }, [token, navigate]);
 
     // O Dashboard agora só passa os dados e estados para o KanbanBoard
+    // Se esta função for executada, a tela não fica vazia.
     return (
         <KanbanBoard 
             leads={leads}
