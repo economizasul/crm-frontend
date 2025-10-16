@@ -94,89 +94,51 @@ const KanbanBoard = ({
 
 
     return (
-        <div className="flex min-h-screen bg-gray-50">
-            {/* 1. Sidebar (Menu Lateral) */}
-            <Sidebar 
-                handleLogout={handleLogout} 
-                isSidebarOpen={isSidebarOpen} 
-                setIsSidebarOpen={setIsSidebarOpen} 
-            />
+        // Garante que o conteúdo principal ocupe o espaço restante
+        <div className="flex-1 p-6">
+            
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
+            
+            {/* 1. Renderiza as abas de fases (que já estão horizontais) */}
+            {renderStageTabs()}
+            
+            {/* 2. Barra de busca e Alerta de Erro */}
+            {renderSearchBar()}
+            {apiError && ( 
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong className="font-bold">Falha ao carregar os dados.</strong>
+                    <span className="block sm:inline"> Verifique a API. (Pode ser erro de CORS/Rede)</span>
+                </div>
+            )}
 
-            {/* 2. Área de Conteúdo Principal */}
-            <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
-                
-                {/* 2.1. Header Fixo (Barra de Busca e Título) */}
-                <header className="sticky top-0 z-30 bg-white shadow-lg p-4 flex items-center justify-between border-b border-gray-200">
-                    
-                    <div className="flex items-center">
-                        <button 
-                            onClick={() => setIsSidebarOpen(true)}
-                            className="text-gray-600 p-2 rounded-full hover:bg-gray-100 md:hidden transition"
-                            aria-label="Abrir Menu"
-                        >
-                            <Menu size={24} />
+            {/* 🚨 3. CONTAINER DAS COLUNAS DE FASE (LAYOUT KANBAN HORIZONTAL) 🚨 */}
+            <div className="flex space-x-4 overflow-x-auto pb-4">
+                {STAGES.map(stage => (
+                    // ✅ Coluna individual: w-64 para largura fixa, flex-shrink-0 para não encolher.
+                    <div 
+                        key={stage.id} 
+                        className="flex-shrink-0 w-64 p-3 bg-gray-100 rounded-lg shadow-inner"
+                    >
+                        {/* Título da Fase */}
+                        <h3 className="font-semibold text-lg mb-3 text-gray-800 border-b pb-2">
+                            {stage.title}
+                        </h3>
+                        
+                        {/* Placeholder/Indicador de Leads (corpo da coluna) */}
+                        <div className="text-sm text-gray-500 mb-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
+                            Nenhum Lead nesta etapa.
+                        </div>
+                        
+                        {/* Botão Novo Lead */}
+                        <button className="w-full py-2 px-4 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2">
+                            <span>+ Novo Lead</span>
                         </button>
-                        <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
-                            ®Ferreira Nei
-                        </h1>
-                    </div>
-                    
-                    {/* Campo de Busca */}
-                    <div className="relative w-full max-w-sm md:max-w-md">
-                        <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar leads por nome, endereço ou telefone..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)} 
-                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-full shadow-inner focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                        />
-                    </div>
-                    
-                    <div className="hidden sm:block w-10"></div>
-                </header>
 
-                {/* 2.2. Main Content Area */}
-                <main className="p-4 sm:p-6 flex-1">
-                    
-                    {/* ABAS DE FASES NA PARTE SUPERIOR (CORRIGIDAS) */}
-                    {renderStageTabs()}
-
-                    {/* Mensagens de Estado */}
-                    {error && <div className="bg-red-100 text-red-700 p-4 rounded-lg mb-4">{error}</div>}
-                    
-                    {loading ? (
-                        <div className="flex justify-center items-center h-64 bg-white rounded-xl shadow-lg">
-                            <Loader2 className="animate-spin h-8 w-8 text-indigo-500 mr-2" />
-                            <span className="text-lg text-indigo-500">Carregando Leads...</span>
-                        </div>
-                    ) : (
-                        // Lista de Leads Filtrados
-                        <div className="space-y-4">
-                            {filteredLeads.length > 0 ? (
-                                filteredLeads.map(lead => <LeadCard key={lead.id} lead={lead} />)
-                            ) : (
-                                <div className="text-center text-gray-500 p-12 border-2 border-dashed border-gray-300 rounded-xl bg-white shadow-sm">
-                                    <Zap size={24} className="mx-auto mb-3 text-indigo-400" />
-                                    <p>Nenhum Lead encontrado na fase **{currentStage.title}**.</p>
-                                    <p className="text-sm mt-1">Use a barra de busca ou mude de fase para encontrar Leads.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </main>
-                
-                {/* Botão Flutuante de Adicionar NOVO LEAD (Cadastro) */}
-                <button 
-                    onClick={() => navigate('/leads/cadastro')}
-                    className="fixed bottom-6 right-6 bg-indigo-600 text-white p-4 rounded-full shadow-xl hover:bg-indigo-700 transition duration-300 z-40 flex items-center justify-center"
-                    title="Adicionar Novo Lead"
-                >
-                    <Plus size={28} />
-                </button>
+                    </div>
+                ))}
             </div>
+
         </div>
     );
-};
 
 export default KanbanBoard;
