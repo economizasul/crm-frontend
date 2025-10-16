@@ -12,7 +12,7 @@ const STAGES = [
     { id: 'perdido', title: '5. Perdido', color: 'bg-gray-500' },
 ];
 
-// Componente LeadCard (Visualização em Lista)
+// Componente LeadCard (Visualização em Lista) - Mantido igual para consistência
 const LeadCard = ({ lead }) => {
     return (
         <div className="bg-white p-4 rounded-xl shadow-md border-l-4 border-indigo-500 mb-4 hover:shadow-lg transition duration-150">
@@ -30,7 +30,6 @@ const LeadCard = ({ lead }) => {
                     <span className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer flex items-center">
                         Ver Detalhes <ArrowRight size={10} className="inline ml-1" />
                     </span>
-                    {/* Exemplo de botão de Ação Rápida */}
                     <button className="mt-2 text-xs bg-indigo-500 text-white px-3 py-1 rounded-full hover:bg-indigo-600 transition">
                         Mudar Fase
                     </button>
@@ -56,11 +55,9 @@ const KanbanBoard = ({
     
     const filteredLeads = leads
         .filter(lead => 
-            // Filtro por fase
             (lead.status && (lead.status.toLowerCase().includes(activeStage) || lead.status === currentStage.title))
         )
         .filter(lead => {
-            // Filtro por termo de busca
             const term = searchTerm.toLowerCase();
             return (
                 (lead.name && lead.name.toLowerCase().includes(term)) ||
@@ -71,20 +68,23 @@ const KanbanBoard = ({
 
     // 2. Função para renderizar as abas (Fases)
     const renderStageTabs = () => (
-        <div className="flex space-x-2 md:space-x-4 border-b border-gray-200 overflow-x-auto pb-2 mb-6">
+        // ✅ space-x-4 para espaçamento entre os botões
+        <div className="flex space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
             {STAGES.map(stage => {
                 const isActive = stage.id === activeStage;
                 // Estilo para a aba ativa (destaque)
-                const activeClasses = 'bg-indigo-600 text-white shadow-lg border-b-2 border-indigo-500';
+                const activeClasses = 'bg-indigo-600 text-white shadow-lg';
                 // Estilo para a aba inativa
-                const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border-b-2 border-transparent';
+                const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
 
                 return (
                     <button
                         key={stage.id}
                         onClick={() => setActiveStage(stage.id)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold transition-colors duration-200 text-sm md:text-base ${isActive ? activeClasses : inactiveClasses}`}
-                        style={{ borderBottomColor: isActive ? stage.color : 'transparent' }} // Destaque de cor opcional
+                        // ✅ w-[200px] para largura fixa e text-center para centralizar o texto
+                        className={`flex-shrink-0 w-[200px] text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
+                            ${isActive ? activeClasses : inactiveClasses}`}
+                        // Removida a borda inferior, usando o fundo e a sombra para destaque.
                     >
                         {stage.title}
                     </button>
@@ -140,7 +140,7 @@ const KanbanBoard = ({
                 {/* 2.2. Main Content Area */}
                 <main className="p-4 sm:p-6 flex-1">
                     
-                    {/* ✅ NOVO LAYOUT: ABAS DE FASES NA PARTE SUPERIOR */}
+                    {/* ✅ ABAS DE FASES NA PARTE SUPERIOR (CORRIGIDAS) */}
                     {renderStageTabs()}
 
                     {/* Mensagens de Estado */}
