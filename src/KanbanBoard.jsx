@@ -118,7 +118,7 @@ const KanbanBoard = ({
                             <Menu size={24} />
                         </button>
                         <h1 className="text-3xl font-extrabold text-gray-800 ml-3 hidden sm:block">
-                            Gestão de Leads
+                            ®FerreiraNei
                         </h1>
                     </div>
                     
