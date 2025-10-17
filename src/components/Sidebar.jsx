@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom'; // 🚨 IMPORTAÇÃO DO useNavigate
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
 
 // Estilos para os links de navegação
@@ -10,22 +10,33 @@ const LinkClass = ({ isActive }) =>
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
 
 const Sidebar = () => {
-    // Menu de navegação
+    const navigate = useNavigate(); // 🚨 INICIALIZAÇÃO DO HOOK DE NAVEGAÇÃO
+
+    // Lógica para sair: Limpa o token e navega para a tela de login
+    const handleLogout = () => {
+        // 1. Limpa qualquer token de autenticação ou dados do usuário no localStorage
+        localStorage.removeItem('userToken'); 
+        localStorage.removeItem('userData');
+        
+        // 2. Redireciona para a tela de login
+        navigate('/login'); 
+    };
+    
+    // Menu de navegação (mantido)
     const navItems = [
         { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' },
         { name: 'Kanban Leads', icon: FaRegListAlt, path: '/dashboard' },
         { name: 'Cadastrar Lead', icon: FaUserPlus, path: '/register-lead' },
-        { name: 'Transferir Lead', icon: FaExchangeAlt, path: '/transfer-lead' },
+        { name: 'Transferir Lead', icon: FaExchangeAlt, path: '/transferir-lead' },
     ];
     
-    // Menu de rodapé/configurações
+    // Menu de rodapé/configurações (mantido)
     const footerItems = [
         { name: 'Relatórios', icon: FaChartBar, path: '/reports' },
         { name: 'Configurações', icon: FaCogs, path: '/settings' },
     ];
 
     return (
-        // Sidebar: largura fixa (w-64), fundo escuro e altura total
         <div className="w-64 flex flex-col bg-indigo-800 text-white h-full p-4 shadow-xl">
             
             {/* Título Principal */}
@@ -54,7 +65,8 @@ const Sidebar = () => {
 
                 {/* Botão Sair */}
                 <button 
-                    onClick={() => console.log('Saindo...')} // Adicionar lógica de logout real
+                    // 🚨 CHAMADA DA FUNÇÃO handleLogout
+                    onClick={handleLogout}
                     className="w-full flex items-center space-x-3 p-3 rounded-xl text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200 justify-start"
                 >
                     <FaSignOutAlt className="w-5 h-5" />
