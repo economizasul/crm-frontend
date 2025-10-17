@@ -16,36 +16,14 @@ const KanbanBoard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [apiError, setApiError] = useState(false);
     
-    // Filtra os leads baseando-se na fase ativa e no termo de busca
+    // Filtra os leads (lógica que será usada quando a API funcionar)
     const filteredLeads = leads.filter(lead => {
         const matchesStage = lead.stageId === activeStage;
         const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesStage && matchesSearch;
     });
 
-    // 1. Função para renderizar as abas de fases no topo
-    const renderStageTabs = () => (
-        <div className="flex flex-wrap space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
-            {STAGES.map(stage => {
-                const isActive = stage.id === activeStage;
-                const activeClasses = 'bg-indigo-600 text-white shadow-lg';
-                const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
-                
-                return (
-                    <button
-                        key={stage.id}
-                        onClick={() => setActiveStage(stage.id)}
-                        className={`flex-shrink-0 w-48 text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
-                            ${isActive ? activeClasses : inactiveClasses}`}
-                    >
-                        {stage.title}
-                    </button>
-                );
-            })}
-        </div>
-    );
-
-    // 2. Função para renderizar a barra de busca
+    // Função para renderizar a barra de busca
     const renderSearchBar = () => (
         <div className="mb-6">
             <div className="relative">
@@ -61,22 +39,40 @@ const KanbanBoard = () => {
         </div>
     );
     
-    // Opcional: Efeito para carregar dados (manteremos o erro visual por enquanto)
+    // Opcional: Simulação de erro de API
     useEffect(() => {
-        // Simulação de falha de API
         setApiError(true);
     }, []);
 
     return (
-        // flex-1 garante que o conteúdo principal ocupe o espaço restante
+        // O px-6 e pt-6 (padding) devem estar no Dashboard.jsx,
+        // mas mantemos aqui para garantir o layout interno.
         <div className="flex-1 p-6">
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
-            {/* 1. Abas de Fases */}
-            {renderStageTabs()}
-            
-            {/* 2. Barra de busca e Alerta de Erro */}
+            {/* 🚨 Nova Estrutura de Abas de Fases Horizontal (Botões) 🚨 */}
+            {/* Mantemos esta estrutura para navegação entre as colunas, se necessário */}
+            <div className="flex flex-wrap space-x-4 border-b border-gray-200 overflow-x-auto pb-4 mb-6">
+                {STAGES.map(stage => {
+                    const isActive = stage.id === activeStage;
+                    const activeClasses = 'bg-indigo-600 text-white shadow-lg';
+                    const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
+                    
+                    return (
+                        <button
+                            key={stage.id}
+                            onClick={() => setActiveStage(stage.id)}
+                            className={`flex-shrink-0 w-48 text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
+                                ${isActive ? activeClasses : inactiveClasses}`}
+                        >
+                            {stage.title}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Barra de busca e Alerta de Erro */}
             {renderSearchBar()}
             {apiError && ( 
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center" role="alert">
@@ -86,11 +82,10 @@ const KanbanBoard = () => {
                 </div>
             )}
 
-            {/* 🚨 3. CONTAINER DAS COLUNAS DE FASE (LAYOUT KANBAN HORIZONTAL) 🚨 */}
-            {/* flex para colunas lado a lado, space-x-6 para espaçamento, overflow-x-auto para rolagem */}
+            {/* 🚨 CONTAINER PRINCIPAL DAS COLUNAS DE FASE HORIZONTAL 🚨 */}
             <div className="flex space-x-6 overflow-x-auto pb-4">
                 {STAGES.map(stage => (
-                    // ✅ Coluna individual: w-64 para largura fixa e flex-shrink-0 para não encolher.
+                    // Coluna individual: w-64 para largura fixa e flex-shrink-0 para não encolher.
                     <div 
                         key={stage.id} 
                         className="flex-shrink-0 w-64 p-3 bg-gray-100 rounded-lg shadow-inner"
@@ -118,5 +113,4 @@ const KanbanBoard = () => {
     );
 };
 
-// AQUI ESTÁ A ÚNICA EXPORTAÇÃO NECESSÁRIA PARA CORRIGIR O ERRO DE BUILD
 export default KanbanBoard;
