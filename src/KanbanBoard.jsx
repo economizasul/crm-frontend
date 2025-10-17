@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
 import axios from 'axios'; // 🚨 IMPORTAÇÃO DO AXIOS
 
-// Definição estática das fases do Kanban (Ajustada para a visualização final)
+// Definição estática das fases do Kanban
 const STAGES = [
     { id: 1, title: 'Para Contatar', color: 'bg-blue-500' },
     { id: 2, title: 'Em Conversação', color: 'bg-yellow-500' },
@@ -18,20 +18,14 @@ const KanbanBoard = () => {
     const [apiError, setApiError] = useState(false); // Assume sucesso inicial
     const [isLoading, setIsLoading] = useState(true); // NOVO ESTADO PARA O CARREGAMENTO
     
-    // 🚨 1. SUBSTITUA PELA URL REAL DA SUA API 🚨
-    const API_URL = 'SUA_URL_DO_BACKEND/api/leads'; 
+    // 🚨 SUBSTITUA PELA URL REAL DA SUA API 🚨
+    const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
 
-    // 2. FUNÇÃO PARA BUSCAR OS LEADS
+    // FUNÇÃO PARA BUSCAR OS LEADS
     useEffect(() => {
         const fetchLeads = async () => {
-            // Se você usa token de autenticação, recupere-o aqui (ex: const token = localStorage.getItem('token');)
-            
             try {
-                // Adicione headers de autorização se necessário:
-                // const config = { headers: { Authorization: `Bearer ${token}` } };
-                // const response = await axios.get(API_URL, config);
-                
-                const response = await axios.get(API_URL); // Requisição simples
+                const response = await axios.get(API_URL);
                 
                 // Atualiza os estados
                 setLeads(response.data); 
@@ -40,12 +34,12 @@ const KanbanBoard = () => {
                 console.error('Erro ao buscar leads:', error);
                 setApiError(true);
             } finally {
-                setIsLoading(false); // Fim do carregamento, independentemente do sucesso/falha
+                setIsLoading(false); 
             }
         };
 
         fetchLeads();
-    }, []); // Array de dependência vazio para rodar apenas uma vez na montagem
+    }, []); 
 
     // Lógica para renderizar a barra de busca (no topo)
     const renderSearchBar = () => (
@@ -63,7 +57,7 @@ const KanbanBoard = () => {
         </div>
     );
 
-    // Função para renderizar o corpo da coluna (agora com leads/estados de carregamento)
+    // Função para renderizar o corpo da coluna (com leads/estados de carregamento)
     const renderColumnContent = (stageId) => {
         if (isLoading) {
             return <div className="text-center text-gray-400">Carregando...</div>;
@@ -80,7 +74,6 @@ const KanbanBoard = () => {
         }
         
         if (stageLeads.length === 0) {
-            // Placeholder: Nenhum Lead
             return (
                 <div className="text-sm text-gray-500 mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
                     Nenhum Lead nesta etapa.
@@ -92,7 +85,6 @@ const KanbanBoard = () => {
         return (
             <div>
                 {stageLeads.map(lead => (
-                    // Você pode substituir por um componente <LeadCard key={lead.id} lead={lead} />
                     <div key={lead.id} className="bg-white p-3 mb-2 rounded shadow text-sm border-l-4 border-indigo-500">
                         {lead.name}
                     </div>
@@ -107,7 +99,7 @@ const KanbanBoard = () => {
             {/* Barra de Pesquisa no Topo */}
             {renderSearchBar()}
             
-            {/* Alerta de Erro (Mostra o alerta grande se a API falhar) */}
+            {/* Alerta de Erro */}
             {apiError && ( 
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center" role="alert">
                     <FaBolt className="mr-3" />
@@ -144,7 +136,6 @@ const KanbanBoard = () => {
                         className="flex-shrink-0 w-48 p-3 bg-white rounded-lg shadow-md"
                     >
                         
-                        {/* 🚨 CONTEÚDO DA COLUNA (AGORA COM ESTADO DE CARREGAMENTO) 🚨 */}
                         {renderColumnContent(stage.id)} 
                         
                         {/* Botão Novo Lead */}
