@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
-import axios from 'axios'; // 🚨 IMPORTAÇÃO DO AXIOS
+import axios from 'axios';
 
 // Definição estática das fases do Kanban
 const STAGES = [
@@ -15,23 +15,40 @@ const KanbanBoard = () => {
     const [leads, setLeads] = useState([]);
     const [activeStage, setActiveStage] = useState(STAGES[0].id);
     const [searchTerm, setSearchTerm] = useState('');
-    const [apiError, setApiError] = useState(false); // Assume sucesso inicial
-    const [isLoading, setIsLoading] = useState(true); // NOVO ESTADO PARA O CARREGAMENTO
+    const [apiError, setApiError] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     
-    // 🚨 SUBSTITUA PELA URL REAL DA SUA API 🚨
     const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
 
     // FUNÇÃO PARA BUSCAR OS LEADS
     useEffect(() => {
         const fetchLeads = async () => {
+            // BUSCA O TOKEN NO LOCALSTORAGE
+            const token = localStorage.getItem('userToken'); // Assumindo que você salva o token como 'userToken'
+            
+            if (!token) {
+                // Se não houver token, pare a requisição e exiba o erro
+                console.error("Token de autenticação não encontrado.");
+                setApiError(true);
+                setIsLoading(false);
+                return;
+            }
+
             try {
-                const response = await axios.get(API_URL);
+                // ADICIONA O TOKEN NO CABEÇALHO 'Authorization'
+                const config = {
+                    headers: {
+                        'Authorization': `Bearer ${token}` 
+                    }
+                };
+
+                const response = await axios.get(API_URL, config);
                 
                 // Atualiza os estados
                 setLeads(response.data); 
                 setApiError(false);
             } catch (error) {
-                console.error('Erro ao buscar leads:', error);
+                console.error('Erro ao buscar leads:', error.response ? error.response.data : error.message);
                 setApiError(true);
             } finally {
                 setIsLoading(false); 
