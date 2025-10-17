@@ -1,6 +1,6 @@
 import React from 'react';
-import Sidebar from './components/sidebar.jsx'; 
-import KanbanBoard from './kanbanboard.jsx';
+import Sidebar from './components/Sidebar.jsx'; 
+import KanbanBoard from './kanbanBoard.jsx';
 
 const Dashboard = () => {
     return (
