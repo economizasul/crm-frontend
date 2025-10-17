@@ -109,7 +109,7 @@ const KanbanBoard = () => {
             )}
             
             {/* ABAS DE FASES HORIZONTAIS (Botões de navegação) */}
-            <div className="flex flex-wrap space-x-4 mb-6">
+            <div className="flex flex-wrap space-x-6 mb-6">
                 {STAGES.map(stage => {
                     const isActive = stage.id === activeStage;
                     const activeClasses = 'bg-indigo-600 text-white shadow-lg';
