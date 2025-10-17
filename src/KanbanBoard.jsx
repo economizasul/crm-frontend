@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
+import axios from 'axios'; // 🚨 IMPORTAÇÃO DO AXIOS
 
-// Definição estática das fases do Kanban
+// Definição estática das fases do Kanban (Ajustada para a visualização final)
 const STAGES = [
-    { id: 1, title: 'Para Contatar', color: 'bg-blue-500' }, // Títulos mais curtos como na imagem
+    { id: 1, title: 'Para Contatar', color: 'bg-blue-500' },
     { id: 2, title: 'Em Conversação', color: 'bg-yellow-500' },
     { id: 3, title: 'Proposta Enviada', color: 'bg-green-500' },
     { id: 4, title: 'Fechado', color: 'bg-gray-500' },
@@ -14,13 +15,41 @@ const KanbanBoard = () => {
     const [leads, setLeads] = useState([]);
     const [activeStage, setActiveStage] = useState(STAGES[0].id);
     const [searchTerm, setSearchTerm] = useState('');
-    const [apiError, setApiError] = useState(true); // Manter como 'true' por enquanto
+    const [apiError, setApiError] = useState(false); // Assume sucesso inicial
+    const [isLoading, setIsLoading] = useState(true); // NOVO ESTADO PARA O CARREGAMENTO
+    
+    // 🚨 1. SUBSTITUA PELA URL REAL DA SUA API 🚨
+    const API_URL = 'SUA_URL_DO_BACKEND/api/leads'; 
 
-    // ... (restante da lógica de filtragem e useEffect)
+    // 2. FUNÇÃO PARA BUSCAR OS LEADS
+    useEffect(() => {
+        const fetchLeads = async () => {
+            // Se você usa token de autenticação, recupere-o aqui (ex: const token = localStorage.getItem('token');)
+            
+            try {
+                // Adicione headers de autorização se necessário:
+                // const config = { headers: { Authorization: `Bearer ${token}` } };
+                // const response = await axios.get(API_URL, config);
+                
+                const response = await axios.get(API_URL); // Requisição simples
+                
+                // Atualiza os estados
+                setLeads(response.data); 
+                setApiError(false);
+            } catch (error) {
+                console.error('Erro ao buscar leads:', error);
+                setApiError(true);
+            } finally {
+                setIsLoading(false); // Fim do carregamento, independentemente do sucesso/falha
+            }
+        };
 
-    // Função para renderizar a barra de busca (agora no topo)
+        fetchLeads();
+    }, []); // Array de dependência vazio para rodar apenas uma vez na montagem
+
+    // Lógica para renderizar a barra de busca (no topo)
     const renderSearchBar = () => (
-        <div className="mb-6"> {/* Espaçamento após a barra */}
+        <div className="mb-6">
             <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
@@ -34,19 +63,51 @@ const KanbanBoard = () => {
         </div>
     );
 
+    // Função para renderizar o corpo da coluna (agora com leads/estados de carregamento)
+    const renderColumnContent = (stageId) => {
+        if (isLoading) {
+            return <div className="text-center text-gray-400">Carregando...</div>;
+        }
+
+        const stageLeads = leads.filter(lead => lead.stageId === stageId);
+
+        if (apiError) {
+            return (
+                <div className="text-sm text-red-500 text-center">
+                    Erro de conexão.
+                </div>
+            );
+        }
+        
+        if (stageLeads.length === 0) {
+            // Placeholder: Nenhum Lead
+            return (
+                <div className="text-sm text-gray-500 mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
+                    Nenhum Lead nesta etapa.
+                </div>
+            );
+        }
+
+        // Renderização dos cards de Lead (exemplo)
+        return (
+            <div>
+                {stageLeads.map(lead => (
+                    // Você pode substituir por um componente <LeadCard key={lead.id} lead={lead} />
+                    <div key={lead.id} className="bg-white p-3 mb-2 rounded shadow text-sm border-l-4 border-indigo-500">
+                        {lead.name}
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
-        // flex-1 p-6 para o padding geral e para ocupar o espaço restante na main
-        <div className="flex-1 p-6"> 
+        <div className="flex-1 p-6">
             
-            {/* 🚨 1. Barra de Pesquisa no Topo, acima de tudo 🚨 */}
+            {/* Barra de Pesquisa no Topo */}
             {renderSearchBar()}
             
-            {/* 🚨 2. Título do Kanban (Removido ou Ajustado para a imagem) */}
-            {/* <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1> */}
-            {/* O título "Kanban de Leads" da imagem parece ser parte do Sidebar.jsx ou do Dashboard.jsx,
-                então o removemos daqui para evitar duplicação e seguir a imagem. */}
-            
-            {/* Alerta de Erro (Mantido) */}
+            {/* Alerta de Erro (Mostra o alerta grande se a API falhar) */}
             {apiError && ( 
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center" role="alert">
                     <FaBolt className="mr-3" />
@@ -55,9 +116,8 @@ const KanbanBoard = () => {
                 </div>
             )}
             
-            {/* 🚨 3. ABAS DE FASES HORIZONTAIS (Botões de navegação, sem duplicidade) 🚨 */}
-            {/* O espaçamento e o design dos botões devem ficar como na imagem */}
-            <div className="flex flex-wrap space-x-4 mb-6"> {/* Removido border-b e pb-4 aqui para um visual mais limpo */}
+            {/* ABAS DE FASES HORIZONTAIS (Botões de navegação) */}
+            <div className="flex flex-wrap space-x-4 mb-6">
                 {STAGES.map(stage => {
                     const isActive = stage.id === activeStage;
                     const activeClasses = 'bg-indigo-600 text-white shadow-lg';
@@ -76,30 +136,21 @@ const KanbanBoard = () => {
                 })}
             </div>
 
-            {/* 🚨 4. CONTAINER PRINCIPAL DAS COLUNAS DE FASE HORIZONTAL 🚨 */}
+            {/* CONTAINER PRINCIPAL DAS COLUNAS DE FASE HORIZONTAL */}
             <div className="flex space-x-6 overflow-x-auto pb-4">
                 {STAGES.map(stage => (
-                    // Coluna individual (Esta é a estrutura correta das colunas de conteúdo)
                     <div 
                         key={stage.id} 
-                        // Notei que na imagem, o título da coluna (Para Contatar) SUMIU das caixas,
-                        // mas os botões de navegação (acima) permanecem.
-                        // Se você quiser os títulos nas CAIXAS novamente, descomente o <h3> abaixo.
-                        // Na imagem, as caixas são mais simples.
-                        className="flex-shrink-0 w-48 p-3 bg-white rounded-lg shadow-md" // Caixa mais branca, sem inner
+                        className="flex-shrink-0 w-48 p-3 bg-white rounded-lg shadow-md"
                     >
-                        {/* Removido o h3 com stage.title daqui para corresponder à imagem */}
                         
-                        {/* Corpo da Coluna */}
-                        <div className="text-sm text-gray-500 mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
-                            Nenhum Lead nesta etapa.
-                        </div>
+                        {/* 🚨 CONTEÚDO DA COLUNA (AGORA COM ESTADO DE CARREGAMENTO) 🚨 */}
+                        {renderColumnContent(stage.id)} 
                         
                         {/* Botão Novo Lead */}
                         <button className="w-full py-2 px-4 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2">
                             <span>+ Novo Lead</span>
                         </button>
-
                     </div>
                 ))}
             </div>
