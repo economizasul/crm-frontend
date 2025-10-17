@@ -67,9 +67,56 @@ const KanbanBoard = () => {
 
     // ... (renderSearchBar e renderColumnContent, mantendo o layout limpo)
 
-    const renderSearchBar = () => (/* ... código da barra de busca ... */);
-    const renderColumnContent = (stageId) => (/* ... código do corpo da coluna ... */);
+    const renderSearchBar = () => (
+        <div className="mb-6">
+            <div className="relative">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    placeholder="Buscar leads por nome, email ou telefone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                />
+            </div>
+        </div>
+    );
 
+    // Função para renderizar o corpo da coluna (com leads/estados de carregamento)
+    const renderColumnContent = (stageId) => {
+        if (isLoading) {
+            return <div className="text-center text-gray-400">Carregando...</div>;
+        }
+
+        const stageLeads = leads.filter(lead => lead.stageId === stageId);
+
+        if (apiError) {
+            return (
+                <div className="text-sm text-red-500 text-center mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-red-300 rounded">
+                    Erro de conexão.
+                </div>
+            );
+        }
+        
+        if (stageLeads.length === 0) {
+            return (
+                <div className="text-sm text-gray-500 mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
+                    Nenhum Lead nesta etapa.
+                </div>
+            );
+        }
+
+        // Renderização dos cards de Lead (exemplo)
+        return (
+            <div>
+                {stageLeads.map(lead => (
+                    <div key={lead.id} className="bg-white p-3 mb-2 rounded shadow text-sm border-l-4 border-indigo-500">
+                        {lead.name}
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     return (
         <div className="flex-1 p-6">
