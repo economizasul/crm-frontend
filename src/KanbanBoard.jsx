@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
-// 🚨 ATENÇÃO A ESTA IMPORTAÇÃO: Certifique-se de que é importada do react-router-dom
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios'; 
 
-// Definição estática das fases do Kanban
+// Definição estática das fases do Kanban (omiti por brevidade)
 const STAGES = [
     { id: 1, title: 'Para Contatar', color: 'bg-blue-500' },
     { id: 2, title: 'Em Conversação', color: 'bg-yellow-500' },
@@ -19,27 +18,39 @@ const KanbanBoard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [apiError, setApiError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    // NOVO ESTADO: Verifica se o token está sendo processado
+    const [isTokenVerified, setIsTokenVerified] = useState(false);
     
-    // 🚨 AQUI O HOOK DEVE SER INICIALIZADO
     const navigate = useNavigate(); 
-    
-    // URL CORRETA DA API
     const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
 
-    // FUNÇÃO PARA BUSCAR OS LEADS (Com autenticação e redirecionamento)
+    // EFEITO 1: VERIFICAÇÃO INICIAL DO TOKEN
     useEffect(() => {
+        const token = localStorage.getItem('userToken');
+        if (!token) {
+            // Se não houver token, redireciona imediatamente e define o estado.
+            navigate('/login'); 
+        } else {
+            // Se o token existir, podemos prosseguir com o fetch.
+            setIsTokenVerified(true);
+        }
+    }, [navigate]);
+
+    // EFEITO 2: BUSCA OS LEADS SOMENTE APÓS A VERIFICAÇÃO DO TOKEN
+    useEffect(() => {
+        // Só executa se o token foi verificado como existente
+        if (!isTokenVerified) return;
+
         const fetchLeads = async () => {
             const token = localStorage.getItem('userToken'); 
-
+            
+            // O token DEVE existir aqui, mas esta é uma checagem de segurança.
             if (!token) {
-                console.error("Token de autenticação não encontrado. Redirecionando para login.");
-                setApiError(true);
-                setIsLoading(false);
-                // 🚨 AQUI O REDIRECIONAMENTO É CHAMADO
+                // Se por algum motivo o token sumiu, re-redireciona.
                 navigate('/login'); 
                 return;
             }
-            // ... (Resto da lógica de try/catch do axios)
+
             try {
                 const config = {
                     headers: {
@@ -53,6 +64,7 @@ const KanbanBoard = () => {
                 console.error('Erro ao buscar leads:', error.response ? error.response.data : error.message);
                 
                 if (error.response && error.response.status === 401) {
+                    // Token inválido/expirado, faz logout
                     localStorage.removeItem('userToken');
                     navigate('/login'); 
                 }
@@ -63,11 +75,24 @@ const KanbanBoard = () => {
         };
 
         fetchLeads();
-    }, [navigate]); // navigate é uma dependência correta
+    }, [navigate, isTokenVerified]); // Depende do isTokenVerified
 
-    // ... (renderSearchBar e renderColumnContent, mantendo o layout limpo)
+    // ... (renderSearchBar e renderColumnContent, omitemos por brevidade)
 
+    // Altere a condição de Loading para incluir a verificação do Token
+    if (isLoading || !isTokenVerified) { 
+        return (
+            <div className="flex flex-col items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p className="mt-4 text-gray-600">Carregando Dashboard...</p>
+            </div>
+        );
+    }
+    
+    // ... (resto da renderização do componente)
+    
     const renderSearchBar = () => (
+        // ... (código da barra de pesquisa)
         <div className="mb-6">
             <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -81,8 +106,7 @@ const KanbanBoard = () => {
             </div>
         </div>
     );
-
-    // Função para renderizar o corpo da coluna (com leads/estados de carregamento)
+    
     const renderColumnContent = (stageId) => {
         if (isLoading) {
             return <div className="text-center text-gray-400">Carregando...</div>;
