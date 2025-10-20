@@ -3,7 +3,7 @@ import { FaSearch, FaBolt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 // 1. IMPORTAR O HOOK DE AUTENTICAÇÃO
-import { useAuth } from './context/AuthContext.jsx'; 
+import { useAuth } from './AuthContext.jsx'; 
 
 // Definição estática das fases do Kanban
 const STAGES = [
@@ -51,10 +51,7 @@ const KanbanBoard = () => {
             
             try {
                 const config = {
-                    headers: {
-                        // 6. USA O TOKEN DO CONTEXTO
-                        'Authorization': `Bearer ${token}` 
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 };
                 const response = await axios.get(API_URL, config); 
                 setLeads(response.data); 
@@ -83,10 +80,9 @@ const KanbanBoard = () => {
     // Mas mantemos o isLoading para a requisição da API
     if (isLoading) { 
         return (
-            <div className="flex flex-col items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                <p className="mt-4 text-gray-600">Carregando Leads...</p>
-            </div>
+        <div className="flex-1 p-6">
+            {/* ... (Resto do seu JSX do KanbanBoard) ... */}
+        </div>
         );
     }
     
