@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
-import axios from 'axios'; 
+import axios from 'axios';
+// 1. IMPORTAR O HOOK DE AUTENTICAÇÃO
+import { useAuth } from './context/AuthContext.jsx'; 
 
-// Definição estática das fases do Kanban (omiti por brevidade)
+// Definição estática das fases do Kanban
 const STAGES = [
     { id: 1, title: 'Para Contatar', color: 'bg-blue-500' },
     { id: 2, title: 'Em Conversação', color: 'bg-yellow-500' },
@@ -17,43 +19,40 @@ const KanbanBoard = () => {
     const [activeStage, setActiveStage] = useState(STAGES[0].id);
     const [searchTerm, setSearchTerm] = useState('');
     const [apiError, setApiError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    // NOVO ESTADO: Verifica se o token está sendo processado
-    const [isTokenVerified, setIsTokenVerified] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Loading da API
     
     const navigate = useNavigate(); 
+    
+    // 2. OBTER O ESTADO DE AUTENTICAÇÃO E O TOKEN DO CONTEXTO
+    // isAuthReady garante que já lemos o localStorage
+    // isAuthenticated diz se estamos logados
+    // token é o próprio token
+    // logout é a função para deslogar em caso de erro 401
+    const { token, isAuthenticated, isAuthReady, logout } = useAuth();
+    
     const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
 
-    // EFEITO 1: VERIFICAÇÃO INICIAL DO TOKEN
+    // EFEITO ÚNICO PARA BUSCAR OS LEADS
     useEffect(() => {
-        const token = localStorage.getItem('userToken');
-        if (!token) {
-            // Se não houver token, redireciona imediatamente e define o estado.
-            navigate('/login'); 
-        } else {
-            // Se o token existir, podemos prosseguir com o fetch.
-            setIsTokenVerified(true);
+        // 3. NÃO FAÇA NADA ATÉ O AUTHCONTEXT ESTAR PRONTO
+        if (!isAuthReady) {
+            return; // Aguarda o AuthContext verificar o token no localStorage
         }
-    }, [navigate]);
 
-    // EFEITO 2: BUSCA OS LEADS SOMENTE APÓS A VERIFICAÇÃO DO TOKEN
-    useEffect(() => {
-        // Só executa se o token foi verificado como existente
-        if (!isTokenVerified) return;
+        // 4. SE ESTIVER PRONTO, MAS NÃO AUTENTICADO, REDIRECIONA
+        if (!isAuthenticated) {
+            navigate('/login');
+            return;
+        }
 
+        // 5. SE ESTIVER PRONTO E AUTENTICADO, BUSCA OS DADOS
         const fetchLeads = async () => {
-            const token = localStorage.getItem('userToken'); 
+            setIsLoading(true); // Começa o loading dos dados
             
-            // O token DEVE existir aqui, mas esta é uma checagem de segurança.
-            if (!token) {
-                // Se por algum motivo o token sumiu, re-redireciona.
-                navigate('/login'); 
-                return;
-            }
-
             try {
                 const config = {
                     headers: {
+                        // 6. USA O TOKEN DO CONTEXTO
                         'Authorization': `Bearer ${token}` 
                     }
                 };
@@ -64,27 +63,29 @@ const KanbanBoard = () => {
                 console.error('Erro ao buscar leads:', error.response ? error.response.data : error.message);
                 
                 if (error.response && error.response.status === 401) {
-                    // Token inválido/expirado, faz logout
-                    localStorage.removeItem('userToken');
+                    // Se o token for inválido/expirado, usa a função logout do contexto
+                    logout();
                     navigate('/login'); 
                 }
                 setApiError(true);
             } finally {
-                setIsLoading(false); 
+                setIsLoading(false); // Termina o loading dos dados
             }
         };
 
         fetchLeads();
-    }, [navigate, isTokenVerified]); // Depende do isTokenVerified
+        
+    // 7. DEPENDE DO ESTADO DE AUTENTICAÇÃO DO CONTEXTO
+    }, [isAuthReady, isAuthenticated, token, navigate, logout]); 
 
-    // ... (renderSearchBar e renderColumnContent, omitemos por brevidade)
-
-    // Altere a condição de Loading para incluir a verificação do Token
-    if (isLoading || !isTokenVerified) { 
+    
+    // ATENÇÃO: A tela de loading do App.jsx (ProtectedRoute) já cobre o !isAuthReady
+    // Mas mantemos o isLoading para a requisição da API
+    if (isLoading) { 
         return (
             <div className="flex flex-col items-center justify-center h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                <p className="mt-4 text-gray-600">Carregando Dashboard...</p>
+                <p className="mt-4 text-gray-600">Carregando Leads...</p>
             </div>
         );
     }
@@ -92,7 +93,6 @@ const KanbanBoard = () => {
     // ... (resto da renderização do componente)
     
     const renderSearchBar = () => (
-        // ... (código da barra de pesquisa)
         <div className="mb-6">
             <div className="relative">
                 <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -108,13 +108,12 @@ const KanbanBoard = () => {
     );
     
     const renderColumnContent = (stageId) => {
-        if (isLoading) {
-            return <div className="text-center text-gray-400">Carregando...</div>;
-        }
-
+        // O isLoading principal já trata o carregamento inicial
+        
+        // Filtra os leads baixados
         const stageLeads = leads.filter(lead => lead.stageId === stageId);
 
-        if (apiError) {
+        if (apiError && leads.length === 0) { // Mostra erro de conexão se não houver leads
             return (
                 <div className="text-sm text-red-500 text-center mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-red-300 rounded">
                     Erro de conexão.
@@ -148,7 +147,7 @@ const KanbanBoard = () => {
             {/* BARRA DE PESQUISA */}
             {renderSearchBar()}
             
-            {/* ALERTA DE ERRO GERAL */}
+            {/* ALERTA DE ERRO GERAL (só mostra se o erro ocorreu após um carregamento inicial) */}
             {apiError && ( 
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center" role="alert">
                     <FaBolt className="mr-3" />
