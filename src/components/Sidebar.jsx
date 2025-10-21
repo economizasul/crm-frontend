@@ -2,7 +2,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
-// 🚨 CORREÇÃO CRÍTICA DO CAMINHO E IMPORTAÇÃO
+
+// 🚨 CORREÇÃO CRÍTICA: Caminho e importação do hook de autenticação.
 import { useAuth } from '../AuthContext.jsx'; 
 
 // Estilos para os links de navegação (mantidos)
@@ -14,13 +15,13 @@ const LinkClass = ({ isActive }) =>
 
 const Sidebar = () => {
     const navigate = useNavigate();
-    // USANDO O HOOK E O LOGOUT
+    // 🚨 USANDO O HOOK E O LOGOUT DO CONTEXTO
     const { logout } = useAuth(); 
 
     // Lógica para sair: Limpa o token via Contexto e navega para a tela de login
     const handleLogout = () => {
-        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (limpa localStorage e estado)
-        navigate('/login', { replace: true }); 
+        logout(); // CHAMA A FUNÇÃO CORRETA: Limpa localStorage E o estado React.
+        navigate('/login', { replace: true }); // Redireciona para login.
     };
     
     // Menu de navegação (mantido)
