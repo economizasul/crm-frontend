@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaBolt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom'; 
+//import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; 
 import axios from 'axios';
 // 1. IMPORTAR O HOOK DE AUTENTICAÇÃO
-import { useAuth } from './AuthContext.jsx'; 
+import { useAuth } from './AuthContext.jsx';
+import LeadCard from './componets/LeadCard.jsx'; 
 
 // Definição estática das fases do Kanban
 const STAGES = [
@@ -20,9 +22,12 @@ const KanbanBoard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [apiError, setApiError] = useState(false);
     const [isLoading, setIsLoading] = useState(true); // Loading da API
-    
+    const [selectedLead, setSelectedLead] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [toastMessage, setToastMessage] = useState(null);
     const navigate = useNavigate(); 
-    
+     const location = useLocation();
     // 2. OBTER O ESTADO DE AUTENTICAÇÃO E O TOKEN DO CONTEXTO
     // isAuthReady garante que já lemos o localStorage
     // isAuthenticated diz se estamos logados
@@ -30,8 +35,9 @@ const KanbanBoard = () => {
     // logout é a função para deslogar em caso de erro 401
     const { token, isAuthenticated, isAuthReady, logout } = useAuth();
     
-    const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
-
+    //const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+    const API_URL = `${API_BASE_URL}/api/v1/leads`;
     // EFEITO ÚNICO PARA BUSCAR OS LEADS
     useEffect(() => {
         // 3. NÃO FAÇA NADA ATÉ O AUTHCONTEXT ESTAR PRONTO
@@ -54,7 +60,8 @@ const KanbanBoard = () => {
                     headers: { 'Authorization': `Bearer ${token}` }
                 };
                 const response = await axios.get(API_URL, config); 
-                setLeads(response.data); 
+                //setLeads(response.data);
+                setLeads(response.data || []); 
                 setApiError(false);
             } catch (error) {
                 console.error('Erro ao buscar leads:', error.response ? error.response.data : error.message);
@@ -74,7 +81,14 @@ const KanbanBoard = () => {
         
     // 7. DEPENDE DO ESTADO DE AUTENTICAÇÃO DO CONTEXTO
     }, [isAuthReady, isAuthenticated, token, navigate, logout]); 
-
+    // Abre modal automaticamente quando vier do LeadSearch
+    useEffect(() => {
+        if (!isLoading && leads.length > 0 && location.state && location.state.focusLeadId) {
+            openLeadModal(location.state.focusLeadId);
+            // Limpa o state da rota
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [isLoading, leads, location, navigate]);
     
     // ATENÇÃO: A tela de loading do App.jsx (ProtectedRoute) já cobre o !isAuthReady
     // Mas mantemos o isLoading para a requisição da API
@@ -86,7 +100,71 @@ const KanbanBoard = () => {
         );
     }
     
-    // ... (resto da renderização do componente)
+    // Filtro de pesquisa aplicado globalmente
+    const normalizar = (valor) => (valor || '').toString().toLowerCase();
+    const matchesSearch = (lead) => {
+        if (!searchTerm) return true;
+        const q = normalizar(searchTerm);
+        return [
+            lead.name,
+            lead.email,
+            lead.phone,
+            lead.address,
+            lead.origin,
+            lead.document,
+            lead.uc,
+        ].some((v) => normalizar(v).includes(q));
+    };
+
+    // Handlers do modal de edição rápida (status/notas)
+    const openLeadModal = (leadId) => {
+        const lead = leads.find((l) => l.id === leadId);
+        if (!lead) return;
+        setSelectedLead({ ...lead, notesText: Array.isArray(lead.notes) ? lead.notes.join('\n') : '' });
+        setIsModalOpen(true);
+    };
+
+    const closeLeadModal = () => {
+        setIsModalOpen(false);
+        setSelectedLead(null);
+    };
+
+    const saveLeadChanges = async () => {
+        if (!selectedLead) return;
+        setSaving(true);
+        try {
+            const payload = {
+                status: selectedLead.status,
+                // converte texto de notas para array, linhas não vazias
+                notes: (selectedLead.notesText || '')
+                    .split('\n')
+                    .map((n) => n.trim())
+                    .filter((n) => n.length > 0),
+                phone: selectedLead.phone || '',
+                email: selectedLead.email || '',
+                address: selectedLead.address || '',
+                origin: selectedLead.origin || '',
+                document: selectedLead.document || '',
+                uc: selectedLead.uc || '',
+                avgConsumption: selectedLead.avgConsumption || '',
+                estimatedSavings: selectedLead.estimatedSavings || '',
+            };
+            await axios.patch(`${API_URL}/${selectedLead.id}`, payload, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            // Atualiza estado local
+            setLeads((prev) => prev.map((l) => (l.id === selectedLead.id ? { ...l, ...payload } : l)));
+            setToastMessage('Lead atualizado com sucesso');
+            closeLeadModal();
+        } catch (error) {
+            console.error('Erro ao salvar lead:', error.response?.data || error.message);
+            setToastMessage('Falha ao salvar alterações do lead');
+        } finally {
+            setSaving(false);
+            setTimeout(() => setToastMessage(null), 3000);
+        }
+    };
     
     const renderSearchBar = () => (
         <div className="mb-6">
@@ -106,9 +184,19 @@ const KanbanBoard = () => {
     const renderColumnContent = (stageId) => {
         // O isLoading principal já trata o carregamento inicial
         
-        // Filtra os leads baixados
-        const stageLeads = leads.filter(lead => lead.stageId === stageId);
-
+        //const stageLeads = leads.filter(lead => lead.stageId === stageId);
+        // Filtra os leads por status (título da etapa) e busca
+        const stageTitle = STAGES.find((s) => s.id === stageId)?.title;
+        const stageLeads = leads
+            .filter((lead) => {
+                const s = (lead.status || '').toLowerCase();
+                const t = (stageTitle || '').toLowerCase();
+                if (t === 'em conversação') {
+                    return s === 'em conversação' || s === 'em negociacao' || s === 'em negociação';
+                }
+                return s === t;
+            })
+            .filter(matchesSearch);
         if (apiError && leads.length === 0) { // Mostra erro de conexão se não houver leads
             return (
                 <div className="text-sm text-red-500 text-center mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-red-300 rounded">
@@ -125,12 +213,12 @@ const KanbanBoard = () => {
             );
         }
 
-        // Renderização dos cards de Lead (exemplo)
+        // Renderização dos cards de Lead
         return (
             <div>
-                {stageLeads.map(lead => (
-                    <div key={lead.id} className="bg-white p-3 mb-2 rounded shadow text-sm border-l-4 border-indigo-500">
-                        {lead.name}
+                {stageLeads.map((lead) => (
+                    <div key={lead.id} className="mb-2">
+                        <LeadCard lead={lead} onClick={openLeadModal} />
                     </div>
                 ))}
             </div>
@@ -139,6 +227,13 @@ const KanbanBoard = () => {
 
     return (
         <div className="flex-1 p-6">
+
+            {/* Toast simples */}
+            {toastMessage && (
+                <div className="bg-indigo-100 border border-indigo-300 text-indigo-800 px-4 py-2 rounded mb-4">
+                    {toastMessage}
+                </div>
+            )}
             
             {/* BARRA DE PESQUISA */}
             {renderSearchBar()}
@@ -182,7 +277,7 @@ const KanbanBoard = () => {
                         {renderColumnContent(stage.id)} 
                         
                         {/* Botão Novo Lead */}
-                        <button className="w-full py-2 px-4 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2">
+                        <button onClick={() => navigate('/leads/cadastro')} className="w-full py-2 px-4 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2">
                             <span>+ Novo Lead</span>
                         </button>
                     </div>

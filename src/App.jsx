@@ -6,7 +6,8 @@ import { AuthProvider, useAuth } from './AuthContext.jsx';
 import Login from './Login.jsx'; 
 import Register from './Register.jsx'; 
 import Dashboard from './Dashboard.jsx';
-import LeadForm from './LeadForm.jsx'; 
+import LeadForm from './LeadForm.jsx';
+import LeadSearch from './LeadSearch.jsz';
 
 // Componente ProtectedRoute (O código dele está correto)
 const ProtectedRoute = ({ children }) => {
@@ -45,6 +46,10 @@ function App() {
                     path="/leads" 
                     element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
                 />
+                <Route
+                    path="/search-lead"
+                    elemente={<ProtecteRoute><LeadSearch /></ProtecteRoute>}
+                />    
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </AuthProvider>
