@@ -27,7 +27,7 @@ const KanbanBoard = () => {
     const [saving, setSaving] = useState(false);
     const [toastMessage, setToastMessage] = useState(null);
     const navigate = useNavigate(); 
-     const location = useLocation();
+    const location = useLocation();
     // 2. OBTER O ESTADO DE AUTENTICAÇÃO E O TOKEN DO CONTEXTO
     // isAuthReady garante que já lemos o localStorage
     // isAuthenticated diz se estamos logados
@@ -283,6 +283,124 @@ const KanbanBoard = () => {
                     </div>
                 ))}
             </div>
+            {/* Modal de Edição Rápida */}
+            {isModalOpen && selectedLead && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900">Atendimento do Lead</h3>
+                            <button onClick={closeLeadModal} className="text-gray-500 hover:text-gray-700">✕</button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                <input className="w-full border rounded px-3 py-2 bg-gray-50" value={selectedLead.name || ''} disabled />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.phone || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, phone: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.email || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, email: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select
+                                    className="w-full border rounded px-3 py-2"
+                                    value={selectedLead.status || 'Para Contatar'}
+                                    onChange={(e) => setSelectedLead((prev) => ({ ...prev, status: e.target.value }))}
+                                >
+                                    {STAGES.map((s) => (
+                                        <option key={s.id} value={s.title}>{s.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.address || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, address: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Origem</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.origin || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, origin: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.document || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, document: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">UC</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.uc || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, uc: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
+                                    <input
+                                      type="number"
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.avgConsumption || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, avgConsumption: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada</label>
+                                    <input
+                                      className="w-full border rounded px-3 py-2"
+                                      value={selectedLead.estimatedSavings || ''}
+                                      onChange={(e) => setSelectedLead((p) => ({ ...p, estimatedSavings: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                                <textarea
+                                    rows={4}
+                                    className="w-full border rounded px-3 py-2"
+                                    placeholder="Adicione notas (uma por linha)"
+                                    value={selectedLead.notesText || ''}
+                                    onChange={(e) => setSelectedLead((prev) => ({ ...prev, notesText: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-2">
+                            <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
+                            <button onClick={saveLeadChanges} disabled={saving} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60">
+                                {saving ? 'Salvando...' : 'Salvar'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
