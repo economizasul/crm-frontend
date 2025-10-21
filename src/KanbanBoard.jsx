@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 // 1. IMPORTAR O HOOK DE AUTENTICAÇÃO
 import { useAuth } from './AuthContext.jsx';
-import LeadCard from './componets/LeadCard.jsx'; 
+import LeadCard from './components/LeadCard.jsx'; 
 
 // Definição estática das fases do Kanban
 const STAGES = [
