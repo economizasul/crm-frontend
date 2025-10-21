@@ -37,7 +37,7 @@ const KanbanBoard = () => {
     const { token, isAuthenticated, isAuthReady, logout } = useAuth();
     
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
-    const API_URL = `${API_BASE_URL}/api/v1/leads`;
+    const API_URL = `${API_BASE_URL}/api/leads`;
 
     // EFEITO ÚNICO PARA BUSCAR OS LEADS
     useEffect(() => {

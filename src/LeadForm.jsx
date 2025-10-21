@@ -81,7 +81,7 @@ const LeadForm = () => {
         
         try {
             // 3. Requisição POST para o Endpoint de Leads (Usando o padrão v1/leads)
-            const response = await axios.post(`${API_BASE_URL}/api/v1/leads`, dataToSend, {
+            const response = await axios.post(`${API_BASE_URL}/api/leads`, dataToSend, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` // Autenticação
