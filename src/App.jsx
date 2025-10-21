@@ -48,7 +48,7 @@ function App() {
                 />
                 <Route
                     path="/search-lead"
-                    elemente={<ProtecteRoute><LeadSearch /></ProtecteRoute>}
+                    element={<ProtectedRoute><LeadSearch /></ProtectedRoute>}
                 />    
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
