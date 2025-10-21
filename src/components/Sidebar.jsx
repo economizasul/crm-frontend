@@ -1,6 +1,11 @@
+// Sidebar.jsx
+
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom'; // 🚨 IMPORTAÇÃO DO useNavigate
+import { NavLink, useNavigate } from 'react-router-dom'; 
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
+
+// IMPORTAÇÃO CRÍTICA: Importar o useAuth
+import { useAuth } from './AuthContext.jsx'; 
 
 // Estilos para os links de navegação
 const LinkClass = ({ isActive }) => 
@@ -10,36 +15,31 @@ const LinkClass = ({ isActive }) =>
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
 
 const Sidebar = () => {
-    const navigate = useNavigate(); // 🚨 INICIALIZAÇÃO DO HOOK DE NAVEGAÇÃO
+    const navigate = useNavigate();
+    // USANDO O HOOK DE AUTENTICAÇÃO
+    const { logout } = useAuth(); 
 
-    // Lógica para sair: Limpa o token e navega para a tela de login
+    // Lógica para sair: Limpa o token via Contexto e navega para a tela de login
     const handleLogout = () => {
-        // 1. Limpa qualquer token de autenticação ou dados do usuário no localStorage
-        localStorage.removeItem('userToken'); 
-        localStorage.removeItem('userData');
-        
-        // 2. Redireciona para a tela de login
-        navigate('/login'); 
+        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (Limpa localStorage e estado)
+        navigate('/login', { replace: true }); 
     };
     
-    // Menu de navegação (mantido)
+    // Menu de navegação
     const navItems = [
         { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' },
-        { name: 'Kanban Leads', icon: FaRegListAlt, path: '/dashboard' },
-        { name: 'Cadastrar Lead', icon: FaUserPlus, path: '/register-lead' },
-        { name: 'Transferir Lead', icon: FaExchangeAlt, path: '/transferir-lead' },
+        { name: 'Kanban Leads', icon: FaChartBar, path: '/dashboard' },
+        { name: 'Cadastro Lead', icon: FaUserPlus, path: '/leads/cadastro' },
     ];
-    
-    // Menu de rodapé/configurações (mantido)
+
+    // Itens de rodapé (Configurações, etc.)
     const footerItems = [
-        { name: 'Relatórios', icon: FaChartBar, path: '/reports' },
         { name: 'Configurações', icon: FaCogs, path: '/settings' },
     ];
 
     return (
-        <div className="w-64 flex flex-col bg-indigo-800 text-white h-full p-4 shadow-xl">
-            
-            {/* Título Principal */}
+        <div className="flex flex-col w-64 bg-indigo-800 text-white p-6 shadow-xl h-full">
+            {/* Logo */}
             <div className="text-2xl font-bold mb-8 text-center text-indigo-100">
                 ECONOMIZA SUL
             </div>
@@ -65,7 +65,7 @@ const Sidebar = () => {
 
                 {/* Botão Sair */}
                 <button 
-                    // 🚨 CHAMADA DA FUNÇÃO handleLogout
+                    // CHAMADA DA FUNÇÃO handleLogout
                     onClick={handleLogout}
                     className="w-full flex items-center space-x-3 p-3 rounded-xl text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200 justify-start"
                 >
