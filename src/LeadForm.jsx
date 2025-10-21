@@ -90,12 +90,24 @@ const LeadForm = () => {
 
             // 4. Sucesso
             if (response.status === 201) {
-                setToast({ message: 'Lead cadastrado com sucesso! Redirecionando...', type: 'success' });
-                
-                // 🚨 CORREÇÃO 4: REMOVIDA A LIMPEZA DE FORMULÁRIO.
-                // Apenas o redirecionamento é necessário para resolver a tela vazia.
-                setTimeout(() => navigate('/dashboard', { replace: true }), 1500);
-                
+                setToast({ message: 'Lead cadastrado com sucesso!', type: 'success' });
+                // Limpa o formulário e mantém na mesma página para um novo cadastro
+                setFormData({
+                    name: '',
+                    phone: '',
+                    document: '',
+                    address: '',
+                    origin: 'site',
+                    status: 'Para Contatar',
+                    notes: '',
+                    qsa: '',
+                    uc: '',
+                    avgConsumption: '',
+                    estimatedSavings: '',
+                });
+                // Foca no primeiro campo para próximo cadastro
+                const nameInput = document.getElementById('name');
+                if (nameInput) nameInput.focus();
             } else {
                 setToast({ message: 'Erro desconhecido ao cadastrar o lead.', type: 'error' });
             }

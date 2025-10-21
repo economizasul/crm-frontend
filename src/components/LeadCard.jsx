@@ -6,7 +6,7 @@ import { MapPin, Users } from 'lucide-react';
 const StatusBadge = ({ status }) => {
     let classes = "text-xs font-semibold px-2.5 py-0.5 rounded-full";
     if (status === 'Fechado') classes += " bg-green-100 text-green-800";
-    else if (status === 'Em Negociação') classes += " bg-yellow-100 text-yellow-800";
+    else if (status === 'Em Conversação') classes += " bg-yellow-100 text-yellow-800";
     else if (status === 'Para Contatar') classes += " bg-red-100 text-red-800";
     else classes += " bg-gray-100 text-gray-800";
     

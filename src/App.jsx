@@ -7,6 +7,7 @@ import Login from './Login.jsx';
 import Register from './Register.jsx'; 
 import Dashboard from './Dashboard.jsx';
 import LeadForm from './LeadForm.jsx'; 
+import LeadSearch from './LeadSearch.jsx';
 
 // Componente ProtectedRoute (O código dele está correto)
 const ProtectedRoute = ({ children }) => {
@@ -44,6 +45,10 @@ function App() {
                 <Route 
                     path="/leads" 
                     element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+                />
+                <Route 
+                    path="/search-lead" 
+                    element={<ProtectedRoute><LeadSearch /></ProtectedRoute>} 
                 />
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
