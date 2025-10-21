@@ -1,13 +1,13 @@
 // Sidebar.jsx
 
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom'; 
+import { NavLink, useNavigate } from 'react-router-dom';
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
 
-// IMPORTAÇÃO CRÍTICA: Importar o useAuth
-import { useAuth } from './AuthContext.jsx'; 
+// CORREÇÃO CRÍTICA DO CAMINHO: '../AuthContext.jsx' para subir de src/components para src/
+import { useAuth } from '../AuthContext.jsx'; 
 
-// Estilos para os links de navegação
+// Estilos para os links de navegação (mantidos)
 const LinkClass = ({ isActive }) => 
     `w-full flex items-center space-x-3 p-3 rounded-xl transition duration-200 justify-start 
     ${isActive 
@@ -16,23 +16,23 @@ const LinkClass = ({ isActive }) =>
 
 const Sidebar = () => {
     const navigate = useNavigate();
-    // USANDO O HOOK DE AUTENTICAÇÃO
+    // USANDO O HOOK E O LOGOUT
     const { logout } = useAuth(); 
 
     // Lógica para sair: Limpa o token via Contexto e navega para a tela de login
     const handleLogout = () => {
-        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (Limpa localStorage e estado)
+        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (limpa localStorage e estado)
         navigate('/login', { replace: true }); 
     };
     
-    // Menu de navegação
+    // Menu de navegação (mantido)
     const navItems = [
         { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' },
         { name: 'Kanban Leads', icon: FaChartBar, path: '/dashboard' },
         { name: 'Cadastro Lead', icon: FaUserPlus, path: '/leads/cadastro' },
     ];
 
-    // Itens de rodapé (Configurações, etc.)
+    // Itens de rodapé (mantidos)
     const footerItems = [
         { name: 'Configurações', icon: FaCogs, path: '/settings' },
     ];
@@ -65,8 +65,7 @@ const Sidebar = () => {
 
                 {/* Botão Sair */}
                 <button 
-                    // CHAMADA DA FUNÇÃO handleLogout
-                    onClick={handleLogout}
+                    onClick={handleLogout} 
                     className="w-full flex items-center space-x-3 p-3 rounded-xl text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200 justify-start"
                 >
                     <FaSignOutAlt className="w-5 h-5" />
