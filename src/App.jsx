@@ -7,7 +7,7 @@ import Login from './Login.jsx';
 import Register from './Register.jsx'; 
 import Dashboard from './Dashboard.jsx';
 import LeadForm from './LeadForm.jsx';
-import LeadSearch from './LeadSearch.jsz';
+import LeadSearch from './LeadSearch.jsx';
 
 // Componente ProtectedRoute (O código dele está correto)
 const ProtectedRoute = ({ children }) => {
