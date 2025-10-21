@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, LogIn, Loader2 } from 'lucide-react'; // Adicionamos 'User' para o campo de Nome
+import { User, Mail, Lock, LogIn, Loader2 } from 'lucide-react'; 
 
-// URL DO BACKEND - Usamos a variável de ambiente para ser flexível
+// Usa a variável de ambiente VITE_API_URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 function Register() {
@@ -29,20 +29,23 @@ function Register() {
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                // O backend que você forneceu espera: name, email, password
+                // O backend que você forneceu espera: name, email, password, (role opcional)
                 body: JSON.stringify({ name, email, password }),
             });
 
-            if (response.ok || response.status === 201) {
-                setMessage('Registro concluído com sucesso! Redirecionando para o login...');
+            if (response.ok) {
+                // Registro bem-sucedido: Navega para a tela de Login
+                setMessage('Conta criada com sucesso! Redirecionando para o login...');
                 
-                // Redireciona para o login após 2 segundos
-                setTimeout(() => navigate('/login'), 2000), setLoading(false);
+                // Redireciona após um pequeno delay para o usuário ler a mensagem
+                setTimeout(() => {
+                    navigate('/login', { replace: true });
+                }, 1500);
+
             } else {
                 const errorData = await response.json();
                 setMessage(`Falha no registro: ${errorData.error || response.statusText}`);
             }
-
         } catch (error) {
             console.error('Erro de rede ou na requisição:', error);
             setMessage('Erro de conexão. Tente novamente mais tarde.');
@@ -52,80 +55,65 @@ function Register() {
     };
 
     return (
-        // Layout centralizado com fundo sutil
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="w-full max-w-md bg-white p-8 space-y-8 rounded-2xl shadow-2xl border border-gray-100">
-                
-                {/* Cabeçalho */}
-                <div className="text-center">
-                    <h1 className="text-4xl font-extrabold text-gray-900">
-                        GEOCRM
-                    </h1>
-                    <h2 className="mt-2 text-xl font-semibold text-gray-600 flex items-center justify-center space-x-2">
-                        <LogIn className="w-6 h-6 text-indigo-500" />
-                        <span>Criar Nova Conta</span>
+            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Crie sua conta
                     </h2>
+                    <p className="mt-2 text-center text-sm text-gray-600">
+                        Cadastre-se para acessar o sistema
+                    </p>
                 </div>
 
-                {/* Formulário */}
                 <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-                    
-                    {/* Campo Nome */}
                     <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <label htmlFor="name" className="sr-only">Nome</label>
-                            <div className="relative">
-                                <User className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    required
-                                    placeholder="Nome Completo"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    // Apenas a primeira borda superior é arredondada (rounded-t-lg)
-                                    className="appearance-none rounded-t-lg relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 sm:text-sm"
-                                />
-                            </div>
+                        {/* Campo Nome */}
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                id="name"
+                                name="name"
+                                type="text"
+                                required
+                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-t-md"
+                                placeholder="Seu Nome Completo"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                disabled={loading}
+                            />
                         </div>
-                        
-                        {/* Campo E-mail */}
-                        <div>
-                            <label htmlFor="email" className="sr-only">E-mail</label>
-                            <div className="relative">
-                                <Mail className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    required
-                                    placeholder="E-mail"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    // Borda superior e inferior reta (para agrupar campos)
-                                    className="appearance-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 sm:text-sm"
-                                />
-                            </div>
+                        {/* Campo Email */}
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                placeholder="Email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                disabled={loading}
+                            />
                         </div>
-                        
                         {/* Campo Senha */}
-                        <div>
-                            <label htmlFor="password" className="sr-only">Senha</label>
-                            <div className="relative">
-                                <Lock className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    required
-                                    placeholder="Senha (mín. 6 caracteres)"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    // Apenas a borda inferior é arredondada (rounded-b-lg)
-                                    className="appearance-none rounded-b-lg relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 sm:text-sm"
-                                />
-                            </div>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="new-password"
+                                required
+                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-b-md"
+                                placeholder="Senha"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
+                            />
                         </div>
                     </div>
 
@@ -133,7 +121,7 @@ function Register() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin w-5 h-5 mr-3" />

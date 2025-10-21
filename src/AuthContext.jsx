@@ -9,7 +9,6 @@ export const useAuth = () => useContext(AuthContext);
 // 2. Provedor do Contexto
 export const AuthProvider = ({ children }) => {
     // Tenta carregar o token e o userId do localStorage na inicialização
-    // Usamos null/false como valores iniciais para que o useEffect preencha
     const [token, setToken] = useState(null);
     const [userId, setUserId] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -68,6 +67,6 @@ export const AuthProvider = ({ children }) => {
         // Você pode colocar um spinner ou tela de carregamento aqui
         return <div className="min-h-screen flex items-center justify-center text-indigo-600 text-lg">Carregando Sessão...</div>;
     }
-
+    
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
