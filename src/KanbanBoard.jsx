@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
-import { useAuth } from './AuthContext.jsx';
-// Assumindo que você tem um componente LeadCard em './components/LeadCard.jsx'
-// Se não tiver, LeadCard deve ser definido aqui ou o código deve ser ajustado
-// import LeadCard from './components/LeadCard.jsx'; 
+import { useAuth } from './AuthContext.jsx'; 
 
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -28,7 +25,7 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Componente Card de Lead (Versão simplificada se não houver arquivo LeadCard.jsx)
+// Componente Card de Lead (Versão simplificada)
 const LeadCard = ({ lead, onClick }) => {
     return (
         <div 
@@ -45,7 +42,6 @@ const LeadCard = ({ lead, onClick }) => {
 };
 
 // Definição estática das fases do Kanban
-// CORREÇÃO CRÍTICA: IDs agora são strings para bater com o status do backend
 const STAGES = [
     { id: 'Para Contatar', title: 'Para Contatar', color: 'bg-blue-500' },
     { id: 'Em Conversação', title: 'Em Conversação', color: 'bg-yellow-500' },
@@ -66,6 +62,8 @@ const KanbanBoard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [toastMessage, setToastMessage] = useState(null);
+    // NOVO: Estado para a nova nota a ser adicionada
+    const [newNoteText, setNewNoteText] = useState(''); 
 
     const navigate = useNavigate(); 
     const { token, isAuthenticated, logout } = useAuth(); 
@@ -93,17 +91,17 @@ const KanbanBoard = () => {
 
             const allLeads = response.data;
 
-            // Agrupa os leads por status (CRÍTICO: usa o status string do backend)
+            // Agrupa os leads por status
             const groupedLeads = allLeads.reduce((acc, lead) => {
-                // Garante que o status seja válido ou 'Para Contatar' como fallback
+                // Garante que o status seja válido (usa 'Para Contatar' se for nulo ou inválido)
                 const statusKey = lead.status && STAGES.some(s => s.id === lead.status) ? lead.status : 'Para Contatar'; 
                 if (!acc[statusKey]) {
                     acc[statusKey] = [];
                 }
-                // Adiciona notesText para edição fácil no modal
+                // Garante que 'notes' seja um array
                 acc[statusKey].push({ 
                     ...lead, 
-                    notesText: lead.notes ? (Array.isArray(lead.notes) ? lead.notes.join('\n') : lead.notes) : '' 
+                    notes: Array.isArray(lead.notes) ? lead.notes : [] 
                 });
                 return acc;
             }, {});
@@ -130,17 +128,41 @@ const KanbanBoard = () => {
     
     const openLeadModal = (lead) => {
         setSelectedLead({ ...lead });
+        setNewNoteText(''); // Limpa o campo de nova nota
         setIsModalOpen(true);
     };
 
     const closeLeadModal = () => {
         setIsModalOpen(false);
         setSelectedLead(null);
+        setNewNoteText('');
+        setSaving(false); // Garante que o estado de saving seja resetado
     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setSelectedLead((prev) => ({ ...prev, [name]: value }));
+    };
+    
+    // Função para formatar a data da nota
+    const formatNoteDate = (timestamp) => {
+        if (!timestamp) return '';
+        try {
+            // Tenta usar o timestamp se for um número, ou tenta parsear se for string
+            const date = new Date(timestamp);
+            if (isNaN(date)) return '';
+            
+            return new Intl.DateTimeFormat('pt-BR', {
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            }).format(date);
+        } catch (e) {
+            return '';
+        }
     };
 
     const saveLeadChanges = async () => {
@@ -149,10 +171,23 @@ const KanbanBoard = () => {
         setSaving(true);
         setApiError(null);
 
-        // Prepara os dados: Converte notesText de volta para array de strings (Notas)
+        // 1. Prepara as notas para envio (Adiciona a nova nota à lista)
+        let updatedNotes = selectedLead.notes ? [...selectedLead.notes] : [];
+        if (newNoteText.trim()) {
+             // Formato da nota: { text: "...", timestamp: 1678886400000 }
+             // Se o seu backend espera apenas strings, ajuste aqui:
+             // updatedNotes.push(newNoteText.trim());
+             
+             // Assumindo que o backend aceita ou apenas a string, ou um array de strings/objetos:
+             // Vamos enviar o texto puro e o backend deverá lidar com a formatação.
+             updatedNotes.push({ text: newNoteText.trim(), timestamp: Date.now() }); 
+        }
+        
+        // 2. Prepara os dados:
         const updatedData = {
             ...selectedLead,
-            notes: selectedLead.notesText ? selectedLead.notesText.split('\n').map(n => n.trim()).filter(n => n) : []
+            notes: updatedNotes.map(n => n.text || n), // Garante que apenas o texto vá para o backend
+            // Se o seu backend espera o objeto completo (com timestamp), ajuste a linha acima.
         };
         
         // Remove campos de front-end ou que não devem ir no PUT
@@ -160,7 +195,7 @@ const KanbanBoard = () => {
         delete updatedData._id; 
         delete updatedData.created_at; 
         delete updatedData.updated_at; 
-        // delete updatedData.userId; // Este é importante se estiver no lead (PostgreSQL)
+        delete updatedData.userId; 
 
         try {
             await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, updatedData, {
@@ -169,16 +204,21 @@ const KanbanBoard = () => {
                 },
             });
 
+            // Sucesso
             setToastMessage({ message: 'Lead salvo com sucesso!', type: 'success' });
-            closeLeadModal();
-            fetchLeads(); // Recarrega os leads para atualizar o Kanban
+            
+            // 3. Recarrega os leads DEPOIS DE SALVAR
+            await fetchLeads(); 
+            
+            // 4. Fecha o modal (só depois que a recarga estiver concluída)
+            closeLeadModal(); 
 
         } catch (error) {
             console.error('Erro ao salvar lead:', error.response?.data || error.message);
             setApiError('Falha ao salvar lead. Tente novamente.');
             setToastMessage({ message: 'Falha ao salvar lead.', type: 'error' });
         } finally {
-            setSaving(false);
+            setSaving(false); // CRÍTICO: Garante que o estado 'saving' seja resetado
         }
     };
     
@@ -195,7 +235,7 @@ const KanbanBoard = () => {
         
         return stageLeads.filter(lead => {
             const matchName = lead.name?.toLowerCase().includes(lowerCaseSearch);
-            const matchPhone = lead.phone?.includes(searchTerm); // Telefone/CNPJ geralmente não são minúsculas
+            const matchPhone = lead.phone?.includes(searchTerm);
             const matchDocument = lead.document?.includes(searchTerm);
             const matchUC = lead.uc?.includes(searchTerm);
             const matchAddress = lead.address?.toLowerCase().includes(lowerCaseSearch);
@@ -207,8 +247,8 @@ const KanbanBoard = () => {
 
     // Renderiza o conteúdo da coluna
     const renderColumnContent = (stageId) => {
-        // ... (Mesma lógica de loading e erro) ...
         if (apiError && !isLoading) {
+            // Este é o erro visível após o crash (image_1a73f9.png)
             return <p className="text-red-500 text-sm text-center">Erro: {apiError}</p>;
         }
 
@@ -263,7 +303,7 @@ const KanbanBoard = () => {
                         <FaPlus size={16} />
                         <span>Novo Lead</span>
                     </button>
-                    {/* Botão Atualizar Leads */}
+                    {/* Botão Atualizar Leads (Este botão resolve seu problema temporariamente) */}
                     <button 
                         onClick={fetchLeads}
                         disabled={isLoading}
@@ -340,24 +380,51 @@ const KanbanBoard = () => {
                                     <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2" value={selectedLead.avgConsumption || ''} onChange={handleInputChange} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
                                     <select name="status" className="w-full border rounded px-3 py-2" value={selectedLead.status || 'Para Contatar'} onChange={handleInputChange}>
                                         {STAGES.map(stage => (<option key={stage.id} value={stage.id}>{stage.title}</option>))}
                                     </select>
                                 </div>
                             </div>
                             
-                            {/* Campo de Notas */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notas (Uma por linha)</label>
+                            {/* CAMPO DE NOVA NOTA */}
+                            <div className="border p-4 rounded-lg bg-gray-50">
+                                <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center space-x-2">
+                                    <FaPaperclip size={16} />
+                                    <span>Adicionar Nova Nota</span>
+                                </label>
                                 <textarea
-                                    rows={4}
-                                    name="notesText"
-                                    className="w-full border rounded px-3 py-2"
-                                    placeholder="Adicione notas (uma por linha)"
-                                    value={selectedLead.notesText || ''}
-                                    onChange={handleInputChange}
+                                    rows={2}
+                                    name="newNoteText"
+                                    className="w-full border rounded px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="Digite a nova nota aqui..."
+                                    value={newNoteText}
+                                    onChange={(e) => setNewNoteText(e.target.value)}
                                 />
+                            </div>
+
+                            {/* HISTÓRICO DE NOTAS */}
+                            <div>
+                                <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({selectedLead.notes?.length || 0})</h3>
+                                <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
+                                    {selectedLead.notes && selectedLead.notes.length > 0 ? (
+                                        selectedLead.notes
+                                            // Converte strings simples em objetos para ordenação se o backend retornar apenas strings
+                                            .map(note => typeof note === 'string' ? { text: note, timestamp: Date.now() } : note) 
+                                            // Ordena por data (mais recente primeiro)
+                                            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+                                            .map((note, index) => (
+                                                <div key={index} className="mb-2 p-2 border-b last:border-b-0 text-sm">
+                                                    <p className="font-semibold text-indigo-600 text-xs">
+                                                        {formatNoteDate(note.timestamp || null)}
+                                                    </p>
+                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text || note}</p>
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
