@@ -1,10 +1,9 @@
 // Sidebar.jsx
+
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
-
-// 🚨 CORREÇÃO CRÍTICA: Caminho e importação do hook de autenticação.
-import { useAuth } from '../AuthContext.jsx'; 
+import { useAuth } from './AuthContext.jsx'; // O caminho correto é relativo à raiz se Sidebar.jsx estiver em src/components/Sidebar.jsx
 
 // Estilos para os links de navegação (mantidos)
 const LinkClass = ({ isActive }) => 
@@ -15,25 +14,27 @@ const LinkClass = ({ isActive }) =>
 
 const Sidebar = () => {
     const navigate = useNavigate();
-    // 🚨 USANDO O HOOK E O LOGOUT DO CONTEXTO
     const { logout } = useAuth(); 
 
     // Lógica para sair: Limpa o token via Contexto e navega para a tela de login
     const handleLogout = () => {
-        logout(); // CHAMA A FUNÇÃO CORRETA: Limpa localStorage E o estado React.
-        navigate('/login', { replace: true }); // Redireciona para login.
+        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (limpa localStorage e estado)
+        navigate('/login', { replace: true }); 
     };
     
-    // Menu de navegação (mantido)
+    // Menu de navegação (corrigido o path de Buscar Lead)
     const navItems = [
-        { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' },
-        { name: 'Kanban Leads', icon: FaChartBar, path: '/dashboard' },
+        // CORREÇÃO: O componente LeadSearch está mapeado para /search-lead
+        { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' }, 
+        { name: 'Kanban Leads', icon: FaTachometerAlt, path: '/dashboard' },
+        { name: 'Dashboard', icon: FaChartBar, path: '/dashboard' }, // Mantido, se /dashboard for a rota do Kanban
         { name: 'Cadastro Lead', icon: FaUserPlus, path: '/leads/cadastro' },
     ];
 
-    // Itens de rodapé (mantidos)
+    // Itens de rodapé (Exemplo)
     const footerItems = [
         { name: 'Configurações', icon: FaCogs, path: '/settings' },
+        // ... (outros itens de rodapé)
     ];
 
     return (
@@ -46,6 +47,7 @@ const Sidebar = () => {
             {/* Links Principais */}
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
+                    // Se o path for /dashboard e o componente for o Kanban, ele deve ser a home do login
                     <NavLink key={item.name} to={item.path} className={LinkClass}>
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
