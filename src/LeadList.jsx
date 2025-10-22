@@ -1,4 +1,4 @@
-// src/LeadSearch.jsx - CÓDIGO FINAL DE BUSCA E LISTAGEM DE LEADS
+// src/LeadList.jsx - NOVO COMPONENTE PARA LISTAGEM E BUSCA DE LEADS
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaPlus, FaExternalLinkAlt } from 'react-icons/fa';
@@ -9,7 +9,7 @@ import { useAuth } from './AuthContext.jsx';
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-const LeadSearch = () => {
+const LeadList = () => { // Mudamos o nome do componente para LeadList
     const [allLeads, setAllLeads] = useState([]); 
     const [filteredLeads, setFilteredLeads] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,11 +35,10 @@ const LeadSearch = () => {
                     'Authorization': `Bearer ${token}`
                 },
             };
-            // Chama a API que lista todos os leads do usuário logado (ou todos, se Admin)
             const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, config);
             
             setAllLeads(response.data);
-            setFilteredLeads(response.data); // Exibe todos inicialmente
+            setFilteredLeads(response.data); 
             setApiError(null);
 
         } catch (error) {
@@ -122,6 +121,7 @@ const LeadSearch = () => {
             
             {/* Tabela/Lista de Leads */}
             <div className="bg-white p-4 rounded-lg shadow-xl overflow-x-auto">
+                {/* ... (Tabela de Leads - Conteúdo omitido para brevidade, mas igual ao código anterior) ... */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-100">
                         <tr>
@@ -148,7 +148,7 @@ const LeadSearch = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.origin}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button 
-                                            onClick={() => navigate(`/leads/${lead._id}`)} // Mude esta rota para onde você edita/visualiza o lead
+                                            onClick={() => navigate(`/leads/${lead._id}`)} 
                                             className="text-indigo-600 hover:text-indigo-900 flex items-center space-x-1"
                                         >
                                             <FaExternalLinkAlt size={12} />
@@ -176,4 +176,4 @@ const LeadSearch = () => {
     );
 };
 
-export default LeadSearch;
+export default LeadList;
