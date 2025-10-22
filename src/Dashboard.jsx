@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
+import { useAuth } from './AuthContext.jsx'; // Importa o hook de autenticação
 
 const customIcon = new L.Icon({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
@@ -13,18 +14,23 @@ const customIcon = new L.Icon({
 const Dashboard = () => {
     const [leads, setLeads] = useState([]);
     const position = [-23.5505, -46.6333];
+    const { user, token } = useAuth(); // Obtém o token do contexto de autenticação
 
     useEffect(() => {
         const fetchLeads = async () => {
             try {
-                const response = await axios.get('https://crm-economizasul-backend.onrender.com/api/v1/leads');
+                const response = await axios.get('https://crm-app-cnf7.onrender.com/api/v1/leads', {
+                    headers: {
+                        Authorization: `Bearer ${token}`, // Adiciona o token para autenticação
+                    },
+                });
                 setLeads(response.data);
             } catch (error) {
                 console.error('Erro ao carregar leads:', error.message);
             }
         };
         fetchLeads();
-    }, []);
+    }, [token]); // Adiciona token como dependência para recarregar se o token mudar
 
     return (
         <div>
