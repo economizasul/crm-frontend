@@ -1,126 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaBolt } from 'react-icons/fa';
-//import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom'; 
 import axios from 'axios';
-// 1. IMPORTAR O HOOK DE AUTENTICAÇÃO
 import { useAuth } from './AuthContext.jsx';
+// Assumindo que você tem um componente LeadCard em './components/LeadCard.jsx'
 import LeadCard from './components/LeadCard.jsx'; 
+// Se você não tem, use o componente LeadCard que definimos na etapa anterior
+
+// Variável de ambiente para URL da API
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+
+// Componente simples de Toast para feedback
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 3000); 
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+    
+    return (
+        <div className={`p-3 rounded-lg text-white font-medium shadow-lg fixed top-4 right-4 z-50 ${bgColor}`}>
+            {message}
+        </div>
+    );
+};
 
 // Definição estática das fases do Kanban
+// CORREÇÃO CRÍTICA: Os IDs devem ser strings (nomes) para bater com o campo 'status' do backend
 const STAGES = [
-    { id: 1, title: 'Para Contatar', color: 'bg-blue-500' },
-    { id: 2, title: 'Em Conversação', color: 'bg-yellow-500' },
-    { id: 3, title: 'Proposta Enviada', color: 'bg-green-500' },
-    { id: 4, title: 'Fechado', color: 'bg-gray-500' },
-    { id: 5, title: 'Perdido', color: 'bg-red-500' },
+    { id: 'Para Contatar', title: 'Para Contatar', color: 'bg-blue-500' },
+    { id: 'Em Conversação', title: 'Em Conversação', color: 'bg-yellow-500' },
+    { id: 'Proposta Enviada', title: 'Proposta Enviada', color: 'bg-green-500' },
+    { id: 'Fechado', title: 'Fechado', color: 'bg-gray-500' },
+    { id: 'Perdido', title: 'Perdido', color: 'bg-red-500' },
 ];
 
 const KanbanBoard = () => {
-    const [leads, setLeads] = useState([]);
-    const [activeStage, setActiveStage] = useState(STAGES[0].id);
+    // Estado do Kanban e Leads
+    const [leads, setLeads] = useState({}); // Leads agrupados por status: { 'Para Contatar': [lead1, lead2], ... }
     const [searchTerm, setSearchTerm] = useState('');
-    const [apiError, setApiError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true); // Loading da API
+    const [apiError, setApiError] = useState(null); 
+    const [isLoading, setIsLoading] = useState(true); 
+
+    // Estados para o Modal de Edição (Funcionalidade de 408 linhas)
     const [selectedLead, setSelectedLead] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [toastMessage, setToastMessage] = useState(null);
-    const navigate = useNavigate(); 
-    const location = useLocation();
-    // 2. OBTER O ESTADO DE AUTENTICAÇÃO E O TOKEN DO CONTEXTO
-    // isAuthReady garante que já lemos o localStorage
-    // isAuthenticated diz se estamos logados
-    // token é o próprio token
-    // logout é a função para deslogar em caso de erro 401
-    const { token, isAuthenticated, isAuthReady, logout } = useAuth();
-    
-    //const API_URL = 'https://crm-app-cnf7.onrender.com/api/leads'; 
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
-    const API_URL = `${API_BASE_URL}/api/v1/leads`;
-    // EFEITO ÚNICO PARA BUSCAR OS LEADS
-    useEffect(() => {
-        // 3. NÃO FAÇA NADA ATÉ O AUTHCONTEXT ESTAR PRONTO
-        if (!isAuthReady) {
-            return; // Aguarda o AuthContext verificar o token no localStorage
-        }
 
-        // 4. SE ESTIVER PRONTO, MAS NÃO AUTENTICADO, REDIRECIONA
-        if (!isAuthenticated) {
-            navigate('/login');
+    const navigate = useNavigate(); 
+    const { token, isAuthenticated, logout } = useAuth(); 
+    
+    // --- LÓGICA DE BUSCA ---
+
+    // Função de busca de leads com memorização (useCallback)
+    const fetchLeads = useCallback(async () => {
+        if (!isAuthenticated || !token) {
+            setApiError('Sessão expirada. Redirecionando para login.');
+            setIsLoading(false);
+            logout();
+            navigate('/login', { replace: true });
             return;
         }
 
-        // 5. SE ESTIVER PRONTO E AUTENTICADO, BUSCA OS DADOS
-        const fetchLeads = async () => {
-            setIsLoading(true); // Começa o loading dos dados
-            
-            try {
-                const config = {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                };
-                const response = await axios.get(API_URL, config); 
-                //setLeads(response.data);
-                setLeads(response.data || []); 
-                setApiError(false);
-            } catch (error) {
-                console.error('Erro ao buscar leads:', error.response ? error.response.data : error.message);
-                
-                if (error.response && error.response.status === 401) {
-                    // Se o token for inválido/expirado, usa a função logout do contexto
-                    logout();
-                    navigate('/login'); 
-                }
-                setApiError(true);
-            } finally {
-                setIsLoading(false); // Termina o loading dos dados
-            }
-        };
-
-        fetchLeads();
+        setIsLoading(true);
+        setApiError(null);
         
-    // 7. DEPENDE DO ESTADO DE AUTENTICAÇÃO DO CONTEXTO
-    }, [isAuthReady, isAuthenticated, token, navigate, logout]); 
-    // Abre modal automaticamente quando vier do LeadSearch
-    useEffect(() => {
-        if (!isLoading && leads.length > 0 && location.state && location.state.focusLeadId) {
-            openLeadModal(location.state.focusLeadId);
-            // Limpa o state da rota
-            navigate(location.pathname, { replace: true, state: {} });
-        }
-    }, [isLoading, leads, location, navigate]);
-    
-    // ATENÇÃO: A tela de loading do App.jsx (ProtectedRoute) já cobre o !isAuthReady
-    // Mas mantemos o isLoading para a requisição da API
-    if (isLoading) { 
-        return (
-        <div className="flex-1 p-6">
-            {/* ... (Resto do seu JSX do KanbanBoard) ... */}
-        </div>
-        );
-    }
-    
-    // Filtro de pesquisa aplicado globalmente
-    const normalizar = (valor) => (valor || '').toString().toLowerCase();
-    const matchesSearch = (lead) => {
-        if (!searchTerm) return true;
-        const q = normalizar(searchTerm);
-        return [
-            lead.name,
-            lead.email,
-            lead.phone,
-            lead.address,
-            lead.origin,
-            lead.document,
-            lead.uc,
-        ].some((v) => normalizar(v).includes(q));
-    };
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+            });
 
-    // Handlers do modal de edição rápida (status/notas)
-    const openLeadModal = (leadId) => {
-        const lead = leads.find((l) => l.id === leadId);
-        if (!lead) return;
-        setSelectedLead({ ...lead, notesText: Array.isArray(lead.notes) ? lead.notes.join('\n') : '' });
+            const allLeads = response.data;
+
+            // Agrupa os leads por status
+            const groupedLeads = allLeads.reduce((acc, lead) => {
+                // Garante que o status seja válido (baseado nos STAGES) ou 'Para Contatar'
+                const statusKey = lead.status && STAGES.some(s => s.id === lead.status) ? lead.status : 'Para Contatar'; 
+                if (!acc[statusKey]) {
+                    acc[statusKey] = [];
+                }
+                // Adiciona o campo notesText para facilitar a edição no modal
+                acc[statusKey].push({ 
+                    ...lead, 
+                    notesText: lead.notes ? lead.notes.join('\n') : '' 
+                });
+                return acc;
+            }, {});
+
+            setLeads(groupedLeads);
+
+        } catch (error) {
+            console.error('Erro ao buscar leads:', error.response?.data || error.message);
+            setApiError('Falha ao carregar leads. Verifique a conexão com a API.');
+            if (error.response?.status === 401) {
+                logout();
+                navigate('/login', { replace: true });
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    }, [token, isAuthenticated, navigate, logout]);
+
+    // Efeito para carregar os leads ao montar o componente
+    useEffect(() => {
+        fetchLeads();
+    }, [fetchLeads]);
+    
+    // --- LÓGICA DE MODAL E EDIÇÃO ---
+    
+    const openLeadModal = (lead) => {
+        // Mapeia o lead para o estado do modal
+        setSelectedLead({ ...lead });
         setIsModalOpen(true);
     };
 
@@ -130,259 +126,232 @@ const KanbanBoard = () => {
     };
 
     const saveLeadChanges = async () => {
-        if (!selectedLead) return;
+        if (!selectedLead || saving) return;
+
         setSaving(true);
+        setApiError(null);
+
+        // Prepara os dados para a API (Converte notesText de volta para array de strings)
+        const updatedData = {
+            ...selectedLead,
+            notes: selectedLead.notesText ? selectedLead.notesText.split('\n').map(n => n.trim()).filter(n => n) : []
+        };
+        
+        // Remove campos que não devem ser enviados no PUT
+        delete updatedData.notesText; 
+        delete updatedData._id; 
+        delete updatedData.created_at; 
+        delete updatedData.updated_at; 
+
         try {
-            const payload = {
-                status: selectedLead.status,
-                // converte texto de notas para array, linhas não vazias
-                notes: (selectedLead.notesText || '')
-                    .split('\n')
-                    .map((n) => n.trim())
-                    .filter((n) => n.length > 0),
-                phone: selectedLead.phone || '',
-                email: selectedLead.email || '',
-                address: selectedLead.address || '',
-                origin: selectedLead.origin || '',
-                document: selectedLead.document || '',
-                uc: selectedLead.uc || '',
-                avgConsumption: selectedLead.avgConsumption || '',
-                estimatedSavings: selectedLead.estimatedSavings || '',
-            };
-            await axios.patch(`${API_URL}/${selectedLead.id}`, payload, {
-                headers: { 'Authorization': `Bearer ${token}` },
+            // Se o lead._id existir, é uma edição (PUT)
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, updatedData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
             });
 
-            // Atualiza estado local
-            setLeads((prev) => prev.map((l) => (l.id === selectedLead.id ? { ...l, ...payload } : l)));
-            setToastMessage('Lead atualizado com sucesso');
+            setToastMessage({ message: 'Lead salvo com sucesso!', type: 'success' });
             closeLeadModal();
+            fetchLeads(); // Recarrega os leads para atualizar o Kanban
+
         } catch (error) {
             console.error('Erro ao salvar lead:', error.response?.data || error.message);
-            setToastMessage('Falha ao salvar alterações do lead');
+            setApiError('Falha ao salvar lead. Tente novamente.');
+            setToastMessage({ message: 'Falha ao salvar lead.', type: 'error' });
         } finally {
             setSaving(false);
-            setTimeout(() => setToastMessage(null), 3000);
         }
     };
     
-    const renderSearchBar = () => (
-        <div className="mb-6">
-            <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                    type="text"
-                    placeholder="Buscar leads por nome, email ou telefone..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                />
-            </div>
-        </div>
-    );
-    
-    const renderColumnContent = (stageId) => {
-        // O isLoading principal já trata o carregamento inicial
-        
-        //const stageLeads = leads.filter(lead => lead.stageId === stageId);
-        // Filtra os leads por status (título da etapa) e busca
-        const stageTitle = STAGES.find((s) => s.id === stageId)?.title;
-        const stageLeads = leads
-            .filter((lead) => {
-                const s = (lead.status || '').toLowerCase();
-                const t = (stageTitle || '').toLowerCase();
-                if (t === 'em conversação') {
-                    return s === 'em conversação' || s === 'em negociacao' || s === 'em negociação';
-                }
-                return s === t;
-            })
-            .filter(matchesSearch);
-        if (apiError && leads.length === 0) { // Mostra erro de conexão se não houver leads
-            return (
-                <div className="text-sm text-red-500 text-center mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-red-300 rounded">
-                    Erro de conexão.
-                </div>
-            );
+    // --- LÓGICA DE EXIBIÇÃO ---
+
+    // Filtra leads dentro de uma coluna (para a barra de busca)
+    const filteredLeads = (stageId) => {
+        const stageLeads = leads[stageId] || [];
+        if (!searchTerm.trim()) {
+            return stageLeads;
         }
-        
-        if (stageLeads.length === 0) {
+        const lowerCaseSearch = searchTerm.toLowerCase();
+        return stageLeads.filter(lead => 
+            (lead.name && lead.name.toLowerCase().includes(lowerCaseSearch)) ||
+            (lead.phone && lead.phone.includes(searchTerm)) ||
+            (lead.document && lead.document.includes(searchTerm))
+        );
+    };
+
+    // Renderiza o conteúdo da coluna
+    const renderColumnContent = (stageId) => {
+        if (apiError && !isLoading) {
+            return <p className="text-red-500 text-sm text-center">Erro: {apiError}</p>;
+        }
+
+        if (isLoading) {
+            // Placeholder de carregamento (Mostra o estado da image_26465a.png)
             return (
-                <div className="text-sm text-gray-500 mb-4 p-4 h-24 flex items-center justify-center border-dashed border-2 border-gray-300 rounded">
-                    Nenhum Lead nesta etapa.
+                <div className="animate-pulse space-y-3">
+                    <div className="h-10 bg-gray-300 rounded"></div>
+                    <div className="h-10 w-3/4 bg-gray-300 rounded"></div>
+                    <div className="h-10 bg-gray-300 rounded"></div>
                 </div>
             );
         }
 
-        // Renderização dos cards de Lead
+        const currentLeads = filteredLeads(stageId);
+
+        if (currentLeads.length === 0) {
+            return <p className="text-gray-500 text-sm text-center py-4">Sem leads nesta fase.</p>;
+        }
+
+        // Renderiza os cards de leads
         return (
-            <div>
-                {stageLeads.map((lead) => (
-                    <div key={lead.id} className="mb-2">
-                        <LeadCard lead={lead} onClick={openLeadModal} />
-                    </div>
+            // A altura máxima permite a rolagem apenas dos cards, mantendo o cabeçalho fixo
+            <div className="space-y-3 max-h-[calc(100vh-250px)] overflow-y-auto pr-1"> 
+                {currentLeads.map(lead => (
+                    // O LeadCard é clicável para abrir o modal de edição
+                    <LeadCard key={lead._id} lead={lead} onClick={() => openLeadModal(lead)} />
                 ))}
             </div>
         );
     };
 
     return (
-        <div className="flex-1 p-6">
+        <div className="p-6">
+            <h1 className="text-4xl font-extrabold text-indigo-800 mb-6">Kanban de Leads</h1>
 
-            {/* Toast simples */}
-            {toastMessage && (
-                <div className="bg-indigo-100 border border-indigo-300 text-indigo-800 px-4 py-2 rounded mb-4">
-                    {toastMessage}
+            {/* BARRA DE PESQUISA E BOTÕES */}
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+                <div className="flex items-center w-full md:w-1/3 bg-white p-2 rounded-xl shadow-md border border-gray-200">
+                    <FaSearch className="text-gray-400 mr-2" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nome ou telefone..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full focus:outline-none text-gray-700 placeholder-gray-400"
+                    />
                 </div>
-            )}
-            
-            {/* BARRA DE PESQUISA */}
-            {renderSearchBar()}
-            
-            {/* ALERTA DE ERRO GERAL (só mostra se o erro ocorreu após um carregamento inicial) */}
-            {apiError && ( 
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center" role="alert">
-                    <FaBolt className="mr-3" />
-                    <strong className="font-bold mr-1">Falha ao carregar os dados.</strong>
-                    <span className="block sm:inline"> Verifique a API. (Pode ser erro de CORS/Rede)</span>
+                
+                <div className="flex space-x-3 w-full md:w-auto">
+                    {/* Botão Novo Lead */}
+                    <button 
+                        onClick={() => navigate('/leads/cadastro')}
+                        className="w-full md:w-auto flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-xl shadow-md hover:bg-indigo-700 transition duration-200"
+                    >
+                        <FaPlus size={16} />
+                        <span>Novo Lead</span>
+                    </button>
+                    {/* Botão Atualizar Leads */}
+                    <button 
+                        onClick={fetchLeads}
+                        disabled={isLoading}
+                        className="w-full md:w-auto flex items-center space-x-2 px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-xl shadow-md hover:bg-gray-300 transition duration-200 disabled:opacity-50"
+                        title="Atualizar Leads"
+                    >
+                        <FaBolt size={16} className={isLoading ? 'animate-spin' : ''} />
+                        <span>Atualizar</span>
+                    </button>
                 </div>
-            )}
-            
-            {/* ABAS DE FASES HORIZONTAIS */}
-            <div className="flex flex-wrap space-x-6 mb-6">
-                {STAGES.map(stage => {
-                    const isActive = stage.id === activeStage;
-                    const activeClasses = 'bg-indigo-600 text-white shadow-lg';
-                    const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
-                    
-                    return (
-                        <button
-                            key={stage.id}
-                            onClick={() => setActiveStage(stage.id)}
-                            className={`flex-shrink-0 w-48 text-center py-3 rounded-xl font-bold transition-colors duration-200 text-sm md:text-base 
-                                ${isActive ? activeClasses : inactiveClasses}`}
-                        >
-                            {stage.title}
-                        </button>
-                    );
-                })}
             </div>
 
-            {/* CONTAINER PRINCIPAL DAS COLUNAS */}
-            <div className="flex space-x-6 overflow-x-auto pb-4">
+            {/* CONTAINER PRINCIPAL DAS COLUNAS com rolagem horizontal */}
+            <div className="flex space-x-6 overflow-x-auto pb-4 items-start"> 
                 {STAGES.map(stage => (
                     <div 
                         key={stage.id} 
-                        className="flex-shrink-0 w-48 p-3 bg-white rounded-lg shadow-md"
+                        className="flex-shrink-0 w-80 p-4 bg-gray-100 border border-gray-300 rounded-xl shadow-xl"
+                        // Aqui ficaria a lógica de Drag-and-Drop (se implementada)
                     >
+                        <div className={`text-lg font-bold mb-3 p-2 rounded-lg text-white text-center ${stage.color}`}>
+                            {stage.title} ({leads[stage.id]?.length || 0})
+                        </div>
+                        
                         {renderColumnContent(stage.id)} 
                         
-                        {/* Botão Novo Lead */}
-                        <button onClick={() => navigate('/leads/cadastro')} className="w-full py-2 px-4 border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2">
-                            <span>+ Novo Lead</span>
+                        {/* Botão Adicionar Lead na Coluna */}
+                        <button 
+                            onClick={() => navigate('/leads/cadastro')}
+                            className="w-full mt-3 py-2 px-4 border border-indigo-400 text-indigo-600 rounded-lg hover:bg-indigo-100 transition duration-150 flex items-center justify-center space-x-2"
+                        >
+                            <FaPlus size={14} />
+                            <span>Adicionar Lead</span>
                         </button>
                     </div>
                 ))}
             </div>
-            {/* Modal de Edição Rápida */}
+            
+            {/* TOAST DE FEEDBACK */}
+            {toastMessage && (
+                <Toast 
+                    message={toastMessage.message} 
+                    type={toastMessage.type} 
+                    onClose={() => setToastMessage(null)} 
+                />
+            )}
+
+            {/* MODAL DE EDIÇÃO DE LEAD (Reintegrado) */}
             {isModalOpen && selectedLead && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-gray-900">Atendimento do Lead</h3>
-                            <button onClick={closeLeadModal} className="text-gray-500 hover:text-gray-700">✕</button>
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex justify-between items-center border-b pb-3 mb-4">
+                            <h2 className="text-2xl font-bold text-indigo-800">Editar Lead: {selectedLead.name}</h2>
+                            <button onClick={closeLeadModal} className="text-gray-500 hover:text-gray-700">
+                                <FaTimes size={20} />
+                            </button>
                         </div>
+
+                        {/* Formulário de Edição */}
                         <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                                <input className="w-full border rounded px-3 py-2 bg-gray-50" value={selectedLead.name || ''} disabled />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Nome e Telefone */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                    <input
+                                        type="text"
+                                        className="w-full border rounded px-3 py-2"
+                                        value={selectedLead.name || ''}
+                                        onChange={(e) => setSelectedLead((prev) => ({ ...prev, name: e.target.value }))}
+                                    />
+                                </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                                     <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.phone || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, phone: e.target.value }))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.email || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, email: e.target.value }))}
+                                        type="text"
+                                        className="w-full border rounded px-3 py-2"
+                                        value={selectedLead.phone || ''}
+                                        onChange={(e) => setSelectedLead((prev) => ({ ...prev, phone: e.target.value }))}
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select
-                                    className="w-full border rounded px-3 py-2"
-                                    value={selectedLead.status || 'Para Contatar'}
-                                    onChange={(e) => setSelectedLead((prev) => ({ ...prev, status: e.target.value }))}
-                                >
-                                    {STAGES.map((s) => (
-                                        <option key={s.id} value={s.title}>{s.title}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            
+                            {/* Status e Consumo */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.address || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, address: e.target.value }))}
-                                    />
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        className="w-full border rounded px-3 py-2"
+                                        value={selectedLead.status || 'Para Contatar'}
+                                        onChange={(e) => setSelectedLead((prev) => ({ ...prev, status: e.target.value }))}
+                                    >
+                                        {STAGES.map(stage => (
+                                            <option key={stage.id} value={stage.id}>{stage.title}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Origem</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.origin || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, origin: e.target.value }))}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.document || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, document: e.target.value }))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">UC</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.uc || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, uc: e.target.value }))}
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
                                     <input
-                                      type="number"
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.avgConsumption || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, avgConsumption: e.target.value }))}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada</label>
-                                    <input
-                                      className="w-full border rounded px-3 py-2"
-                                      value={selectedLead.estimatedSavings || ''}
-                                      onChange={(e) => setSelectedLead((p) => ({ ...p, estimatedSavings: e.target.value }))}
+                                        type="number"
+                                        className="w-full border rounded px-3 py-2"
+                                        value={selectedLead.avgConsumption || ''}
+                                        onChange={(e) => setSelectedLead((prev) => ({ ...prev, avgConsumption: e.target.value }))}
                                     />
                                 </div>
                             </div>
+
+                            {/* Campo de Notas (Requerido para a lógica do original) */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notas (Uma por linha)</label>
                                 <textarea
                                     rows={4}
                                     className="w-full border rounded px-3 py-2"
@@ -392,10 +361,17 @@ const KanbanBoard = () => {
                                 />
                             </div>
                         </div>
+
+                        {/* Botões do Modal */}
                         <div className="mt-6 flex justify-end space-x-2">
                             <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
-                            <button onClick={saveLeadChanges} disabled={saving} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60">
-                                {saving ? 'Salvando...' : 'Salvar'}
+                            <button 
+                                onClick={saveLeadChanges} 
+                                disabled={saving} 
+                                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                            >
+                                <FaSave size={16} />
+                                <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
                             </button>
                         </div>
                     </div>
