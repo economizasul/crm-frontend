@@ -39,12 +39,15 @@ const Dashboard = () => {
         fetchLeads();
     }, [token]); // Adiciona token como dependência para recarregar se o token mudar
 
-    // Função para organizar leads por status
+    // Função para organizar leads por status fixo
     const getLeadsByStatus = () => {
-        const statusMap = {};
+        const statusMap = {
+            'Para Contatar': [],
+            'Em Andamento': [],
+            'Concluído': [],
+        };
         leads.forEach(lead => {
-            if (!statusMap[lead.status]) statusMap[lead.status] = [];
-            statusMap[lead.status].push(lead);
+            if (statusMap[lead.status]) statusMap[lead.status].push(lead);
         });
         return statusMap;
     };
@@ -53,7 +56,7 @@ const Dashboard = () => {
 
     return (
         <div className="p-4">
-            <h1 className="text-2xl font-bold mb-4">Dashboard - Kanban Leads</h1>
+            <h1 className="text-2xl font-bold mb-4">Kanban Leads</h1>
             {leads.length === 0 ? (
                 <p>Carregando leads... ou nenhum lead encontrado. Verifique o console para erros.</p>
             ) : (
