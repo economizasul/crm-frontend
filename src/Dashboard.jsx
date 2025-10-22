@@ -4,7 +4,6 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
 
-// Ícone personalizado
 const customIcon = new L.Icon({
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
     iconSize: [25, 41],
@@ -13,15 +12,15 @@ const customIcon = new L.Icon({
 
 const Dashboard = () => {
     const [leads, setLeads] = useState([]);
-    const position = [-23.5505, -46.6333]; // Centro em SP
+    const position = [-23.5505, -46.6333];
 
     useEffect(() => {
         const fetchLeads = async () => {
             try {
-                const response = await axios.get('https://<backend-url>/api/v1/leads');
+                const response = await axios.get('https://crm-economizasul-backend.onrender.com/api/v1/leads');
                 setLeads(response.data);
             } catch (error) {
-                console.error('Erro ao carregar leads:', error);
+                console.error('Erro ao carregar leads:', error.message);
             }
         };
         fetchLeads();
@@ -31,7 +30,7 @@ const Dashboard = () => {
         <div>
             <h1>Dashboard</h1>
             {leads.length === 0 ? (
-                <p>Carregando leads... ou nenhum lead encontrado.</p>
+                <p>Carregando leads... ou nenhum lead encontrado. Verifique o console para erros.</p>
             ) : (
                 <MapContainer center={position} zoom={10} style={{ height: '400px', width: '100%' }}>
                     <TileLayer
