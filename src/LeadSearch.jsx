@@ -1,19 +1,17 @@
-// src/LeadSearch.jsx - CÓDIGO FINAL COM LAYOUT E EDIÇÃO E CORREÇÃO DE FOCO
+// src/LeadSearch.jsx - CÓDIGO FINAL COM LAYOUT, EDIÇÃO E CORREÇÃO DE FOCO VIA DEBOUNCE
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'; // 🚨 IMPORTADO useMemo
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; 
 import { FaSearch, FaPlus, FaEdit, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
 import Sidebar from './components/Sidebar'; 
-
-// CRÍTICO: Importa STAGES do KanbanBoard (necessário para o Modal)
-import { STAGES } from './KanbanBoard.jsx'; 
+import { STAGES } from './KanbanBoard.jsx'; // Importa as fases do Kanban
 
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// --- LÓGICA DE FUNÇÕES AUXILIARES (Modal e Notas) ---
+// --- FUNÇÕES AUXILIARES (Modal e Notas) ---
 
 const formatNoteDate = (timestamp) => {
     if (timestamp === 0 || !timestamp) return 'Sem Data';
@@ -30,14 +28,13 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Componente Modal de Edição 
+// Componente Modal de Edição (Inalterado)
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     const [leadData, setLeadData] = useState(selectedLead);
     const [newNoteText, setNewNoteText] = useState('');
     const [saving, setSaving] = useState(false);
     const [apiError, setApiError] = useState(null);
     
-    // Atualiza o estado do modal quando o lead selecionado muda
     useEffect(() => {
         if (selectedLead) {
             setLeadData(selectedLead);
@@ -72,10 +69,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             email: leadData.email,
             avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            
-            // O backend espera um array de STRINGS (texto puro)
             notes: internalNotes.map(n => n.text).filter(Boolean), 
-            
             uc: leadData.uc,
             qsa: leadData.qsa || null,
         };
@@ -110,7 +104,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
                 
                 <div className="space-y-4">
-                    {/* Campos Principais */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
@@ -118,7 +111,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
                     </div>
                     
-                    {/* Campos Adicionais */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem</label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} /></div>
@@ -134,7 +126,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                     </div>
 
-                    {/* CAMPO DE NOVA NOTA */}
                     <div className="border p-4 rounded-lg bg-gray-50">
                         <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Nova Nota</span></label>
                         <textarea
@@ -147,12 +138,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         />
                     </div>
 
-                    {/* HISTÓRICO DE NOTAS */}
                     <div>
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
                             {leadData.notes && leadData.notes.length > 0 ? (
-                                // Mapeia o array de objetos { text, timestamp }
                                 [...leadData.notes].map((note, index) => (
                                     <div key={index} className="mb-2 p-2 border-b last:border-b-0 text-sm">
                                         <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(note.timestamp)}</p>
@@ -164,7 +153,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     </div>
                 </div>
 
-                {/* Botões do Modal */}
                 <div className="mt-6 flex justify-end space-x-2">
                     <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                     <button 
@@ -185,12 +173,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 // --- COMPONENTE PRINCIPAL LEAD SEARCH ---
 const LeadSearch = () => {
     const [allLeads, setAllLeads] = useState([]); 
-    // REMOVIDO: const [filteredLeads, setFilteredLeads] = useState([]);
-    const [searchTerm, setSearchTerm] = useState(''); // CRÍTICO: Estado para o input
+    
+    // 1. Estado RÁPIDO: Armazena o valor do input (muda a cada tecla)
+    const [searchTerm, setSearchTerm] = useState(''); 
+    // 2. Estado LENTO: Termo usado para filtrar a lista (muda após o debounce)
+    const [filterTerm, setFilterTerm] = useState(''); 
+    
     const [apiError, setApiError] = useState(null); 
     const [isLoading, setIsLoading] = useState(true); 
 
-    // ESTADOS DE EDIÇÃO DO MODAL
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
 
@@ -218,9 +209,23 @@ const LeadSearch = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // 🚨 CORREÇÃO PRINCIPAL: Cálculo do filtro com useMemo
+    // 🚨 EFEITO DEBOUCE (A CHAVE DA CORREÇÃO):
+    useEffect(() => {
+        // Define um temporizador (300ms) para atualizar o 'filterTerm'
+        const handler = setTimeout(() => {
+            setFilterTerm(searchTerm);
+        }, 300); // Atraso de 300ms
+
+        // Limpa o temporizador anterior se 'searchTerm' mudar antes dos 300ms.
+        // Isso garante que setFilterTerm só é chamado se o usuário parar de digitar.
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchTerm]); // Roda sempre que o valor do input ('searchTerm') muda
+
+    // useMemo agora depende de filterTerm (lento/debounced)
     const filteredLeads = useMemo(() => {
-        const term = searchTerm.trim();
+        const term = filterTerm.trim(); // Usa o termo debounced para filtrar
         if (!term) {
             return allLeads;
         }
@@ -238,15 +243,13 @@ const LeadSearch = () => {
             
             return matchName || matchPhone || matchDocument || matchEmail || matchStatus || matchUC || matchOrigin;
         });
-    }, [allLeads, searchTerm]); // Recalcula apenas quando a lista de leads ou o termo de busca MUDAM
+    }, [allLeads, filterTerm]); // Depende do termo debounced
 
-    // 🚨 Simplifica a função para apenas atualizar o searchTerm.
-    // Isso garante que o estado do input é a única coisa que muda no onchange.
+    // Função de mudança que só atualiza o estado rápido
     const handleSearchChange = (term) => {
         setSearchTerm(term);
     };
 
-    // FUNÇÕES DE ABERTURA/FECHAMENTO DO MODAL (inalteradas)
     const openLeadModal = (lead) => {
         const leadNotes = Array.isArray(lead.notes) 
             ? lead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
@@ -274,7 +277,6 @@ const LeadSearch = () => {
         return (
             <div className="p-6 bg-gray-50 min-h-full">
                 
-                {/* Botão de voltar para Kanban Leads */}
                 <div className="mb-4">
                     <button 
                         onClick={() => navigate('/dashboard')}
@@ -284,7 +286,6 @@ const LeadSearch = () => {
                     </button>
                 </div>
 
-                {/* Cabeçalho */}
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-extrabold text-gray-800">Busca e Lista de Leads</h1>
                     <button 
@@ -296,20 +297,20 @@ const LeadSearch = () => {
                     </button>
                 </div>
                 
-                {/* Campo de Busca */}
+                {/* Campo de Busca - Agora usa searchTerm (rápido) */}
                 <div className="mb-6 relative max-w-lg">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <input 
                         type="text" 
                         placeholder="Buscar por Nome, Telefone, Documento, UC ou Status..." 
                         value={searchTerm} 
-                        // 🚨 Aplica a função de mudança simplificada
+                        // Atualiza apenas o estado 'rápido'
                         onChange={(e) => handleSearchChange(e.target.value)} 
                         className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
                     />
                 </div>
                 
-                {/* Tabela/Lista de Leads */}
+                {/* Tabela/Lista de Leads - Agora depende de filteredLeads (lento) */}
                 <div className="bg-white p-4 rounded-lg shadow-xl overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-100">
@@ -330,7 +331,6 @@ const LeadSearch = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.phone}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.uc || 'N/A'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {/* O status de cor precisa ser mapeado pelo STAGES para ser preciso. Mantenho o código que você enviou, mas note a ressalva. */}
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${lead.status === 'Fechado' ? 'bg-green-100 text-green-800' : lead.status === 'Perdido' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                                 {lead.status}
                                             </span>
@@ -349,7 +349,7 @@ const LeadSearch = () => {
                                 ))
                             ) : (
                                 <tr><td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                                    {searchTerm.trim() ? "Nenhum lead encontrado com o termo de busca." : "Nenhum lead cadastrado ou encontrado."}
+                                    {filterTerm.trim() ? "Nenhum lead encontrado com o termo de busca." : "Nenhum lead cadastrado ou encontrado."}
                                 </td></tr>
                             )}
                         </tbody>
@@ -365,15 +365,13 @@ const LeadSearch = () => {
 
 
     return (
-        // ESTRUTURA DE LAYOUT PRINCIPAL
         <div className="flex h-screen bg-gray-100"> 
-            <Sidebar /> {/* Sidebar ativo */}
+            <Sidebar /> 
             
             <main className="flex-1 overflow-y-auto"> 
                 <Content />
             </main>
 
-            {/* MODAL DE EDIÇÃO */}
             {selectedLead && (
                 <LeadEditModal 
                     selectedLead={selectedLead}
