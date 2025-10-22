@@ -1,14 +1,13 @@
-// src/LeadSearch.jsx - CÓDIGO FINAL COM LAYOUT E EDIÇÃO
+// src/LeadSearch.jsx - CÓDIGO FINAL COM LAYOUT E EDIÇÃO E CORREÇÃO DE FOCO
 
-import React, { useState, useEffect, useCallback } from 'react';
-// IMPORTAÇÃO CORRIGIDA: Apenas o STAGES é importado
-import { FaSearch, FaPlus, FaExternalLinkAlt, FaEdit, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; // 🚨 IMPORTADO useMemo
+import { FaSearch, FaPlus, FaEdit, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
 import Sidebar from './components/Sidebar'; 
 
-// 🚨 CORREÇÃO CRÍTICA: Importa STAGES do KanbanBoard (requer export no KanbanBoard)
+// CRÍTICO: Importa STAGES do KanbanBoard (necessário para o Modal)
 import { STAGES } from './KanbanBoard.jsx'; 
 
 // Variável de ambiente para URL da API
@@ -31,7 +30,7 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Componente Modal de Edição (DENTRO do LeadSearch para simplicidade)
+// Componente Modal de Edição 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     const [leadData, setLeadData] = useState(selectedLead);
     const [newNoteText, setNewNoteText] = useState('');
@@ -71,7 +70,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             address: leadData.address,
             origin: leadData.origin,
             email: leadData.email,
-            // Certifique-se de enviar números como números se for o caso
             avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
             
@@ -86,7 +84,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             const config = { headers: { 'Authorization': `Bearer ${token}` } };
             await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData._id}`, dataToSend, config);
 
-            // Atualiza a lista no componente pai e fecha
             await fetchLeads(); 
             onClose(); 
             onSave(true, 'Lead salvo com sucesso!'); 
@@ -101,7 +98,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     if (!isModalOpen) return null;
 
-    // ... (Restante da renderização do Modal)
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
@@ -133,7 +129,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
                             <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Para Contatar'} onChange={handleInputChange}>
-                                {/* Usa o STAGES importado! */}
                                 {STAGES.map(stage => (<option key={stage.id} value={stage.id}>{stage.title}</option>))}
                             </select>
                         </div>
@@ -190,8 +185,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 // --- COMPONENTE PRINCIPAL LEAD SEARCH ---
 const LeadSearch = () => {
     const [allLeads, setAllLeads] = useState([]); 
-    const [filteredLeads, setFilteredLeads] = useState([]);
-    const [searchTerm, setSearchTerm] = useState('');
+    // REMOVIDO: const [filteredLeads, setFilteredLeads] = useState([]);
+    const [searchTerm, setSearchTerm] = useState(''); // CRÍTICO: Estado para o input
     const [apiError, setApiError] = useState(null); 
     const [isLoading, setIsLoading] = useState(true); 
 
@@ -202,16 +197,14 @@ const LeadSearch = () => {
     const navigate = useNavigate(); 
     const { token, isAuthenticated, logout } = useAuth(); 
     
-    // Função de Busca de Leads (inalterada)
+    // Função de Busca de Leads 
     const fetchLeads = useCallback(async () => {
-        // ... (lógica de fetchLeads)
         if (!isAuthenticated || !token) { setIsLoading(false); return; }
         setIsLoading(true); setApiError(null);
         try {
             const config = { headers: { 'Authorization': `Bearer ${token}` } };
             const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, config);
             setAllLeads(response.data);
-            setFilteredLeads(response.data); 
             setApiError(null);
         } catch (error) {
             if (error.response?.status === 401) { logout(); setApiError('Sessão expirada. Faça login novamente.'); } 
@@ -225,12 +218,16 @@ const LeadSearch = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    const handleSearch = (term) => {
-        // ... (lógica de handleSearch)
-        setSearchTerm(term);
+    // 🚨 CORREÇÃO PRINCIPAL: Cálculo do filtro com useMemo
+    const filteredLeads = useMemo(() => {
+        const term = searchTerm.trim();
+        if (!term) {
+            return allLeads;
+        }
+
         const lowerCaseTerm = term.toLowerCase();
-        if (!lowerCaseTerm.trim()) { setFilteredLeads(allLeads); return; }
-        const results = allLeads.filter(lead => {
+
+        return allLeads.filter(lead => {
             const matchName = lead.name?.toLowerCase().includes(lowerCaseTerm);
             const matchPhone = lead.phone?.includes(term); 
             const matchDocument = lead.document?.includes(term);
@@ -238,12 +235,18 @@ const LeadSearch = () => {
             const matchStatus = lead.status?.toLowerCase().includes(lowerCaseTerm);
             const matchUC = lead.uc?.includes(term);
             const matchOrigin = lead.origin?.toLowerCase().includes(lowerCaseTerm);
+            
             return matchName || matchPhone || matchDocument || matchEmail || matchStatus || matchUC || matchOrigin;
         });
-        setFilteredLeads(results);
+    }, [allLeads, searchTerm]); // Recalcula apenas quando a lista de leads ou o termo de busca MUDAM
+
+    // 🚨 Simplifica a função para apenas atualizar o searchTerm.
+    // Isso garante que o estado do input é a única coisa que muda no onchange.
+    const handleSearchChange = (term) => {
+        setSearchTerm(term);
     };
 
-    // FUNÇÕES DE ABERTURA/FECHAMENTO DO MODAL
+    // FUNÇÕES DE ABERTURA/FECHAMENTO DO MODAL (inalteradas)
     const openLeadModal = (lead) => {
         const leadNotes = Array.isArray(lead.notes) 
             ? lead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
@@ -260,7 +263,6 @@ const LeadSearch = () => {
     };
     
     const handleSaveFeedback = (success, message) => {
-        // Aqui você pode adicionar um toast de sucesso
         console.log(`Salvamento: ${success ? 'Sucesso' : 'Falha'} - ${message}`);
     };
 
@@ -297,13 +299,19 @@ const LeadSearch = () => {
                 {/* Campo de Busca */}
                 <div className="mb-6 relative max-w-lg">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input type="text" placeholder="Buscar por Nome, Telefone, Documento, UC ou Status..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)} className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar por Nome, Telefone, Documento, UC ou Status..." 
+                        value={searchTerm} 
+                        // 🚨 Aplica a função de mudança simplificada
+                        onChange={(e) => handleSearchChange(e.target.value)} 
+                        className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
+                    />
                 </div>
                 
                 {/* Tabela/Lista de Leads */}
                 <div className="bg-white p-4 rounded-lg shadow-xl overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        {/* ... (Cabeçalho da tabela) ... */}
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
@@ -322,6 +330,7 @@ const LeadSearch = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.phone}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{lead.uc || 'N/A'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
+                                            {/* O status de cor precisa ser mapeado pelo STAGES para ser preciso. Mantenho o código que você enviou, mas note a ressalva. */}
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${lead.status === 'Fechado' ? 'bg-green-100 text-green-800' : lead.status === 'Perdido' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                                                 {lead.status}
                                             </span>
