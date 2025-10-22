@@ -3,7 +3,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
-import { useAuth } from './AuthContext.jsx'; // O caminho correto é relativo à raiz se Sidebar.jsx estiver em src/components/Sidebar.jsx
+// CORREÇÃO CRÍTICA DO CAMINHO: '../AuthContext.jsx' para subir de src/components para src/
+import { useAuth } from '../AuthContext.jsx'; 
 
 // Estilos para os links de navegação (mantidos)
 const LinkClass = ({ isActive }) => 
@@ -24,7 +25,6 @@ const Sidebar = () => {
     
     // Menu de navegação (corrigido o path de Buscar Lead)
     const navItems = [
-        // CORREÇÃO: O componente LeadSearch está mapeado para /search-lead
         { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' }, 
         { name: 'Kanban Leads', icon: FaTachometerAlt, path: '/dashboard' },
         { name: 'Dashboard', icon: FaChartBar, path: '/dashboard' }, // Mantido, se /dashboard for a rota do Kanban
@@ -34,7 +34,6 @@ const Sidebar = () => {
     // Itens de rodapé (Exemplo)
     const footerItems = [
         { name: 'Configurações', icon: FaCogs, path: '/settings' },
-        // ... (outros itens de rodapé)
     ];
 
     return (
@@ -47,7 +46,6 @@ const Sidebar = () => {
             {/* Links Principais */}
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
-                    // Se o path for /dashboard e o componente for o Kanban, ele deve ser a home do login
                     <NavLink key={item.name} to={item.path} className={LinkClass}>
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
