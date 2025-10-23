@@ -28,10 +28,11 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Componente Modal de Edição (Inalterado)
+// Componente Modal de Edição (ATUALIZADO com Botão de Nota e Anexos)
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     const [leadData, setLeadData] = useState(selectedLead);
     const [newNoteText, setNewNoteText] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null); // Estado para anexo
     const [saving, setSaving] = useState(false);
     const [apiError, setApiError] = useState(null);
     
@@ -39,6 +40,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         if (selectedLead) {
             setLeadData(selectedLead);
             setNewNoteText('');
+            setSelectedFile(null); // Limpa o arquivo selecionado
             setApiError(null);
         }
     }, [selectedLead]);
@@ -48,17 +50,63 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setLeadData((prev) => ({ ...prev, [name]: value }));
     };
     
+    // NOVO: Função para adicionar a nota e/ou anexo ao histórico
+    const handleAddNewNote = () => {
+        if (!newNoteText.trim() && !selectedFile) return;
+
+        let noteToAdd = newNoteText.trim();
+        let notesArray = leadData.notes ? [...leadData.notes] : [];
+
+        // 1. Adiciona o texto da nota, se houver
+        if (noteToAdd) {
+            notesArray.push({ text: noteToAdd, timestamp: Date.now() });
+        }
+
+        // 2. Adiciona a "nota" de anexo, se houver um arquivo (SIMULAÇÃO)
+        if (selectedFile) {
+             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+             // A flag isAttachment ajuda o frontend a estilizar
+             notesArray.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+        }
+        
+        // Atualiza o estado do lead e limpa os campos
+        setLeadData((prev) => ({ ...prev, notes: notesArray }));
+        setNewNoteText('');
+        setSelectedFile(null); // Limpa o campo de anexo
+        
+        // Limpa o input file (solução forçada em React para resetar o valor visual)
+        document.getElementById('attachment-input')?.value = ''; 
+    };
+    
+    // NOVO: Função para lidar com o upload de arquivo
+    const handleFileChange = (e) => {
+        setSelectedFile(e.target.files[0] || null);
+    };
+
+
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
         setSaving(true);
         setApiError(null);
 
+        // O array de notes para o backend é o leadData.notes ATUALIZADO
         let internalNotes = leadData.notes ? [...leadData.notes] : [];
-        if (newNoteText.trim()) {
-             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() }); 
+        
+        // Verificação final caso o usuário tenha digitado/selecionado e não clicado em "Adicionar Nota ao Histórico"
+        if (newNoteText.trim() || selectedFile) {
+            if (newNoteText.trim()) {
+                internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+            }
+            if (selectedFile) {
+                const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+                internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+            }
         }
         
+        // O backend só aceita um array de STRINGS de notas, então mapeamos:
+        const notesToSend = internalNotes.map(n => n.text).filter(Boolean);
+
         const dataToSend = {
             status: leadData.status, 
             name: leadData.name,
@@ -69,7 +117,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             email: leadData.email,
             avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            notes: internalNotes.map(n => n.text).filter(Boolean), 
+            notes: notesToSend, // Envia o array de strings
             uc: leadData.uc,
             qsa: leadData.qsa || null,
         };
@@ -91,6 +139,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     };
 
     if (!isModalOpen) return null;
+    
+    // Condição para habilitar o botão
+    const canAddNewNote = newNoteText.trim() || selectedFile;
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
@@ -126,28 +177,68 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                     </div>
 
+                    {/* Quadro de Adicionar Nova Nota (Atualizado com Botão e Anexos) */}
                     <div className="border p-4 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Nova Nota</span></label>
+                        <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
+                        
+                        {/* Campo de Texto da Nota */}
                         <textarea
-                            rows={2}
+                            rows={3}
                             name="newNoteText"
-                            className="w-full border rounded px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Digite a nova nota aqui..."
+                            className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Descreva o atendimento ou a anotação aqui..."
                             value={newNoteText}
                             onChange={(e) => setNewNoteText(e.target.value)}
                         />
+                        
+                        {/* Campo de Anexo (Upload) */}
+                        <div className="mb-4">
+                            <label htmlFor="attachment-input" className="block text-sm font-medium text-gray-700 mb-1">Anexo (Foto, PDF, etc.)</label>
+                            <input
+                                id="attachment-input"
+                                type="file"
+                                accept=".pdf,image/*"
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                onChange={handleFileChange}
+                            />
+                            {selectedFile && (
+                                <p className="mt-1 text-sm text-gray-600">Arquivo selecionado: {selectedFile.name}</p>
+                            )}
+                        </div>
+
+                        {/* Botão para Adicionar Nota/Anexo */}
+                        <button
+                            onClick={handleAddNewNote}
+                            disabled={!canAddNewNote}
+                            className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
+                        >
+                            <FaPlus size={14} />
+                            <span>Adicionar Nota ao Histórico</span>
+                        </button>
                     </div>
 
+                    {/* Histórico de Notas (Atualizado para reverter ordem e estilizar anexo) */}
                     <div>
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
                             {leadData.notes && leadData.notes.length > 0 ? (
-                                [...leadData.notes].map((note, index) => (
-                                    <div key={index} className="mb-2 p-2 border-b last:border-b-0 text-sm">
-                                        <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(note.timestamp)}</p>
-                                        <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
-                                    </div>
-                                ))
+                                // Reverte a ordem para mostrar as mais recentes primeiro
+                                [...leadData.notes].reverse().map((note, index) => {
+                                    // Verifica se a nota é um registro de anexo
+                                    const isAttachment = note.text.startsWith('[ANEXO REGISTRADO:');
+                                    const noteClass = isAttachment 
+                                        ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm" 
+                                        : "mb-2 p-2 border-b last:border-b-0 text-sm";
+                                    
+                                    return (
+                                        <div key={index} className={noteClass}>
+                                            <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(note.timestamp)}</p>
+                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
+                                                {note.text}
+                                            </p>
+                                        </div>
+                                    );
+                                })
                             ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
                         </div>
                     </div>
