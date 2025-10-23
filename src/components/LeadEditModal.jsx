@@ -25,7 +25,7 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// --- COMPONENTE LEAD EDIT MODAL (Corrigido) ---
+// --- COMPONENTE LEAD EDIT MODAL ---
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     // Inicializa o estado com o lead selecionado ou um objeto vazio
@@ -83,7 +83,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setNewNoteText('');
         setSelectedFile(null);
         
-        // Limpa o input de arquivo (CORREÇÃO para evitar erro de build)
+        // Limpa o input de arquivo (necessário após adicionar nota)
         const fileInput = document.getElementById('attachment-input');
         if (fileInput) {
             fileInput.value = '';
@@ -146,7 +146,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     if (!isModalOpen) return null;
     
-    // CORREÇÃO: Variável usada no botão de adicionar nota (linha 239)
+    // Variável de controle do botão de adicionar nota
     const canAddNewNote = newNoteText.trim() || selectedFile;
 
     return (
