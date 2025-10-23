@@ -119,7 +119,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             document: leadData.document,
             address: leadData.address,
             origin: leadData.origin,
-            email: leadData.email,
+            email: leadData.email, // <-- Enviado para o backend
             avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
             notes: notesToSend, // <-- Envia o array de strings CORRETO
