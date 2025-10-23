@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaPlus } from 'react-icons/fa';
 import axios from 'axios';
-// Importa STAGES para a lista de opções de Status
+// Importa STAGES do KanbanBoard
 import { STAGES } from '../KanbanBoard.jsx'; 
 
 // Variável de ambiente para URL da API
@@ -60,16 +60,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setSelectedFile(e.target.files[0] || null);
     };
 
-    // Adiciona a nota/anexo ao histórico LOCAL
+    // Adiciona a nota/anexo ao histórico LOCAL (no frontend)
     const handleAddNewNote = () => {
         if (!newNoteText.trim() && !selectedFile) return;
 
-        let noteToAdd = newNoteText.trim();
         let notesArray = leadData.notes ? [...leadData.notes] : [];
 
         // 1. Adiciona o texto da nota, se houver
-        if (noteToAdd) {
-            notesArray.push({ text: noteToAdd, timestamp: Date.now() });
+        if (newNoteText.trim()) {
+            notesArray.push({ text: newNoteText.trim(), timestamp: Date.now() });
         }
 
         // 2. Adiciona a "nota" de anexo
@@ -83,7 +82,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setNewNoteText('');
         setSelectedFile(null);
         
-        // Limpa o input de arquivo (necessário após adicionar nota)
+        // Limpa o input de arquivo
         const fileInput = document.getElementById('attachment-input');
         if (fileInput) {
             fileInput.value = '';
@@ -99,16 +98,17 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         let internalNotes = leadData.notes ? [...leadData.notes] : [];
         
-        // Trata pendências antes de salvar (se o usuário não clicou em "Adicionar Nota ao Histórico")
-        if (newNoteText.trim()) {
-            internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        // Trata pendências: Se há texto/arquivo no input, mas o usuário não clicou em "Adicionar Nota", adicionamos antes de salvar.
+        if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
+             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
         }
-        if (selectedFile) {
+        if (selectedFile && !internalNotes.some(n => n.text.includes(selectedFile.name))) {
             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
-        // Mapeia para strings para enviar ao backend
+        // CRÍTICO: Mapeia o array de objetos {text: string, timestamp: number} para um array de strings
+        // O backend espera um array de strings para salvar no campo JSONB `notes`.
         const notesToSend = internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean);
 
 
@@ -122,7 +122,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             email: leadData.email,
             avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            notes: notesToSend, // Envia o array de strings
+            notes: notesToSend, // <-- Envia o array de strings CORRETO
             uc: leadData.uc,
             qsa: leadData.qsa || null,
         };
@@ -138,7 +138,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         } catch (error) {
             console.error('Erro ao salvar lead:', error.response?.data || error.message);
-            setApiError(`Falha ao salvar: ${error.response?.data?.error || 'Erro desconhecido'}`);
+            // Mensagem de erro do servidor
+            const serverError = error.response?.data?.error || 'Erro desconhecido';
+            setApiError(`Falha ao salvar: ${serverError}`);
         } finally {
             setSaving(false); 
         }
@@ -217,6 +219,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                         {/* Botão para Adicionar Nota/Anexo */}
                         <button
+                            type="button" // Garante que não submeta o formulário
                             onClick={handleAddNewNote}
                             disabled={!canAddNewNote}
                             className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
@@ -259,6 +262,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 <div className="mt-6 flex justify-end space-x-2">
                     <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                     <button 
+                        type="button"
                         onClick={saveLeadChanges} 
                         disabled={saving} 
                         className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
