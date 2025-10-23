@@ -1,4 +1,4 @@
-// src/LeadSearch.jsx - CÓDIGO FINAL COM LAYOUT, EDIÇÃO E CORREÇÃO DE FOCO VIA DEBOUNCE E REFACTOR
+// src/LeadSearch.jsx - CÓDIGO FINAL COM CORREÇÃO DE ERRO DE BUILD (Invalid assignment target)
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'; 
 import { FaSearch, FaPlus, FaEdit, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
@@ -50,7 +50,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setLeadData((prev) => ({ ...prev, [name]: value }));
     };
     
-    // NOVO: Função para adicionar a nota e/ou anexo ao histórico
+    // Função para adicionar a nota e/ou anexo ao histórico
     const handleAddNewNote = () => {
         if (!newNoteText.trim() && !selectedFile) return;
 
@@ -74,11 +74,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setNewNoteText('');
         setSelectedFile(null); // Limpa o campo de anexo
         
-        // Limpa o input file (solução forçada em React para resetar o valor visual)
-        document.getElementById('attachment-input')?.value = ''; 
+        // CORREÇÃO APLICADA AQUI: Evita o Optional Chaining na atribuição
+        const fileInput = document.getElementById('attachment-input');
+        if (fileInput) {
+            fileInput.value = '';
+        }
     };
     
-    // NOVO: Função para lidar com o upload de arquivo
+    // Função para lidar com o upload de arquivo
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0] || null);
     };
@@ -177,7 +180,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                     </div>
 
-                    {/* Quadro de Adicionar Nova Nota (Atualizado com Botão e Anexos) */}
+                    {/* Quadro de Adicionar Nova Nota */}
                     <div className="border p-4 rounded-lg bg-gray-50">
                         <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
                         
@@ -217,7 +220,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </button>
                     </div>
 
-                    {/* Histórico de Notas (Atualizado para reverter ordem e estilizar anexo) */}
+                    {/* Histórico de Notas */}
                     <div>
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
@@ -440,6 +443,7 @@ const LeadSearch = () => {
     // Funções do Modal (Inalteradas)
     const openLeadModal = useCallback((lead) => {
         const leadNotes = Array.isArray(lead.notes) 
+            // Garante que as notas sejam objetos com text e timestamp para evitar erros de renderização/manipulação
             ? lead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
             : [];
             
@@ -463,7 +467,7 @@ const LeadSearch = () => {
             <Sidebar /> 
             
             <main className="flex-1 overflow-y-auto"> 
-                {/* 🚨 Usa o novo componente memoizado */}
+                {/* Usa o componente memoizado */}
                 <LeadSearchContent 
                     isLoading={isLoading}
                     apiError={apiError}
