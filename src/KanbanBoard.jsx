@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL E REVISADO (Com correção de Notas e ajustes de Layout)
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE NOTAS, LAYOUT COMPACTO E DRAG/DROP FUNCIONANDO
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
@@ -40,6 +40,7 @@ const Toast = ({ message, type, onClose }) => {
 
 // Componente Card de Lead
 const LeadCard = ({ lead, onClick }) => {
+    // Adicionado onDragStart aqui para suportar o Drag and Drop
     return (
         <div 
             onClick={() => onClick(lead)}
@@ -75,7 +76,7 @@ const KanbanBoard = () => {
     const [apiError, setApiError] = useState(null);
     const [selectedLead, setSelectedLead] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newNoteText, setNewNoteText] = useState(''); // Estado para a nova nota
+    const [newNoteText, setNewNoteText] = useState(''); 
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
     
@@ -120,10 +121,8 @@ const KanbanBoard = () => {
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
         
-        // O Backend já deve ter formatado lead.notes como um Array de Objetos.
         const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
 
-        // Define o estado com os dados do lead
         setLeadData({
             name: lead.name || '',
             phone: lead.phone || '',
@@ -160,11 +159,9 @@ const KanbanBoard = () => {
     const addNewNote = () => {
         if (newNoteText.trim() === '') return;
 
-        // Cria o objeto da nova nota com data e adiciona ao array existente
         const newNote = {
             text: newNoteText.trim(),
             timestamp: Date.now(),
-            // author: req.user.name || 'Vendedor' 
         };
 
         setLeadData(prev => ({
@@ -176,17 +173,17 @@ const KanbanBoard = () => {
     };
 
 
-    // Função para salvar as alterações do Lead
+    // Função para salvar as alterações do Lead (usada pelo botão Salvar e pelo Drag/Drop)
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
 
         try {
-            // Antes de enviar ao backend (coluna TEXT), converte o Array de Notas para String JSON
+            // CRÍTICO: Antes de enviar ao backend, converte o Array de Notas para String JSON
             const dataToSend = {
                 ...leadData,
-                notes: JSON.stringify(leadData.notes || []), // Envia como string JSON válida
-                // Garante que os números são números
+                notes: JSON.stringify(leadData.notes || []), // TRANSFORMA O ARRAY DE OBJETOS EM STRING JSON VÁLIDA
+                // Garante que os números são números ou null
                 avgConsumption: parseFloat(leadData.avgConsumption) || null,
                 estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
             };
@@ -209,17 +206,63 @@ const KanbanBoard = () => {
         }
     };
     
-    // Função para tratar o Drop (Mudança de status via arrastar e soltar) (MANTIDO)
+    // Função para tratar o Drop (Mudança de status via arrastar e soltar)
     const handleDrop = async (leadId, newStatus) => {
-        const leadToUpdate = leads.find(l => l._id === leadId);
+        // Converte o ID para o tipo correto (número ou string, dependendo do que o leadId no estado é)
+        const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
+        const leadToUpdate = leads.find(l => l._id === idToFind);
+        
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
-        // ... (Lógica de handleDrop) ...
+        // --- 1. Atualização Otimista (Visual) ---
+        setLeads(prevLeads => prevLeads.map(l => 
+            l._id === idToFind ? { ...l, status: newStatus } : l
+        ));
+
+        try {
+            // --- 2. Preparação dos Dados para o Backend ---
+            
+            // Garante que o notes é um array e o stringifica
+            const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
+
+            // Construção do objeto de envio, incluindo todos os campos para evitar erros de validação da API
+            const dataToSend = {
+                ...leadToUpdate,
+                
+                // Sobrescreve apenas o status e a string de notas
+                status: newStatus,
+                notes: notesToSave, // CRÍTICO: Envia o notes como string JSON
+                
+                // Garante que os números são números ou null
+                avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
+                estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
+            };
+
+            // Remove o ID do corpo da requisição, pois ele vai na URL
+            delete dataToSend._id; 
+            
+            // --- 3. Chamada da API ---
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            setToast({ message: `Status de ${leadToUpdate.name} atualizado para ${newStatus}!`, type: 'success' });
+            
+        } catch (error) {
+            console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
+            
+            // --- 4. Reverte em caso de falha (Atualização Pessimista) ---
+            setLeads(prevLeads => prevLeads.map(l => 
+                l._id === idToFind ? { ...l, status: leadToUpdate.status } : l
+            ));
+            
+            setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
+            fetchLeads(); 
+        }
     };
 
-    // Renderização das colunas do Kanban (MANTIDO)
+    // Renderização das colunas do Kanban
     const renderColumns = () => {
-        // ... (código de renderização de colunas) ...
         const columns = Object.keys(STAGES).map(status => {
             const statusLeads = leads.filter(lead => lead.status === status);
             return (
@@ -229,8 +272,9 @@ const KanbanBoard = () => {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                         e.preventDefault();
+                        // CRÍTICO: O ID é recuperado aqui
                         const leadId = e.dataTransfer.getData("leadId");
-                        handleDrop(parseInt(leadId), status);
+                        handleDrop(leadId, status);
                     }}
                 >
                     <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
@@ -241,7 +285,10 @@ const KanbanBoard = () => {
                         <div 
                             key={lead._id}
                             draggable
-                            onDragStart={(e) => e.dataTransfer.setData("leadId", lead._id.toString())}
+                            onDragStart={(e) => {
+                                // CRÍTICO: O ID é definido aqui
+                                e.dataTransfer.setData("leadId", lead._id.toString());
+                            }}
                         >
                             <LeadCard lead={lead} onClick={openLeadModal} />
                         </div>
@@ -284,7 +331,7 @@ const KanbanBoard = () => {
             {/* Modal de Edição do Lead */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    {/* AJUSTE CRÍTICO: max-w-2xl para modal mais compacto */}
+                    {/* MODAL COMPACTO: max-w-2xl */}
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
                         
                         <div className="flex justify-between items-start border-b pb-4 mb-6">
@@ -294,10 +341,10 @@ const KanbanBoard = () => {
                             </button>
                         </div>
 
-                        {/* Corpo do Formulário: Usamos 1 coluna para empilhar os dados */}
+                        {/* Corpo do Formulário: Layout de 1 coluna principal */}
                         <div className="space-y-6">
                             
-                            {/* Seção 1: Dados Principais em uma grade de 2 colunas para melhor uso do espaço */}
+                            {/* Seção 1: Dados Principais em uma grade de 2 colunas */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -350,16 +397,15 @@ const KanbanBoard = () => {
                                     </button>
                                 </div>
                                 
-                                {/* Histórico de Notas (Listando o array leadData.notes) */}
+                                {/* Histórico de Notas */}
                                 <div className="border p-4 rounded-lg bg-gray-50 h-40 overflow-y-auto">
-                                    {/* Mapeia o array de objetos. Inverte a ordem para as mais recentes no topo. */}
                                     {leadData.notes && leadData.notes.length > 0 ? (
                                         [...leadData.notes].reverse().map((note, index) => (
                                                 <div key={index} className="mb-3 p-2 border-l-4 border-indigo-400 bg-white shadow-sm rounded">
                                                     <p className="text-xs text-gray-500 font-medium">
                                                         {formatNoteDate(note.timestamp)}
                                                     </p>
-                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p>
+                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
                                                 </div>
                                             ))
                                     ) : (
