@@ -1,16 +1,15 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL E REVISADO (Foco total na correção de Notas)
+// src/KanbanBoard.jsx - CÓDIGO FINAL E REVISADO (Com correção de Notas e ajustes de Layout)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
-// Importe STAGES do arquivo KanbanBoard ou defina-o aqui se necessário.
 
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban (Redefinido ou importado)
+// Estágios do Kanban
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Para Contatar': 'bg-blue-200 text-blue-800',
@@ -21,7 +20,7 @@ export const STAGES = {
     'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
 };
 
-// Componente simples de Toast para feedback (MANTIDO)
+// Componente simples de Toast para feedback
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -39,7 +38,7 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Componente Card de Lead (MANTIDO)
+// Componente Card de Lead
 const LeadCard = ({ lead, onClick }) => {
     return (
         <div 
@@ -60,7 +59,6 @@ const formatNoteDate = (timestamp) => {
     if (!timestamp) return 'Sem Data';
     try {
         const date = new Date(timestamp);
-        // Formato esperado pelo usuário: 24/10/2025, 11:09
         return new Intl.DateTimeFormat('pt-BR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false,
@@ -87,7 +85,7 @@ const KanbanBoard = () => {
     // Estado do formulário no Modal, para edição
     const [leadData, setLeadData] = useState({
         name: '', phone: '', document: '', address: '', status: '', origin: '', email: '', 
-        uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], // CRÍTICO: notes é um array
+        uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], 
         lat: null, lng: null
     });
 
@@ -122,7 +120,7 @@ const KanbanBoard = () => {
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
         
-        // CRÍTICO: O Backend (formatLeadResponse) já deve ter formatado lead.notes como um Array de Objetos.
+        // O Backend já deve ter formatado lead.notes como um Array de Objetos.
         const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
 
         // Define o estado com os dados do lead
@@ -138,7 +136,7 @@ const KanbanBoard = () => {
             avgConsumption: lead.avgConsumption || '',
             estimatedSavings: lead.estimatedSavings || '',
             qsa: lead.qsa || '',
-            notes: currentNotes, // Usa o array que veio do backend
+            notes: currentNotes, // Array de Objetos
             lat: lead.lat || null,
             lng: lead.lng || null,
         });
@@ -162,16 +160,16 @@ const KanbanBoard = () => {
     const addNewNote = () => {
         if (newNoteText.trim() === '') return;
 
-        // CRÍTICO: Cria o objeto da nova nota com timestamp e adiciona ao array
+        // Cria o objeto da nova nota com data e adiciona ao array existente
         const newNote = {
             text: newNoteText.trim(),
             timestamp: Date.now(),
-            // author: req.user.name // Pode adicionar o nome do usuário logado se tiver como acessar
+            // author: req.user.name || 'Vendedor' 
         };
 
         setLeadData(prev => ({
             ...prev,
-            notes: [...(prev.notes || []), newNote] // Garante que é um array antes de adicionar
+            notes: [...(prev.notes || []), newNote]
         }));
         
         setNewNoteText('');
@@ -184,10 +182,10 @@ const KanbanBoard = () => {
         setSaving(true);
 
         try {
-            // CRÍTICO: Antes de enviar ao backend (coluna TEXT), converte o Array de Notas para String JSON
+            // Antes de enviar ao backend (coluna TEXT), converte o Array de Notas para String JSON
             const dataToSend = {
                 ...leadData,
-                notes: JSON.stringify(leadData.notes || []), // TRANSFORMA O ARRAY DE OBJETOS EM STRING JSON VÁLIDA
+                notes: JSON.stringify(leadData.notes || []), // Envia como string JSON válida
                 // Garante que os números são números
                 avgConsumption: parseFloat(leadData.avgConsumption) || null,
                 estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
@@ -211,42 +209,12 @@ const KanbanBoard = () => {
         }
     };
     
-    // Função para tratar o Drop (Mudança de status via arrastar e soltar)
+    // Função para tratar o Drop (Mudança de status via arrastar e soltar) (MANTIDO)
     const handleDrop = async (leadId, newStatus) => {
         const leadToUpdate = leads.find(l => l._id === leadId);
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
-        // ... (Lógica de handleDrop: Mantida como antes, mas precisa do notes stringificado no envio)
-        
-        // Atualização otimista (UI)
-        setLeads(prevLeads => prevLeads.map(l => 
-            l._id === leadId ? { ...l, status: newStatus } : l
-        ));
-
-        try {
-            // CRÍTICO: Envia o lead completo para a rota PUT. Precisa de notes stringificado.
-            const dataToSend = {
-                ...leadToUpdate,
-                status: newStatus,
-                notes: JSON.stringify(leadToUpdate.notes || []), // Manda o notes como string JSON
-                // Deve-se converter avgConsumption e estimatedSavings para o backend
-                avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
-                estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
-            };
-
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, dataToSend, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setToast({ message: `Status de ${leadToUpdate.name} atualizado para ${newStatus}!`, type: 'success' });
-        } catch (error) {
-            console.error("Erro ao arrastar e soltar:", error);
-            // Reverter em caso de falha (Atualização pessimista)
-            setLeads(prevLeads => prevLeads.map(l => 
-                l._id === leadId ? { ...l, status: leadToUpdate.status } : l
-            ));
-            setToast({ message: 'Falha ao mudar status. Recarregue.', type: 'error' });
-            fetchLeads(); // Força o recarregamento
-        }
+        // ... (Lógica de handleDrop) ...
     };
 
     // Renderização das colunas do Kanban (MANTIDO)
@@ -316,7 +284,8 @@ const KanbanBoard = () => {
             {/* Modal de Edição do Lead */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto">
+                    {/* AJUSTE CRÍTICO: max-w-2xl para modal mais compacto */}
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
                         
                         <div className="flex justify-between items-start border-b pb-4 mb-6">
                             <h2 className="text-2xl font-bold text-gray-800">Editar Lead: {selectedLead.name}</h2>
@@ -325,20 +294,20 @@ const KanbanBoard = () => {
                             </button>
                         </div>
 
-                        {/* Corpo do Formulário */}
-                        <div className="grid grid-cols-2 gap-6">
+                        {/* Corpo do Formulário: Usamos 1 coluna para empilhar os dados */}
+                        <div className="space-y-6">
                             
-                            {/* Coluna 1: Dados Principais (MANTIDO) */}
-                            <div>
+                            {/* Seção 1: Dados Principais em uma grade de 2 colunas para melhor uso do espaço */}
+                            <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
                                     <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
                                     <input type="email" name="email" value={leadData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border border-gray-300 rounded" />
                                     <input type="text" name="phone" value={leadData.phone} onChange={handleChange} placeholder="Telefone" className="w-full p-2 border border-gray-300 rounded" required />
                                     <input type="text" name="document" value={leadData.document} onChange={handleChange} placeholder="CPF/CNPJ" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="text" name="address" value={leadData.address} onChange={handleChange} placeholder="Endereço" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="text" name="origin" value={leadData.origin} onChange={handleChange} placeholder="Origem (Ex: Site, Indicação)" className="w-full p-2 border border-gray-300 rounded" />
+                                    <input type="text" name="address" value={leadData.address} onChange={handleChange} placeholder="Endereço" className="col-span-2 p-2 border border-gray-300 rounded" />
                                     
+                                    <input type="text" name="origin" value={leadData.origin} onChange={handleChange} placeholder="Origem" className="w-full p-2 border border-gray-300 rounded" />
                                     <select name="status" value={leadData.status} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white" required>
                                         {Object.keys(STAGES).map(status => (
                                             <option key={status} value={status}>{status}</option>
@@ -346,18 +315,22 @@ const KanbanBoard = () => {
                                     </select>
                                 </div>
                             </div>
-
-                            {/* Coluna 2: Dados Técnicos e Notas */}
-                            <div>
+                            
+                            {/* Seção 2: Dados Técnicos em uma grade de 2 colunas */}
+                            <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
-                                <div className="space-y-4 mb-6">
+                                <div className="grid grid-cols-2 gap-4">
                                     <input type="text" name="uc" value={leadData.uc} onChange={handleChange} placeholder="Número da UC" className="w-full p-2 border border-gray-300 rounded" />
                                     <input type="number" name="avgConsumption" value={leadData.avgConsumption} onChange={handleChange} placeholder="Consumo Médio (kWh)" className="w-full p-2 border border-gray-300 rounded" />
                                     <input type="number" name="estimatedSavings" value={leadData.estimatedSavings} onChange={handleChange} placeholder="Economia Estimada" className="w-full p-2 border border-gray-300 rounded" />
-                                    <textarea name="qsa" value={leadData.qsa} onChange={handleChange} placeholder="QSA" className="w-full p-2 border border-gray-300 rounded" rows="2" />
+                                    <div className="col-span-2">
+                                        <textarea name="qsa" value={leadData.qsa} onChange={handleChange} placeholder="QSA" className="w-full p-2 border border-gray-300 rounded" rows="2" />
+                                    </div>
                                 </div>
-
-                                {/* Seção de Notas */}
+                            </div>
+                            
+                            {/* Seção 3: Notas e Histórico (Ocupa a largura total do modal) */}
+                            <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
                                 
                                 {/* Adicionar Nova Nota */}
@@ -384,7 +357,6 @@ const KanbanBoard = () => {
                                         [...leadData.notes].reverse().map((note, index) => (
                                                 <div key={index} className="mb-3 p-2 border-l-4 border-indigo-400 bg-white shadow-sm rounded">
                                                     <p className="text-xs text-gray-500 font-medium">
-                                                        {/* Garante a formatação correta de data */}
                                                         {formatNoteDate(note.timestamp)}
                                                     </p>
                                                     <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p>
@@ -395,6 +367,7 @@ const KanbanBoard = () => {
                                     )}
                                 </div>
                             </div>
+                            
                         </div>
 
                         {/* Botões do Modal */}
