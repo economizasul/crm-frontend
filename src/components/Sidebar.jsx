@@ -1,19 +1,19 @@
-// Sidebar.jsx
+// Sidebar.jsx - AJUSTADO PARA SER CONTROLADO PELO DASHBOARD
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar } from 'react-icons/fa';
+import { FaSearch, FaTachometerAlt, FaRegListAlt, FaUserPlus, FaExchangeAlt, FaCogs, FaSignOutAlt, FaChartBar, FaTimes } from 'react-icons/fa';
 // CORREÇÃO CRÍTICA DO CAMINHO: '../AuthContext.jsx' para subir de src/components para src/
 import { useAuth } from '../AuthContext.jsx'; 
 
 // Estilos para os links de navegação (mantidos)
 const LinkClass = ({ isActive }) => 
-    `w-full flex items-center space-x-3 p-3 rounded-xl transition duration-200 justify-start 
-    ${isActive 
+    `w-full flex items-center space-x-3 p-3 rounded-xl transition duration-200 justify-start \r\n    ${isActive 
         ? 'bg-indigo-700 text-white shadow-lg' 
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
 
-const Sidebar = () => {
+// O componente agora recebe 'toggleSidebar' como propriedade
+const Sidebar = ({ toggleSidebar }) => { 
     const navigate = useNavigate();
     const { logout } = useAuth(); 
 
@@ -25,24 +25,35 @@ const Sidebar = () => {
     
     // Menu de navegação (corrigido o path de Buscar Lead)
     const navItems = [
-        { name: 'Buscar Lead', icon: FaSearch, path: '/search-lead' }, 
-        { name: 'Kanban Leads', icon: FaTachometerAlt, path: '/dashboard' },
-        { name: 'Dashboard', icon: FaChartBar, path: '/dashboard' }, // Mantido, se /dashboard for a rota do Kanban
-        { name: 'Cadastro Lead', icon: FaUserPlus, path: '/leads/cadastro' },
+        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, // Seu Kanban
+        { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, // Sua rota de busca
+        { name: 'Cadastrar', path: '/register-lead', icon: FaUserPlus },
     ];
-
-    // Itens de rodapé (Exemplo)
+    
+    // Links de Rodapé
     const footerItems = [
-        { name: 'Configurações', icon: FaCogs, path: '/settings' },
+        { name: 'Relatórios', path: '/reports', icon: FaChartBar },
+        { name: 'Configurações', path: '/settings', icon: FaCogs },
     ];
 
     return (
-        <div className="flex flex-col w-64 bg-indigo-800 text-white p-6 shadow-xl h-full">
-            {/* Logo */}
-            <div className="text-2xl font-bold mb-8 text-center text-indigo-100">
-                ECONOMIZA SUL
+        // A largura do sidebar é de 64 (256px) para ser compacta
+        <div className="w-64 bg-gray-800 text-white p-6 shadow-xl h-full flex flex-col">
+            
+            {/* Cabeçalho, Logo e Botão de Fechar */}
+            <div className="flex justify-between items-center border-b border-indigo-700 pb-4 mb-4">
+                <div className="text-2xl font-bold text-indigo-100">
+                    ECONOMIZA SUL
+                </div>
+                {/* Botão de Fechar: Apenas visível em telas pequenas (< md) */}
+                <button 
+                    onClick={toggleSidebar} 
+                    className="text-indigo-200 hover:text-white md:hidden"
+                >
+                    <FaTimes size={20} />
+                </button>
             </div>
-
+            
             {/* Links Principais */}
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (

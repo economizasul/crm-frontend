@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE NOTAS, LAYOUT COMPACTO E DRAG/DROP FUNCIONANDO
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE NOTAS, LAYOUT COMPACTO, DRAG/DROP FUNCIONANDO E COLUNAS MAIS ESTREITAS
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onren
 // Estágios do Kanban
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
-    'Contatado': 'bg-blue-200 text-blue-800',
+    'Para Contatar': 'bg-blue-200 text-blue-800',
     'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
@@ -221,24 +221,16 @@ const KanbanBoard = () => {
 
         try {
             // --- 2. Preparação dos Dados para o Backend ---
-            
-            // Garante que o notes é um array e o stringifica
             const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
 
-            // Construção do objeto de envio, incluindo todos os campos para evitar erros de validação da API
             const dataToSend = {
                 ...leadToUpdate,
-                
-                // Sobrescreve apenas o status e a string de notas
                 status: newStatus,
-                notes: notesToSave, // CRÍTICO: Envia o notes como string JSON
-                
-                // Garante que os números são números ou null
+                notes: notesToSave, 
                 avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
                 estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
             };
 
-            // Remove o ID do corpo da requisição, pois ele vai na URL
             delete dataToSend._id; 
             
             // --- 3. Chamada da API ---
@@ -268,11 +260,11 @@ const KanbanBoard = () => {
             return (
                 <div 
                     key={status} 
-                    className="flex-shrink-0 w-80 bg-white p-4 rounded-lg shadow-lg"
+                    // *** NOVO AJUSTE: w-80 para w-64 (256px) para compactar o layout ***
+                    className="flex-shrink-0 w-64 bg-white p-4 rounded-lg shadow-lg"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                         e.preventDefault();
-                        // CRÍTICO: O ID é recuperado aqui
                         const leadId = e.dataTransfer.getData("leadId");
                         handleDrop(leadId, status);
                     }}
@@ -286,7 +278,6 @@ const KanbanBoard = () => {
                             key={lead._id}
                             draggable
                             onDragStart={(e) => {
-                                // CRÍTICO: O ID é definido aqui
                                 e.dataTransfer.setData("leadId", lead._id.toString());
                             }}
                         >
@@ -320,7 +311,7 @@ const KanbanBoard = () => {
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
             <div className="mb-6 flex justify-between items-center">
-                {/* ... (Implementação de busca e botão adicionar) ... */}
+                {/* ... (Busca e botão adicionar) ... */}
             </div>
 
             {/* Container do Kanban: Permite scroll horizontal */}
@@ -331,7 +322,6 @@ const KanbanBoard = () => {
             {/* Modal de Edição do Lead */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    {/* MODAL COMPACTO: max-w-2xl */}
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
                         
                         <div className="flex justify-between items-start border-b pb-4 mb-6">
@@ -341,10 +331,8 @@ const KanbanBoard = () => {
                             </button>
                         </div>
 
-                        {/* Corpo do Formulário: Layout de 1 coluna principal */}
                         <div className="space-y-6">
                             
-                            {/* Seção 1: Dados Principais em uma grade de 2 colunas */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -363,7 +351,6 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
-                            {/* Seção 2: Dados Técnicos em uma grade de 2 colunas */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -376,11 +363,9 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
-                            {/* Seção 3: Notas e Histórico (Ocupa a largura total do modal) */}
                             <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
                                 
-                                {/* Adicionar Nova Nota */}
                                 <div className="flex space-x-2 mb-4">
                                     <textarea 
                                         value={newNoteText} 
@@ -397,7 +382,6 @@ const KanbanBoard = () => {
                                     </button>
                                 </div>
                                 
-                                {/* Histórico de Notas */}
                                 <div className="border p-4 rounded-lg bg-gray-50 h-40 overflow-y-auto">
                                     {leadData.notes && leadData.notes.length > 0 ? (
                                         [...leadData.notes].reverse().map((note, index) => (
@@ -416,7 +400,6 @@ const KanbanBoard = () => {
                             
                         </div>
 
-                        {/* Botões do Modal */}
                         <div className="mt-6 flex justify-end space-x-2">
                             <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                             <button 
