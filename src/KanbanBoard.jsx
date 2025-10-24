@@ -1,15 +1,16 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL E REVISADO (Com correção de Notas)
+// src/KanbanBoard.jsx - CÓDIGO FINAL E REVISADO (Foco total na correção de Notas)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
+// Importe STAGES do arquivo KanbanBoard ou defina-o aqui se necessário.
 
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban
+// Estágios do Kanban (Redefinido ou importado)
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Para Contatar': 'bg-blue-200 text-blue-800',
@@ -20,7 +21,7 @@ export const STAGES = {
     'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
 };
 
-// Componente simples de Toast para feedback
+// Componente simples de Toast para feedback (MANTIDO)
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -38,7 +39,7 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Componente Card de Lead
+// Componente Card de Lead (MANTIDO)
 const LeadCard = ({ lead, onClick }) => {
     return (
         <div 
@@ -59,6 +60,7 @@ const formatNoteDate = (timestamp) => {
     if (!timestamp) return 'Sem Data';
     try {
         const date = new Date(timestamp);
+        // Formato esperado pelo usuário: 24/10/2025, 11:09
         return new Intl.DateTimeFormat('pt-BR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false,
@@ -120,24 +122,8 @@ const KanbanBoard = () => {
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
         
-        // CRÍTICO: Inicializa notes como array, tratando a string JSON do DB
-        let currentNotes = [];
-        if (lead.notes && typeof lead.notes === 'string') {
-             try {
-                // Tenta fazer o parse da string JSON (se o DB salvou string JSON)
-                currentNotes = JSON.parse(lead.notes);
-                if (!Array.isArray(currentNotes)) {
-                     // Se não for um array (e sim uma string JSON de outra coisa), reverte
-                    currentNotes = [{ text: lead.notes, timestamp: new Date(lead.updated_at).getTime() }];
-                }
-            } catch (e) {
-                // Se a string não for JSON válida (e sim a string danificada)
-                currentNotes = [{ text: lead.notes, timestamp: new Date(lead.updated_at).getTime() }];
-            }
-        } else if (Array.isArray(lead.notes)) {
-            currentNotes = lead.notes;
-        }
-
+        // CRÍTICO: O Backend (formatLeadResponse) já deve ter formatado lead.notes como um Array de Objetos.
+        const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
 
         // Define o estado com os dados do lead
         setLeadData({
@@ -152,7 +138,7 @@ const KanbanBoard = () => {
             avgConsumption: lead.avgConsumption || '',
             estimatedSavings: lead.estimatedSavings || '',
             qsa: lead.qsa || '',
-            notes: currentNotes, // CRÍTICO: Garantir que é um ARRAY DE OBJETOS
+            notes: currentNotes, // Usa o array que veio do backend
             lat: lead.lat || null,
             lng: lead.lng || null,
         });
@@ -176,16 +162,16 @@ const KanbanBoard = () => {
     const addNewNote = () => {
         if (newNoteText.trim() === '') return;
 
-        // CRÍTICO: Cria o objeto da nova nota com data e adiciona ao array existente
+        // CRÍTICO: Cria o objeto da nova nota com timestamp e adiciona ao array
         const newNote = {
             text: newNoteText.trim(),
             timestamp: Date.now(),
-            author: req.user.name || 'Vendedor' // Você pode adicionar o nome do usuário logado se tiver acesso
+            // author: req.user.name // Pode adicionar o nome do usuário logado se tiver como acessar
         };
 
         setLeadData(prev => ({
             ...prev,
-            notes: [...prev.notes, newNote]
+            notes: [...(prev.notes || []), newNote] // Garante que é um array antes de adicionar
         }));
         
         setNewNoteText('');
@@ -201,11 +187,14 @@ const KanbanBoard = () => {
             // CRÍTICO: Antes de enviar ao backend (coluna TEXT), converte o Array de Notas para String JSON
             const dataToSend = {
                 ...leadData,
-                notes: JSON.stringify(leadData.notes), // Envia como string JSON válida
-                // Garante que os números são números, se não estiverem sendo tratados no handleChange
+                notes: JSON.stringify(leadData.notes || []), // TRANSFORMA O ARRAY DE OBJETOS EM STRING JSON VÁLIDA
+                // Garante que os números são números
                 avgConsumption: parseFloat(leadData.avgConsumption) || null,
                 estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
             };
+
+            // Remove o _id para não enviar na carga (PUT usa _id do params)
+            delete dataToSend._id; 
 
             const response = await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -227,18 +216,22 @@ const KanbanBoard = () => {
         const leadToUpdate = leads.find(l => l._id === leadId);
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
+        // ... (Lógica de handleDrop: Mantida como antes, mas precisa do notes stringificado no envio)
+        
         // Atualização otimista (UI)
         setLeads(prevLeads => prevLeads.map(l => 
             l._id === leadId ? { ...l, status: newStatus } : l
         ));
 
         try {
-            // CRÍTICO: Envia o lead completo para a rota PUT, pois o modelo só tem a rota PUT (update completo)
-            // Se você tivesse uma rota PUT /leads/:id/status, usaria ela.
+            // CRÍTICO: Envia o lead completo para a rota PUT. Precisa de notes stringificado.
             const dataToSend = {
                 ...leadToUpdate,
                 status: newStatus,
-                // Manter notes como array de objetos (se for o caso)
+                notes: JSON.stringify(leadToUpdate.notes || []), // Manda o notes como string JSON
+                // Deve-se converter avgConsumption e estimatedSavings para o backend
+                avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
+                estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
             };
 
             await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, dataToSend, {
@@ -256,8 +249,9 @@ const KanbanBoard = () => {
         }
     };
 
-    // Renderização das colunas do Kanban
+    // Renderização das colunas do Kanban (MANTIDO)
     const renderColumns = () => {
+        // ... (código de renderização de colunas) ...
         const columns = Object.keys(STAGES).map(status => {
             const statusLeads = leads.filter(lead => lead.status === status);
             return (
@@ -310,7 +304,6 @@ const KanbanBoard = () => {
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
-            {/* O cabeçalho com search e botão de adicionar (omitido para foco) */}
             <div className="mb-6 flex justify-between items-center">
                 {/* ... (Implementação de busca e botão adicionar) ... */}
             </div>
@@ -335,7 +328,7 @@ const KanbanBoard = () => {
                         {/* Corpo do Formulário */}
                         <div className="grid grid-cols-2 gap-6">
                             
-                            {/* Coluna 1: Dados Principais */}
+                            {/* Coluna 1: Dados Principais (MANTIDO) */}
                             <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 <div className="space-y-4">
@@ -386,12 +379,13 @@ const KanbanBoard = () => {
                                 
                                 {/* Histórico de Notas (Listando o array leadData.notes) */}
                                 <div className="border p-4 rounded-lg bg-gray-50 h-40 overflow-y-auto">
-                                    {/* CRÍTICO: Mapeia o array de objetos. Inverte a ordem para as mais recentes no topo. */}
+                                    {/* Mapeia o array de objetos. Inverte a ordem para as mais recentes no topo. */}
                                     {leadData.notes && leadData.notes.length > 0 ? (
                                         [...leadData.notes].reverse().map((note, index) => (
                                                 <div key={index} className="mb-3 p-2 border-l-4 border-indigo-400 bg-white shadow-sm rounded">
                                                     <p className="text-xs text-gray-500 font-medium">
-                                                        {formatNoteDate(note.timestamp || selectedLead.updated_at)}
+                                                        {/* Garante a formatação correta de data */}
+                                                        {formatNoteDate(note.timestamp)}
                                                     </p>
                                                     <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p>
                                                 </div>
