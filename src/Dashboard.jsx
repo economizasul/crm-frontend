@@ -1,4 +1,4 @@
-// src/Dashboard.jsx - CÓDIGO CORRIGIDO COM PASSAGEM DE PROP
+// src/Dashboard.jsx - CÓDIGO FINAL E REVISADO
 
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar'; 
@@ -19,7 +19,8 @@ const Dashboard = () => {
         <div className="flex h-screen bg-gray-100"> 
             
             {/* Sidebar (Agora controlado pelo estado) */}
-            <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out w-64 z-40 md:relative md:translate-x-0`}>
+            {/* CRÍTICO: Incluir w-64 aqui também para controlar a largura do menu lateral */}
+            <div className={`fixed inset-y-0 left-0 w-64 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0`}>
                 {/* 🚨 AQUI ESTÁ O AJUSTE CRÍTICO: PASSAR A FUNÇÃO toggleSidebar COMO PROP */}
                 <Sidebar toggleSidebar={toggleSidebar} /> 
             </div>
@@ -38,7 +39,6 @@ const Dashboard = () => {
                 {/* Botão de Toggle (Menu Hamburguer) - Fixo no canto superior esquerdo */}
                 <button 
                     onClick={toggleSidebar}
-                    // Posicionamento: Fixo, mas invisível em telas maiores que 'md' (768px)
                     className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg md:hidden hover:bg-indigo-700 transition"
                 >
                     {isSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
