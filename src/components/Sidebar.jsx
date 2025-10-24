@@ -1,4 +1,4 @@
-// Sidebar.jsx - AJUSTADO PARA SER CONTROLADO PELO DASHBOARD
+// Sidebar.jsx - AJUSTADO PARA SER CONTROLADO PELO DASHBOARD E FECHAR APÓS NAVEGAÇÃO
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -8,7 +8,8 @@ import { useAuth } from '../AuthContext.jsx';
 
 // Estilos para os links de navegação (mantidos)
 const LinkClass = ({ isActive }) => 
-    `w-full flex items-center space-x-3 p-3 rounded-xl transition duration-200 justify-start \r\n    ${isActive 
+    `w-full flex items-center space-x-3 p-3 rounded-xl transition duration-200 justify-start 
+    ${isActive 
         ? 'bg-indigo-700 text-white shadow-lg' 
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
 
@@ -19,10 +20,22 @@ const Sidebar = ({ toggleSidebar }) => {
 
     // Lógica para sair: Limpa o token via Contexto e navega para a tela de login
     const handleLogout = () => {
-        logout(); // CHAMA O LOGOUT DEFINIDO NO AUTHCONTEXT (limpa localStorage e estado)
+        logout(); 
         navigate('/login', { replace: true }); 
+        // Chama toggleSidebar após o logout, caso o menu estivesse aberto
+        if (toggleSidebar) {
+            toggleSidebar();
+        }
     };
     
+    // Função auxiliar que fecha o menu e permite a navegação
+    const handleNavLinkClick = () => {
+        // Se a função de toggle foi passada (o que deve ocorrer no Dashboard)
+        if (toggleSidebar) {
+            toggleSidebar();
+        }
+    };
+
     // Menu de navegação (corrigido o path de Buscar Lead)
     const navItems = [
         { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, // Seu Kanban
@@ -57,7 +70,13 @@ const Sidebar = ({ toggleSidebar }) => {
             {/* Links Principais */}
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
-                    <NavLink key={item.name} to={item.path} className={LinkClass}>
+                    // CRÍTICO: Adição do onClick para fechar o sidebar
+                    <NavLink 
+                        key={item.name} 
+                        to={item.path} 
+                        className={LinkClass}
+                        onClick={handleNavLinkClick} 
+                    >
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
                     </NavLink>
@@ -67,7 +86,13 @@ const Sidebar = ({ toggleSidebar }) => {
             {/* Links de Rodapé */}
             <div className="mt-auto space-y-2 border-t border-indigo-700 pt-4">
                 {footerItems.map((item) => (
-                    <NavLink key={item.name} to={item.path} className={LinkClass}>
+                    // CRÍTICO: Adição do onClick para fechar o sidebar
+                    <NavLink 
+                        key={item.name} 
+                        to={item.path} 
+                        className={LinkClass}
+                        onClick={handleNavLinkClick}
+                    >
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
                     </NavLink>
