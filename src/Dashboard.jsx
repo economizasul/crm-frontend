@@ -1,8 +1,8 @@
-// src/Dashboard.jsx - CÓDIGO FINAL E REVISADO (AGORA É UM LAYOUT COMPONENT)
+// src/Dashboard.jsx - CÓDIGO FINAL E REVISADO (LAYOUT COMPONENT)
 
 import React, { useState } from 'react';
-// IMPORT CRÍTICO: Usamos Outlet para renderizar rotas filhas
 import { FaBars, FaTimes } from 'react-icons/fa'; 
+// 🚨 IMPORT CRÍTICO: Usamos Outlet para renderizar rotas filhas
 import { Outlet } from 'react-router-dom'; 
 
 import Sidebar from './components/Sidebar'; 
@@ -18,13 +18,12 @@ const Dashboard = () => {
     };
 
     return (
-        // Container principal
+        // Container principal (pai do layout)
         <div className="flex h-screen bg-gray-100"> 
             
-            {/* Sidebar (Agora controlado pelo estado) */}
-            {/* O w-64 garante a largura do menu lateral */}
+            {/* Sidebar (Controlado e fixo) */}
             <div className={`fixed inset-y-0 left-0 w-64 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0`}>
-                {/* Passamos toggleSidebar para que os links possam fechar o menu após o clique */}
+                {/* 🚨 ÚNICA RENDERIZAÇÃO DO SIDEBAR */}
                 <Sidebar toggleSidebar={toggleSidebar} /> 
             </div>
 
@@ -36,7 +35,7 @@ const Dashboard = () => {
                 />
             )}
             
-            {/* Main Content */}
+            {/* Main Content (Onde o conteúdo da rota vai) */}
             <main className="flex-1 overflow-y-auto relative"> 
                 
                 {/* Botão de Toggle (Menu Hamburguer) */}
@@ -47,7 +46,7 @@ const Dashboard = () => {
                     {isSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
                 
-                {/* 🚨 LOCAL CRÍTICO: Outlet renderiza o componente da rota aninhada */}
+                {/* 🚨 LOCAL CRÍTICO: Outlet renderiza o componente da rota aninhada (Kanban, LeadSearch, LeadForm) */}
                 <div className="pt-4 md:pt-0"> 
                     <Outlet />
                 </div>
