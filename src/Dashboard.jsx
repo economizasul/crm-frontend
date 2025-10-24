@@ -1,12 +1,15 @@
-// src/Dashboard.jsx - CÓDIGO FINAL E REVISADO
+// src/Dashboard.jsx - CÓDIGO FINAL E REVISADO (AGORA É UM LAYOUT COMPONENT)
 
 import React, { useState } from 'react';
+// IMPORT CRÍTICO: Usamos Outlet para renderizar rotas filhas
+import { FaBars, FaTimes } from 'react-icons/fa'; 
+import { Outlet } from 'react-router-dom'; 
+
 import Sidebar from './components/Sidebar'; 
-import KanbanBoard from './KanbanBoard'; 
-import { FaBars, FaTimes } from 'react-icons/fa'; // Ícones para o menu
+// REMOVIDA: Não precisamos mais importar KanbanBoard aqui
 
 const Dashboard = () => {
-    // Novo estado para controlar a visibilidade do Sidebar
+    // Estado para controlar a visibilidade do Sidebar
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Função para alternar o estado do Sidebar
@@ -19,9 +22,9 @@ const Dashboard = () => {
         <div className="flex h-screen bg-gray-100"> 
             
             {/* Sidebar (Agora controlado pelo estado) */}
-            {/* CRÍTICO: Incluir w-64 aqui também para controlar a largura do menu lateral */}
+            {/* O w-64 garante a largura do menu lateral */}
             <div className={`fixed inset-y-0 left-0 w-64 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0`}>
-                {/* 🚨 AQUI ESTÁ O AJUSTE CRÍTICO: PASSAR A FUNÇÃO toggleSidebar COMO PROP */}
+                {/* Passamos toggleSidebar para que os links possam fechar o menu após o clique */}
                 <Sidebar toggleSidebar={toggleSidebar} /> 
             </div>
 
@@ -36,7 +39,7 @@ const Dashboard = () => {
             {/* Main Content */}
             <main className="flex-1 overflow-y-auto relative"> 
                 
-                {/* Botão de Toggle (Menu Hamburguer) - Fixo no canto superior esquerdo */}
+                {/* Botão de Toggle (Menu Hamburguer) */}
                 <button 
                     onClick={toggleSidebar}
                     className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg md:hidden hover:bg-indigo-700 transition"
@@ -44,9 +47,9 @@ const Dashboard = () => {
                     {isSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
                 
-                {/* O componente KanbanBoard é renderizado aqui. */}
+                {/* 🚨 LOCAL CRÍTICO: Outlet renderiza o componente da rota aninhada */}
                 <div className="pt-4 md:pt-0"> 
-                    <KanbanBoard />
+                    <Outlet />
                 </div>
                 
             </main>
