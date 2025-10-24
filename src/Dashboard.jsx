@@ -1,4 +1,4 @@
-// src/Dashboard.jsx - CÓDIGO ATUALIZADO COM SIDEBAR TOGGLE
+// src/Dashboard.jsx - CÓDIGO CORRIGIDO COM PASSAGEM DE PROP
 
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar'; 
@@ -19,8 +19,9 @@ const Dashboard = () => {
         <div className="flex h-screen bg-gray-100"> 
             
             {/* Sidebar (Agora controlado pelo estado) */}
-            <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out z-40 md:relative md:translate-x-0`}>
-                <Sidebar />
+            <div className={`fixed inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out w-64 z-40 md:relative md:translate-x-0`}>
+                {/* 🚨 AQUI ESTÁ O AJUSTE CRÍTICO: PASSAR A FUNÇÃO toggleSidebar COMO PROP */}
+                <Sidebar toggleSidebar={toggleSidebar} /> 
             </div>
 
             {/* Overlay para fechar o sidebar em telas menores */}
@@ -44,7 +45,7 @@ const Dashboard = () => {
                 </button>
                 
                 {/* O componente KanbanBoard é renderizado aqui. */}
-                <div className="pt-4 md:pt-0"> {/* Adiciona padding superior para não ficar por baixo do botão na versão mobile */}
+                <div className="pt-4 md:pt-0"> 
                     <KanbanBoard />
                 </div>
                 
