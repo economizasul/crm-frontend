@@ -1,10 +1,13 @@
-// src/Login.jsx - CÓDIGO FINAL COM AJUSTE DE LAYOUT PARA DESKTOP (CLEAN) E MOBILE (FULL SCREEN)
+// src/Login.jsx - CÓDIGO FINAL COM LAYOUT, CORES E LOGO IMPORTADA
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx';
-import { FaSignInAlt, FaEnvelope, FaLock, FaBolt } from 'react-icons/fa';
+import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa'; 
+
+// 🚨 IMPORTAÇÃO DA LOGO: O caminho './ECONOMIZASUL.png' deve funcionar se o Login.jsx estiver em src/
+import EconomizaSulLogo from './ECONOMIZASUL.png'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
@@ -40,31 +43,42 @@ const Login = () => {
     };
 
     return (
-        // Container Principal (Tela Cheia) - Fundo cinza suave, branco em mobile para o visual clean
-        <div className="min-h-screen flex bg-gray-100 md:bg-gray-100"> 
+        // Container Principal (Tela Cheia) - Fundo cinza suave (bg-gray-100)
+        <div className="min-h-screen flex bg-gray-100"> 
             
-            {/* 1. Coluna de Imagem/Branding (Desktop - W-1/2) */}
-            {/* Fundo branco (bg-white) e centralização de conteúdo */}
-            <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-white p-12 shadow-inner">
-                <div className="text-center">
-                    {/* Placeholder da Logo/Imagem de Marca */}
-                    <FaBolt size={80} className="text-indigo-600 mx-auto mb-4" /> 
-                    <h1 className="text-4xl font-extrabold text-gray-800 mb-2">ECONOMIZA SUL</h1>
-                    <p className="text-lg text-gray-500">Acesso exclusivo ao CRM</p>
+            {/* 1. Coluna de Imagem/Branding (Desktop - Onde a logo fica) */}
+            <div className="hidden md:flex flex-col justify-center items-center w-1/2 p-12">
+                
+                {/* BLOCO DA LOGO: Centralizado, com fundo escuro e bordas arredondadas */}
+                <div className="w-full max-w-sm h-80 flex flex-col justify-center items-center bg-indigo-600 rounded-xl shadow-xl p-8">
+                    
+                    {/* 🚨 LOGO REAL APLICADA */}
+                    <img 
+                        src={EconomizaSulLogo} 
+                        alt="Logo Economiza Sul" 
+                        className="h-24 w-auto mx-auto mb-4" 
+                    />
+                    
+                    <h1 className="text-3xl font-extrabold text-white mb-2">ECONOMIZA SUL</h1>
+                    <p className="text-md text-indigo-200">Acesso ao CRM</p>
                 </div>
             </div>
             
             {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
-            {/* Fundo branco e centralização total do formulário */}
-            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 md:p-12 shadow-lg">
-                <div className="w-full max-w-sm"> {/* Reduzindo o max-w para ser mais compacto */}
+            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 md:p-12 shadow-2xl md:rounded-l-3xl"> 
+                <div className="w-full max-w-sm">
                     
                     {/* Cabeçalho */}
                     <div className="text-center mb-8">
-                        {/* Exibir o logo no topo em mobile */}
+                        {/* 🚨 LOGO PARA MOBILE (Opcional, mas incluída para consistência) */}
                         <div className="md:hidden mb-4">
-                            <FaBolt size={40} className="text-indigo-600 mx-auto" />
+                            <img 
+                                src={EconomizaSulLogo} 
+                                alt="Logo Economiza Sul" 
+                                className="h-10 w-auto mx-auto" 
+                            />
                         </div>
+
                         <h2 className="text-3xl font-bold text-gray-800">
                             Fazer Login
                         </h2>
@@ -118,7 +132,7 @@ const Login = () => {
                             </div>
                         )}
 
-                        {/* Botão de Login */}
+                        {/* Botão de Login (Indigo) */}
                         <div>
                             <button
                                 type="submit"
