@@ -1,4 +1,4 @@
-// src/Login.jsx - CÓDIGO FINAL COM LAYOUT DESKTOP/MOBILE, LOGO E CORES AJUSTADAS
+// src/Login.jsx - CÓDIGO FINAL E REVISADO COM LAYOUT, COR LARANJA E LOGO MAIOR
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -7,7 +7,6 @@ import { useAuth } from './AuthContext.jsx';
 import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa'; 
 
 // 🚨 IMPORTAÇÃO DA LOGO
-// O caminho './ECONOMIZASUL.png' é usado aqui
 import EconomizaSulLogo from './ECONOMIZASUL.png'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -44,34 +43,29 @@ const Login = () => {
     };
 
     // Estilo de degradê radial personalizado com as cores fornecidas
+    // Aplicado à coluna inteira (w-1/2)
     const radialGradientStyle = {
         background: 'radial-gradient(circle, #F98828 0%, #935018 100%)',
     };
 
     return (
-        // Container Principal (Tela Cheia) - Fundo cinza suave (bg-gray-100)
+        // Container Principal (Tela Cheia)
         <div className="min-h-screen flex bg-gray-100"> 
             
             {/* 1. Coluna de Imagem/Branding (Desktop) */}
-            <div className="hidden md:flex flex-col justify-center items-center w-1/2 p-12">
+            {/* 🚨 APLICAÇÃO DO DEGRADÊ E LOGO DIRETAMENTE NA COLUNA w-1/2 */}
+            <div 
+                className="hidden md:flex flex-col justify-center items-center w-1/2 p-12 shadow-2xl"
+                style={radialGradientStyle} 
+            >
                 
-                {/* 🚨 BLOCO DA LOGO: Centralizado, com degradê e dimensões para a logo */}
-                <div 
-                    className="w-full max-w-sm h-80 flex flex-col justify-center items-center rounded-xl shadow-xl p-4"
-                    style={radialGradientStyle} // Aplica o degradê radial
-                >
-                    
-                    {/* LOGO REAL APLICADA. A logo agora preenche a maior parte do quadro. */}
-                    <img 
-                        src={EconomizaSulLogo} 
-                        alt="Logo Economiza Sul" 
-                        // Ajusta o tamanho da logo para ocupar o máximo do quadro.
-                        // Usamos 'max-h-full' e 'w-auto' para garantir que ela caiba.
-                        className="max-h-full w-auto p-4" 
-                    />
-                    
-                    {/* TEXTOS REMOVIDOS daqui, conforme solicitado */}
-                </div>
+                {/* LOGO MAIOR (Ajustada para h-80/96 para refletir +20%) */}
+                <img 
+                    src={EconomizaSulLogo} 
+                    alt="Logo Economiza Sul" 
+                    // Ajustamos a classe para um tamanho visualmente maior, como h-80 (320px)
+                    className="h-80 w-auto p-4" 
+                />
             </div>
             
             {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
@@ -81,7 +75,7 @@ const Login = () => {
                     
                     {/* Cabeçalho */}
                     <div className="text-center mb-8">
-                        {/* LOGO PARA MOBILE (Opcional) */}
+                        {/* LOGO PARA MOBILE (Ainda visível em mobile) */}
                         <div className="md:hidden mb-4">
                             <img 
                                 src={EconomizaSulLogo} 
