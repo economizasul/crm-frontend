@@ -1,10 +1,10 @@
-// src/Login.jsx - CÓDIGO FINAL COM LAYOUT RESPONSIVO (DESKTOP E MOBILE)
+// src/Login.jsx - CÓDIGO FINAL COM AJUSTE DE LAYOUT PARA DESKTOP (CLEAN) E MOBILE (FULL SCREEN)
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx';
-import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa';
+import { FaSignInAlt, FaEnvelope, FaLock, FaBolt } from 'react-icons/fa';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
@@ -28,10 +28,7 @@ const Login = () => {
                 password,
             });
 
-            // Chama a função de login do contexto para salvar o token e os dados
             login(response.data.token, response.data); 
-
-            // Redireciona para o dashboard
             navigate('/dashboard', { replace: true });
 
         } catch (err) {
@@ -43,40 +40,34 @@ const Login = () => {
     };
 
     return (
-        // Container Principal (Tela Cheia)
-        <div className="min-h-screen flex">
+        // Container Principal (Tela Cheia) - Fundo cinza suave, branco em mobile para o visual clean
+        <div className="min-h-screen flex bg-gray-100 md:bg-gray-100"> 
             
-            {/* 1. Coluna de Conteúdo/Imagem (Visível Apenas em Desktop) */}
-            <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-indigo-600 text-white p-12 shadow-2xl">
-                {/* 🚨 Substitua 'sua-imagem-de-fundo.jpg' pela URL real da imagem da sua marca 
-                  Ou use apenas o background sólido como está.
-                */}
-                <div 
-                    className="w-full h-full bg-cover bg-center rounded-lg flex flex-col justify-center items-center" 
-                    style={{ 
-                        // Exemplo de como adicionar a imagem (Substitua a URL)
-                        // backgroundImage: "url('URL_DA_SUA_IMAGEM_DE_FUNDO.jpg')",
-                        backgroundColor: '#4f46e5', // Fundo sólido (Indigo 600)
-                    }}
-                >
-                    <h1 className="text-5xl font-extrabold mb-4">Bem-vindo(a)</h1>
-                    <p className="text-xl text-indigo-200">Faça login para acessar o sistema CRM da Economiza Sul.</p>
+            {/* 1. Coluna de Imagem/Branding (Desktop - W-1/2) */}
+            {/* Fundo branco (bg-white) e centralização de conteúdo */}
+            <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-white p-12 shadow-inner">
+                <div className="text-center">
+                    {/* Placeholder da Logo/Imagem de Marca */}
+                    <FaBolt size={80} className="text-indigo-600 mx-auto mb-4" /> 
+                    <h1 className="text-4xl font-extrabold text-gray-800 mb-2">ECONOMIZA SUL</h1>
+                    <p className="text-lg text-gray-500">Acesso exclusivo ao CRM</p>
                 </div>
             </div>
             
-            {/* 2. Coluna do Formulário (Visível em Mobile e Desktop) */}
-            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-gray-50 p-8 md:p-12">
-                <div className="w-full max-w-md">
+            {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
+            {/* Fundo branco e centralização total do formulário */}
+            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 md:p-12 shadow-lg">
+                <div className="w-full max-w-sm"> {/* Reduzindo o max-w para ser mais compacto */}
                     
                     {/* Cabeçalho */}
                     <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-900 md:text-gray-800">
-                            Acessar o Sistema
+                        {/* Exibir o logo no topo em mobile */}
+                        <div className="md:hidden mb-4">
+                            <FaBolt size={40} className="text-indigo-600 mx-auto" />
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-800">
+                            Fazer Login
                         </h2>
-                        {/* Visível apenas em mobile */}
-                        <p className="mt-2 text-sm text-gray-600 md:hidden">
-                            Economiza Sul CRM
-                        </p>
                     </div>
 
                     {/* Formulário */}
@@ -86,7 +77,7 @@ const Login = () => {
                         <div>
                             <label htmlFor="email" className="sr-only">Email</label>
                             <div className="relative">
-                                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     id="email"
                                     name="email"
@@ -105,7 +96,7 @@ const Login = () => {
                         <div>
                             <label htmlFor="password" className="sr-only">Senha</label>
                             <div className="relative">
-                                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                                 <input
                                     id="password"
                                     name="password"
@@ -122,7 +113,7 @@ const Login = () => {
 
                         {/* Exibir Erro */}
                         {error && (
-                            <div className="text-red-600 text-sm text-center p-2 bg-red-100 rounded-lg" role="alert">
+                            <div className="text-red-600 text-sm text-center p-3 bg-red-100 border border-red-300 rounded-lg" role="alert">
                                 {error}
                             </div>
                         )}
