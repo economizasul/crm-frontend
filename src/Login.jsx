@@ -1,120 +1,170 @@
+// src/Login.jsx - CÓDIGO FINAL COM LAYOUT RESPONSIVO (DESKTOP E MOBILE)
+
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
-// Caminho de importação ajustado para a raiz do src/
-import { useAuth } from './AuthContext.jsx'; 
+import axios from 'axios';
+import { useAuth } from './AuthContext.jsx';
+import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa';
 
-const API_BASE_URL = 'https://crm-app-cnf7.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-function Login() {
+const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [message, setMessage] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    
     const navigate = useNavigate();
-    const { login } = useAuth(); 
+    const { login } = useAuth();
 
-    const handleLogin = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setMessage('Tentando login...');
+        setError(null);
+        setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+            const response = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, {
+                email,
+                password,
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                login(data.token, data.id || data.userId); // Usa o Contexto
-                setMessage('Login realizado com sucesso! Redirecionando...');
-                navigate('/dashboard', { replace: true });
-            } else {
-                const errorData = await response.json();
-                setMessage(`Falha no login: ${errorData.error || response.statusText}`);
-            }
-        } catch (error) {
-            console.error('Erro de rede ou na requisição:', error);
-            setMessage('Erro de conexão. Tente novamente mais tarde.');
+            // Chama a função de login do contexto para salvar o token e os dados
+            login(response.data.token, response.data); 
+
+            // Redireciona para o dashboard
+            navigate('/dashboard', { replace: true });
+
+        } catch (err) {
+            console.error('Erro de Login:', err.response?.data?.error || err.message);
+            setError(err.response?.data?.error || 'Falha ao conectar. Verifique suas credenciais.');
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-2xl space-y-6">
-                
-                <div className="text-center">
-                    <LogIn className="w-12 h-12 mx-auto text-indigo-600" />
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-                        Acesse sua conta
-                    </h2>
+        // Container Principal (Tela Cheia)
+        <div className="min-h-screen flex">
+            
+            {/* 1. Coluna de Conteúdo/Imagem (Visível Apenas em Desktop) */}
+            <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-indigo-600 text-white p-12 shadow-2xl">
+                {/* 🚨 Substitua 'sua-imagem-de-fundo.jpg' pela URL real da imagem da sua marca 
+                  Ou use apenas o background sólido como está.
+                */}
+                <div 
+                    className="w-full h-full bg-cover bg-center rounded-lg flex flex-col justify-center items-center" 
+                    style={{ 
+                        // Exemplo de como adicionar a imagem (Substitua a URL)
+                        // backgroundImage: "url('URL_DA_SUA_IMAGEM_DE_FUNDO.jpg')",
+                        backgroundColor: '#4f46e5', // Fundo sólido (Indigo 600)
+                    }}
+                >
+                    <h1 className="text-5xl font-extrabold mb-4">Bem-vindo(a)</h1>
+                    <p className="text-xl text-indigo-200">Faça login para acessar o sistema CRM da Economiza Sul.</p>
                 </div>
+            </div>
+            
+            {/* 2. Coluna do Formulário (Visível em Mobile e Desktop) */}
+            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-gray-50 p-8 md:p-12">
+                <div className="w-full max-w-md">
+                    
+                    {/* Cabeçalho */}
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-gray-900 md:text-gray-800">
+                            Acessar o Sistema
+                        </h2>
+                        {/* Visível apenas em mobile */}
+                        <p className="mt-2 text-sm text-gray-600 md:hidden">
+                            Economiza Sul CRM
+                        </p>
+                    </div>
 
-                <form className="mt-8 space-y-4" onSubmit={handleLogin}>
-                    
-                    {/* Campo de Email */}
-                    <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="email"
-                            required
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
-                    
-                    {/* Campo de Senha */}
-                    <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                            type="password"
-                            required
-                            placeholder="Senha"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
-                    
-                    {/* Botão de Login */}
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <Loader2 className="animate-spin w-5 h-5 mr-3" />
-                        ) : (
-                            <LogIn className="w-5 h-5 mr-3" />
+                    {/* Formulário */}
+                    <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                        
+                        {/* Campo Email */}
+                        <div>
+                            <label htmlFor="email" className="sr-only">Email</label>
+                            <div className="relative">
+                                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                    placeholder="Seu Email"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Campo Senha */}
+                        <div>
+                            <label htmlFor="password" className="sr-only">Senha</label>
+                            <div className="relative">
+                                <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                    placeholder="Sua Senha"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Exibir Erro */}
+                        {error && (
+                            <div className="text-red-600 text-sm text-center p-2 bg-red-100 rounded-lg" role="alert">
+                                {error}
+                            </div>
                         )}
-                        {loading ? 'Entrando...' : 'Entrar'}
-                    </button>
-                </form>
-                
-                {/* Mensagens de Erro/Sucesso e Link de Cadastro */}
-                {message && message !== 'Tentando login...' && (
-                    <div className={`p-3 rounded-lg text-sm text-center ${message.includes('sucesso') ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
-                        {message}
+
+                        {/* Botão de Login */}
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150"
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Aguarde...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaSignInAlt className="h-5 w-5" />
+                                        <span>Entrar</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </form>
+
+                    {/* Link para Cadastro */}
+                    <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                            Não tem uma conta?{' '}
+                            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                                Crie uma aqui
+                            </Link>
+                        </p>
                     </div>
-                )}
-                
-                <div className="text-center pt-2">
-                    <p className="text-sm text-gray-600">
-                        Não tem uma conta?{' '}
-                        <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700 transition duration-150">
-                            Crie uma aqui
-                        </Link>
-                    </p>
                 </div>
             </div>
         </div>
     );
-}
+};
 
 export default Login;
