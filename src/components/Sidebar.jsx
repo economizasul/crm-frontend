@@ -1,4 +1,4 @@
-// src/components/Sidebar.jsx - CÓDIGO FINAL COM LAYOUT MINIMIZADO/EXPANDÍVEL E BOTÃO DE EXPANSÃO INTERNO
+// src/components/Sidebar.jsx - CÓDIGO FINAL COM BOTÃO DE EXPANSÃO NO TOPO E NOME DA EMPRESA CONDICIONAL
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -32,7 +32,6 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         if (window.innerWidth < 768 && toggleMobileSidebar) {
             toggleMobileSidebar();
         }
-        // Não minimiza automaticamente em desktop
     };
 
     // Menu de navegação
@@ -50,25 +49,38 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
 
     return (
         <div className={`
-            w-full // Garante que o conteúdo ocupe a largura do contêiner externo (Dashboard)
-            bg-gray-800 text-white p-6 shadow-xl h-full flex flex-col
+            w-full
+            bg-gray-800 text-white p-4 shadow-xl h-full flex flex-col
             transition-all duration-300 ease-in-out
         `}>
             
-            {/* Cabeçalho, Logo e Botão de Fechar (Mobile) */}
+            {/* 🚨 NOVO CABEÇALHO COM BOTÃO DE EXPANSÃO NO TOPO */}
             <div className={`
-                flex items-center border-b border-indigo-700 pb-4 mb-4
+                flex items-center border-b border-indigo-700 pb-3 mb-4
                 ${isExpanded ? 'justify-between' : 'justify-center'}
             `}>
+                {/* 1. Logo/Título (Apenas se expandido ou se for mobile) */}
                 {isExpanded ? (
-                    <div className="text-2xl font-bold text-indigo-100">
+                    <div className="text-xl font-bold text-indigo-100 flex-1">
                         ECONOMIZA SUL
                     </div>
                 ) : (
-                    <div className="text-xl font-bold text-indigo-100">ES</div> // Ícone ou sigla quando minimizado
+                    // 🚨 Vazio ou um ícone simples quando minimizado
+                    <div className="text-xl font-bold text-indigo-100 p-2">
+                        {/* Podemos deixar vazio ou usar um ícone simples, aqui deixaremos vazio para um look mais clean */}
+                    </div>
                 )}
 
-                {/* Botão de Fechar (APENAS MOBILE) */}
+                {/* 2. Botão de Toggle (APENAS DESKTOP) */}
+                <button
+                    onClick={toggleExpansion}
+                    className="hidden md:block p-1 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200 ml-auto"
+                    title={isExpanded ? "Minimizar Menu" : "Expandir Menu"}
+                >
+                    {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
+                </button>
+                
+                {/* 3. Botão de Fechar (APENAS MOBILE) */}
                 <button 
                     onClick={toggleMobileSidebar} 
                     className="text-indigo-200 hover:text-white md:hidden"
@@ -87,7 +99,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         onClick={handleNavLinkClick} 
                     >
                         <item.icon className="w-5 h-5" />
-                        {isExpanded && <span className="whitespace-nowrap">{item.name}</span>} {/* Texto só aparece se expandido */}
+                        {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
                     </NavLink>
                 ))}
             </nav>
@@ -102,7 +114,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         onClick={handleNavLinkClick}
                     >
                         <item.icon className="w-5 h-5" />
-                        {isExpanded && <span className="whitespace-nowrap">{item.name}</span>} {/* Texto só aparece se expandido */}
+                        {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
                     </NavLink>
                 ))}
 
@@ -116,20 +128,11 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     `}
                 >
                     <FaSignOutAlt className="w-5 h-5" />
-                    {isExpanded && <span className="whitespace-nowrap">Sair</span>} {/* Texto só aparece se expandido */}
+                    {isExpanded && <span className="whitespace-nowrap">Sair</span>}
                 </button>
             </div>
             
-            {/* 🚨 NOVO BOTÃO DE EXPANSÃO/MINIMIZAÇÃO (APENAS EM DESKTOP) */}
-            <div className="hidden md:flex justify-end pt-4">
-                <button
-                    onClick={toggleExpansion}
-                    className="p-2 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200"
-                    title={isExpanded ? "Minimizar Menu" : "Expandir Menu"}
-                >
-                    {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
-                </button>
-            </div>
+            {/* O botão de expansão/minimização foi movido para o cabeçalho */}
             
         </div>
     );
