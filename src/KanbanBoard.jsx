@@ -1,7 +1,7 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM COLUNAS ESTREITAS (w-52)
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM BARRA DE PESQUISA, FILTRO, MODAL E DRAG/DROP
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
@@ -78,6 +78,11 @@ const KanbanBoard = () => {
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
     
+    // 🚨 NOVO ESTADO: Termo de Pesquisa
+    const [searchTerm, setSearchTerm] = useState(''); 
+    // 🚨 NOVO ESTADO: Resultado da Pesquisa
+    const [searchResult, setSearchResult] = useState(null);
+
     const navigate = useNavigate();
     const { token, logout } = useAuth();
     
@@ -115,48 +120,60 @@ const KanbanBoard = () => {
     useEffect(() => {
         fetchLeads();
     }, [fetchLeads]);
+    
+    // 🚨 Lógica de filtragem
+    const handleSearch = (term) => {
+        setSearchTerm(term);
+        
+        if (term.trim() === '') {
+            setSearchResult(null);
+            return;
+        }
 
-    // Lógica para abrir o modal de edição
+        const lowerCaseTerm = term.toLowerCase();
+        
+        const foundLead = leads.find(lead => 
+            (lead.name && lead.name.toLowerCase().includes(lowerCaseTerm)) ||
+            (lead.phone && lead.phone.includes(lowerCaseTerm)) ||
+            (lead.document && lead.document.includes(lowerCaseTerm))
+        );
+
+        if (foundLead) {
+            setSearchResult(foundLead);
+        } else {
+            setSearchResult('not_found');
+        }
+    };
+    
+    // Lógica para abrir o modal de edição (inalterada)
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
-        
         const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
-
         setLeadData({
-            name: lead.name || '',
-            phone: lead.phone || '',
-            document: lead.document || '',
-            address: lead.address || '',
-            status: lead.status || 'Novo',
-            origin: lead.origin || '',
-            email: lead.email || '',
-            uc: lead.uc || '',
-            avgConsumption: lead.avgConsumption || '',
-            estimatedSavings: lead.estimatedSavings || '',
-            qsa: lead.qsa || '',
-            notes: currentNotes, 
-            lat: lead.lat || null,
-            lng: lead.lng || null,
+            name: lead.name || '', phone: lead.phone || '', document: lead.document || '', 
+            address: lead.address || '', status: lead.status || 'Novo', origin: lead.origin || '', 
+            email: lead.email || '', uc: lead.uc || '', 
+            avgConsumption: lead.avgConsumption || '', estimatedSavings: lead.estimatedSavings || '', 
+            qsa: lead.qsa || '', notes: currentNotes, lat: lead.lat || null, lng: lead.lng || null,
         });
-        
         setNewNoteText('');
         setIsModalOpen(true);
     }, []);
 
-    // Lógica para fechar o modal
+    // Lógica para fechar o modal (inalterada)
     const closeLeadModal = useCallback(() => {
         setIsModalOpen(false);
         setSelectedLead(null);
         fetchLeads(); 
     }, [fetchLeads]);
     
-    // Handler de input do modal
+    // Handler de input do modal (inalterada)
     const handleChange = (e) => {
         const { name, value } = e.target;
         setLeadData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Adiciona nota ao estado local do modal
+    // Adiciona nota ao estado local do modal (inalterada)
     const addNewNote = () => {
         if (newNoteText.trim() === '') return;
 
@@ -173,13 +190,12 @@ const KanbanBoard = () => {
         setNewNoteText('');
     };
 
-    // Salva as alterações do lead via modal
+    // Salva as alterações do lead via modal (inalterada)
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
 
         try {
-            // Prepara os dados para o backend
             const dataToSend = {
                 ...leadData,
                 notes: JSON.stringify(leadData.notes || []), 
@@ -203,7 +219,7 @@ const KanbanBoard = () => {
         }
     };
     
-    // Lógica de Drag and Drop
+    // Lógica de Drag and Drop (inalterada)
     const handleDrop = async (leadId, newStatus) => {
         const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
         const leadToUpdate = leads.find(l => l._id === idToFind);
@@ -245,15 +261,43 @@ const KanbanBoard = () => {
             fetchLeads(); 
         }
     };
-
+    
     // Renderiza as colunas do Kanban
     const renderColumns = () => {
+        // Se houver resultado de pesquisa, renderiza apenas a coluna do lead encontrado
+        if (searchResult && searchResult !== 'not_found') {
+            const status = searchResult.status;
+            
+            return (
+                <div 
+                    key={status} 
+                    className="flex-shrink-0 w-64 bg-white p-4 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
+                >
+                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                        {status} (1) 
+                        <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
+                    </h2>
+                    
+                    <div
+                        draggable
+                        onDragStart={(e) => {
+                            e.dataTransfer.setData("leadId", searchResult._id.toString());
+                        }}
+                    >
+                        <LeadCard lead={searchResult} onClick={openLeadModal} />
+                    </div>
+                </div>
+            );
+        }
+        
+        // Renderização normal do Kanban
         const columns = Object.keys(STAGES).map(status => {
+            // Filtra os leads para a coluna atual
             const statusLeads = leads.filter(lead => lead.status === status);
             return (
                 <div 
                     key={status} 
-                    // 🚨 Largura otimizada
+                    // Largura otimizada
                     className="flex-shrink-0 w-52 bg-white p-4 rounded-lg shadow-lg"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
@@ -302,12 +346,36 @@ const KanbanBoard = () => {
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
+            {/* 🚨 NOVA BARRA DE PESQUISA */}
+            <div className="mb-6 flex items-center space-x-4">
+                <div className="relative flex-1 max-w-lg">
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por Nome, Telefone ou Documento..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                    />
+                </div>
+                {/* 🚨 Feedbacks da Pesquisa */}
+                {searchResult === 'not_found' && searchTerm.trim() !== '' && (
+                    <span className="text-red-500 font-medium">Lead não encontrado.</span>
+                )}
+                {searchResult && searchResult !== 'not_found' && (
+                    <button onClick={() => setSearchResult(null)} className="text-sm px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">
+                        Limpar Pesquisa <FaTimes className="inline ml-1" />
+                    </button>
+                )}
+            </div>
+            
             {/* Container do Kanban: Permite scroll horizontal e ajusta a altura com base na tela */}
-            <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-140px)]">
+            {/* Se houver resultado de pesquisa, o Kanban é filtrado */}
+            <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-200px)]"> 
                 {renderColumns()}
             </div>
 
-            {/* Modal de Edição do Lead */}
+            {/* Modal de Edição do Lead (inalterado) */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
