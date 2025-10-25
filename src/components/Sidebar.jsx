@@ -1,4 +1,4 @@
-// Sidebar.jsx - CÓDIGO FINAL COM CORREÇÃO DE NAVEGAÇÃO E FECHAMENTO
+// Sidebar.jsx - CÓDIGO FINAL E REVISADO (Com toggleSidebar)
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -12,17 +12,14 @@ const LinkClass = ({ isActive }) =>
         ? 'bg-indigo-700 text-white shadow-lg' 
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}`;
 
-// O componente agora recebe 'toggleSidebar' como propriedade
+// CRÍTICO: Recebe 'toggleSidebar' como propriedade
 const Sidebar = ({ toggleSidebar }) => { 
     const navigate = useNavigate();
     const { logout } = useAuth(); 
 
-    // 🚨 FUNÇÃO CRÍTICA: Simplesmente fecha o menu em telas pequenas
+    // Função que fecha o menu após o clique (em modo móvel)
     const handleNavLinkClick = () => {
-        // Verifica se a função existe (estamos em modo móvel) antes de chamar
         if (toggleSidebar) {
-            // Adiciona um pequeno atraso (opcional) para dar tempo à navegação,
-            // mas o ideal é que feche imediatamente.
             toggleSidebar(); 
         }
     };
@@ -55,7 +52,7 @@ const Sidebar = ({ toggleSidebar }) => {
                 <div className="text-2xl font-bold text-indigo-100">
                     ECONOMIZA SUL
                 </div>
-                {/* Botão de Fechar: Usa a função recebida */}
+                {/* Botão de Fechar: Visível apenas em mobile e usa a função toggleSidebar */}
                 <button 
                     onClick={toggleSidebar} 
                     className="text-indigo-200 hover:text-white md:hidden"
@@ -66,12 +63,11 @@ const Sidebar = ({ toggleSidebar }) => {
             
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
-                    // 🚨 USO DO handleNavLinkClick
                     <NavLink 
                         key={item.name} 
                         to={item.path} 
                         className={LinkClass}
-                        onClick={handleNavLinkClick} 
+                        onClick={handleNavLinkClick} // 🚨 USA A FUNÇÃO DE FECHAMENTO
                     >
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
@@ -81,12 +77,11 @@ const Sidebar = ({ toggleSidebar }) => {
 
             <div className="mt-auto space-y-2 border-t border-indigo-700 pt-4">
                 {footerItems.map((item) => (
-                    // 🚨 USO DO handleNavLinkClick
                     <NavLink 
                         key={item.name} 
                         to={item.path} 
                         className={LinkClass}
-                        onClick={handleNavLinkClick}
+                        onClick={handleNavLinkClick} // 🚨 USA A FUNÇÃO DE FECHAMENTO
                     >
                         <item.icon className="w-5 h-5" />
                         <span>{item.name}</span>
