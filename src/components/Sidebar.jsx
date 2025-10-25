@@ -1,4 +1,4 @@
-// src/components/Sidebar.jsx - CÓDIGO FINAL COM BOTÃO DE EXPANSÃO NO TOPO E NOME DA EMPRESA CONDICIONAL
+// src/components/Sidebar.jsx - CÓDIGO FINAL COM CORES AJUSTADAS PARA O TEMA VERDE
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -9,8 +9,8 @@ import { useAuth } from '../AuthContext.jsx';
 const LinkClass = ({ isActive, isExpanded }) => 
     `w-full flex items-center p-3 rounded-xl transition duration-200 
     ${isActive 
-        ? 'bg-indigo-700 text-white shadow-lg' 
-        : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}
+        ? 'bg-green-700 text-white shadow-lg' // AJUSTE DE COR: indigo-700 -> green-700
+        : 'text-green-200 hover:bg-green-700 hover:text-white'} // AJUSTE DE COR: indigo-200/700 -> green-200/700
     ${isExpanded ? 'justify-start space-x-3' : 'justify-center'} // Alinha itens para centralizar ícones quando minimizado
     `;
 
@@ -21,8 +21,8 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
 
     // Função que fecha o menu (principalmente para mobile)
     const handleNavLinkClick = () => {
-        if (window.innerWidth < 768 && toggleMobileSidebar) { 
-            toggleMobileSidebar(); 
+        if (window.innerWidth < 768 && toggleMobileSidebar) { // Fecha apenas em mobile
+            toggleMobileSidebar();
         }
     };
     
@@ -36,67 +36,40 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
 
     // Menu de navegação
     const navItems = [
-        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
-        { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
-        { name: 'Cadastrar', path: '/register-lead', icon: FaUserPlus },
+        { name: 'Dashboard (Kanban)', icon: FaTachometerAlt, path: '/dashboard' }, 
+        { name: 'Buscar Leads', icon: FaSearch, path: '/leads' }, 
+        { name: 'Cadastrar Lead', icon: FaUserPlus, path: '/register-lead' }, 
     ];
-    
-    // Links de Rodapé
+
+    // Links de rodapé
     const footerItems = [
-        { name: 'Relatórios', path: '/reports', icon: FaChartBar },
-        { name: 'Configurações', path: '/settings', icon: FaCogs },
+        { name: 'Relatórios', icon: FaChartBar, path: '/reports' },
+        { name: 'Configurações', icon: FaCogs, path: '/settings' },
     ];
 
     return (
-        <div className={`
-            w-full
-            bg-gray-800 text-white p-4 shadow-xl h-full flex flex-col
-            transition-all duration-300 ease-in-out
-        `}>
+        // NOVO BACKGROUND: Verde 900
+        <div className="flex flex-col bg-green-900 text-white shadow-xl h-full p-2">
             
-            {/* 🚨 NOVO CABEÇALHO COM BOTÃO DE EXPANSÃO NO TOPO */}
-            <div className={`
-                flex items-center border-b border-indigo-700 pb-3 mb-4
-                ${isExpanded ? 'justify-between' : 'justify-center'}
-            `}>
-                {/* 1. Logo/Título (Apenas se expandido ou se for mobile) */}
-                {isExpanded ? (
-                    <div className="text-xl font-bold text-indigo-100 flex-1">
+            {/* Header com Nome/Logo e Botão de Expansão */}
+            <div className={`flex items-center p-4 border-b border-green-700 mb-4 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
+                
+                {isExpanded && (
+                    // AJUSTE DE COR: indigo-100 -> green-100
+                    <div className="text-xl font-bold text-green-100 whitespace-nowrap">
                         ECONOMIZA SUL
                     </div>
-                ) : (
-                    // 🚨 Vazio ou um ícone simples quando minimizado
-                    <div className="text-xl font-bold text-indigo-100 p-2">
-                        {/* Podemos deixar vazio ou usar um ícone simples, aqui deixaremos vazio para um look mais clean */}
-                    </div>
                 )}
-
-                {/* 2. Botão de Toggle (APENAS DESKTOP) */}
-                <button
-                    onClick={toggleExpansion}
-                    className="hidden md:block p-1 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200 ml-auto"
-                    title={isExpanded ? "Minimizar Menu" : "Expandir Menu"}
-                >
-                    {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
-                </button>
-                
-                {/* 3. Botão de Fechar (APENAS MOBILE) */}
-                <button 
-                    onClick={toggleMobileSidebar} 
-                    className="text-indigo-200 hover:text-white md:hidden"
-                >
-                    <FaTimes size={20} />
-                </button>
             </div>
-            
+
             {/* Links Principais */}
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-2 overflow-y-auto">
                 {navItems.map((item) => (
                     <NavLink 
                         key={item.name} 
                         to={item.path} 
                         className={(navData) => LinkClass({ ...navData, isExpanded })}
-                        onClick={handleNavLinkClick} 
+                        onClick={handleNavLinkClick}
                     >
                         <item.icon className="w-5 h-5" />
                         {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
@@ -105,7 +78,8 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
             </nav>
 
             {/* Links de Rodapé */}
-            <div className="mt-auto space-y-2 border-t border-indigo-700 pt-4">
+            {/* BORDA DE DIVISÃO: indigo-700 -> green-700 */}
+            <div className="mt-auto space-y-2 border-t border-green-700 pt-4">
                 {footerItems.map((item) => (
                     <NavLink 
                         key={item.name} 
@@ -123,7 +97,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     onClick={handleLogout} 
                     className={`
                         w-full flex items-center p-3 rounded-xl 
-                        text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200 
+                        text-red-300 hover:bg-green-700 hover:text-red-100 transition duration-200 // AJUSTE DE HOVER: indigo-700 -> green-700
                         ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
                     `}
                 >
@@ -131,8 +105,6 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     {isExpanded && <span className="whitespace-nowrap">Sair</span>}
                 </button>
             </div>
-            
-            {/* O botão de expansão/minimização foi movido para o cabeçalho */}
             
         </div>
     );

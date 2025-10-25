@@ -1,3 +1,5 @@
+// src/components/LeadEditModal.jsx - CÓDIGO FINAL COM CORES AJUSTADAS PARA O TEMA VERDE
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaPlus } from 'react-icons/fa';
 import axios from 'axios';
@@ -8,7 +10,7 @@ import { STAGES } from '../KanbanBoard.jsx';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 
-// --- FUNÇÕES AUXILIARES ---
+// --- FUNÇÕES AUXILIARES --- (Mantida)
 
 const formatNoteDate = (timestamp) => {
     if (timestamp === 0 || !timestamp) return 'Sem Data';
@@ -31,229 +33,233 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     // Inicializa o estado com o lead selecionado ou um objeto vazio
     const [leadData, setLeadData] = useState(selectedLead || {});
     const [newNoteText, setNewNoteText] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null); 
     const [saving, setSaving] = useState(false);
-    const [apiError, setApiError] = useState(null);
-    
-    // Efeito para sincronizar o estado quando o lead selecionado muda
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = React.useRef(null);
+
+    // Efeito para sincronizar `leadData` quando `selectedLead` muda
     useEffect(() => {
         if (selectedLead) {
-            // Garante que as notas sejam formatadas como objetos ao carregar
-            const leadNotes = Array.isArray(selectedLead.notes) 
-                ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
-                : [];
-            
-            setLeadData({ ...selectedLead, notes: leadNotes });
-            setNewNoteText('');
-            setSelectedFile(null);
-            setApiError(null);
+            setLeadData(selectedLead);
         }
     }, [selectedLead]);
     
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setLeadData((prev) => ({ ...prev, [name]: value }));
+    if (!isModalOpen || !selectedLead) return null;
+
+    // Handlers
+    const handleChange = (e) => {
+        setLeadData({
+            ...leadData,
+            [e.target.name]: e.target.value,
+        });
     };
-    
-    // Lida com o upload de arquivo
-    const handleFileChange = (e) => {
-        setSelectedFile(e.target.files[0] || null);
-    };
 
-    // Adiciona a nota/anexo ao histórico LOCAL (no frontend)
-    const handleAddNewNote = () => {
-        if (!newNoteText.trim() && !selectedFile) return;
-
-        let notesArray = leadData.notes ? [...leadData.notes] : [];
-
-        // 1. Adiciona o texto da nota, se houver
-        if (newNoteText.trim()) {
-            notesArray.push({ text: newNoteText.trim(), timestamp: Date.now() });
-        }
-
-        // 2. Adiciona a "nota" de anexo
-        if (selectedFile) {
-             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
-             notesArray.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
-        }
-        
-        // Atualiza o estado do lead e limpa os campos
-        setLeadData((prev) => ({ ...prev, notes: notesArray }));
-        setNewNoteText('');
-        setSelectedFile(null);
-        
-        // Limpa o input de arquivo
-        const fileInput = document.getElementById('attachment-input');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-    };
-    
-
-    const saveLeadChanges = async () => {
-        if (!leadData || saving) return;
-
+    const handleSave = async () => {
         setSaving(true);
-        setApiError(null);
-
-        let internalNotes = leadData.notes ? [...leadData.notes] : [];
-        
-        // Trata pendências: Se há texto/arquivo no input, mas o usuário não clicou em "Adicionar Nota", adicionamos antes de salvar.
-        if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
-             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        try {
+            const dataToSave = { ...leadData };
+            
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSave, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            onSave(true, `Lead ${selectedLead.name} atualizado.`);
+            onClose();
+            fetchLeads(); // Recarrega a lista
+        } catch (error) {
+            onSave(false, 'Falha ao salvar alterações.');
+            console.error('Erro ao salvar lead:', error.response?.data?.error || error.message);
+        } finally {
+            setSaving(false);
         }
-        if (selectedFile && !internalNotes.some(n => n.text.includes(selectedFile.name))) {
-            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
-            internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
-        }
-        
-        // CRÍTICO: Mapeia o array de objetos {text: string, timestamp: number} para um array de strings
-        // O backend espera um array de strings para salvar no campo JSONB `notes`.
-        const notesToSend = internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean);
-
-
-        const dataToSend = {
-            status: leadData.status, 
-            name: leadData.name,
-            phone: leadData.phone,
-            document: leadData.document,
-            address: leadData.address,
-            origin: leadData.origin,
-            email: leadData.email, // <-- Enviado para o backend
-            avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-            estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            notes: notesToSend, // <-- Envia o array de strings CORRETO
-            uc: leadData.uc,
-            qsa: leadData.qsa || null,
-        };
+    };
+    
+    // Função para adicionar uma nova nota
+    const handleAddNote = async () => {
+        if (!newNoteText.trim()) return;
 
         try {
-            const config = { headers: { 'Authorization': `Bearer ${token}` } };
-            // Usa o ID correto para a chamada PUT
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData._id}`, dataToSend, config);
-
-            await fetchLeads(); // Atualiza a lista de leads
-            onClose(); // Fecha o modal
-            onSave(true, 'Lead salvo com sucesso!'); 
-
+            const response = await axios.post(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}/notes`, 
+                { text: newNoteText.trim() }, 
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            
+            // Atualiza o estado local do modal
+            setLeadData(prev => ({
+                ...prev,
+                notes: response.data.notes,
+            }));
+            
+            setNewNoteText('');
+            onSave(true, 'Nota adicionada com sucesso.');
+            fetchLeads(); // Recarregar leads para refletir a nova nota
         } catch (error) {
-            console.error('Erro ao salvar lead:', error.response?.data || error.message);
-            // Mensagem de erro do servidor
-            const serverError = error.response?.data?.error || 'Erro desconhecido';
-            setApiError(`Falha ao salvar: ${serverError}`);
+            onSave(false, 'Falha ao adicionar nota.');
+            console.error('Erro ao adicionar nota:', error);
+        }
+    };
+    
+    // Função para upload de anexo
+    const handleAttachmentUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('attachment', file);
+        
+        try {
+            const response = await axios.post(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}/attachments`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            
+            // Atualiza o estado local do modal com a nota de anexo
+            setLeadData(prev => ({
+                ...prev,
+                notes: response.data.notes, // A API deve retornar a lista de notas atualizada, incluindo o anexo
+            }));
+            
+            onSave(true, `Anexo '${file.name}' enviado com sucesso.`);
+            fetchLeads();
+        } catch (error) {
+            onSave(false, 'Falha ao enviar anexo.');
+            console.error('Erro ao enviar anexo:', error);
         } finally {
-            setSaving(false); 
+            setUploading(false);
+            // Reseta o input de arquivo para permitir novo upload do mesmo arquivo
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
-    if (!isModalOpen) return null;
-    
-    // Variável de controle do botão de adicionar nota
-    const canAddNewNote = newNoteText.trim() || selectedFile;
-
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+        // Overlay do Modal
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
                 
                 {/* Cabeçalho */}
                 <div className="flex justify-between items-center border-b pb-3 mb-4">
-                    <h2 className="text-2xl font-bold text-indigo-800">Editar Lead: {leadData.name}</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><FaTimes size={20} /></button>
+                    <h2 className="text-2xl font-bold text-gray-800">Editar Lead: {selectedLead.name}</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FaTimes size={20} /></button>
                 </div>
                 
-                {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
-                
-                {/* Corpo do Formulário */}
-                <div className="space-y-4">
-                    {/* Campos Principais - Linha 1 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label><input type="text" name="document" className="w-full border rounded px-3 py-2" value={leadData.document || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
+                {/* GRID DE INFORMAÇÕES */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    
+                    {/* Coluna 1: Dados Principais */}
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-gray-700 border-b pb-1">Dados</h3>
+                        <select name="status" value={leadData.status || ''} onChange={handleChange} 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        >
+                            {Object.keys(STAGES).map(status => (
+                                <option key={status} value={status}>{status}</option>
+                            ))}
+                        </select>
+                        <input name="name" type="text" value={leadData.name || ''} onChange={handleChange} placeholder="Nome" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="email" type="email" value={leadData.email || ''} onChange={handleChange} placeholder="Email" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="phone" type="text" value={leadData.phone || ''} onChange={handleChange} placeholder="Telefone" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="uc" type="text" value={leadData.uc || ''} onChange={handleChange} placeholder="UC" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="avgConsumption" type="number" value={leadData.avgConsumption || ''} onChange={handleChange} placeholder="Consumo Médio (kWh)" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="estimatedSavings" type="text" value={leadData.estimatedSavings || ''} onChange={handleChange} placeholder="Economia Estimada" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
+                        <input name="qsa" type="text" value={leadData.qsa || ''} onChange={handleChange} placeholder="QSA" 
+                            // AJUSTE DE FOCO: green-500
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 transition"
+                        />
                     </div>
                     
-                    {/* Campos Principais - Linha 2 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem</label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} /></div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
-                            <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
-                            <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Para Contatar'} onChange={handleInputChange}>
-                                {STAGES.map(stage => (<option key={stage.id} value={stage.id}>{stage.title}</option>))}
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Quadro de Adicionar Nova Nota / Anexo */}
-                    <div className="border p-4 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
+                    {/* Coluna 2: Notas e Anexos */}
+                    <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-gray-700 border-b pb-1">Notas e Histórico</h3>
                         
-                        <textarea
-                            rows={3}
-                            name="newNoteText"
-                            className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Descreva o atendimento ou a anotação aqui..."
-                            value={newNoteText}
-                            onChange={(e) => setNewNoteText(e.target.value)}
-                        />
-                        
-                        {/* Campo de Anexo (Upload) */}
-                        <div className="mb-4">
-                            <label htmlFor="attachment-input" className="block text-sm font-medium text-gray-700 mb-1">Anexo (Foto, PDF, etc.)</label>
-                            <input
-                                id="attachment-input"
-                                type="file"
-                                accept=".pdf,image/*"
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                                onChange={handleFileChange}
+                        {/* Adicionar Nova Nota */}
+                        <div className="flex space-x-2">
+                            <textarea 
+                                value={newNoteText}
+                                onChange={(e) => setNewNoteText(e.target.value)}
+                                placeholder="Adicionar nova nota..."
+                                // AJUSTE DE FOCO: green-500
+                                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 min-h-[50px]"
                             />
-                            {selectedFile && (
-                                <p className="mt-1 text-sm text-gray-600">Arquivo selecionado: {selectedFile.name}</p>
-                            )}
+                            <button 
+                                onClick={handleAddNote}
+                                // AJUSTE DE COR: green-600
+                                className="bg-green-600 text-white rounded-lg px-4 py-2 hover:bg-green-700 transition self-start"
+                                disabled={!newNoteText.trim()}
+                            >
+                                <FaPlus />
+                            </button>
+                        </div>
+                        
+                        {/* Anexo */}
+                        <div className="flex space-x-2 items-center">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleAttachmentUpload}
+                                className="hidden"
+                                id="attachment-upload"
+                                disabled={uploading}
+                            />
+                            <label htmlFor="attachment-upload" 
+                                // AJUSTE DE COR: green-600
+                                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium shadow-md cursor-pointer transition ${uploading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'}`}
+                            >
+                                <FaPaperclip size={16} />
+                                <span>{uploading ? 'Enviando...' : 'Adicionar Anexo'}</span>
+                            </label>
                         </div>
 
-                        {/* Botão para Adicionar Nota/Anexo */}
-                        <button
-                            type="button" // Garante que não submeta o formulário
-                            onClick={handleAddNewNote}
-                            disabled={!canAddNewNote}
-                            className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
-                        >
-                            <FaPlus size={14} />
-                            <span>Adicionar Nota ao Histórico</span>
-                        </button>
-                    </div>
-
-                    {/* Histórico de Notas */}
-                    <div>
-                        <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
-                        <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
-                            {leadData.notes && leadData.notes.length > 0 ? (
-                                // Reverte a ordem para mostrar as mais recentes primeiro
-                                [...leadData.notes].reverse().map((note, index) => {
-                                    const noteText = typeof note === 'string' ? note : (note.text || '');
-                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
-                                    
-                                    const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
-                                    const noteClass = isAttachment 
-                                        ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm" 
-                                        : "mb-2 p-2 border-b last:border-b-0 text-sm";
-                                    
-                                    return (
-                                        <div key={index} className={noteClass}>
-                                            <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(noteTimestamp)}</p>
-                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
-                                                {noteText}
-                                            </p>
-                                        </div>
-                                    );
-                                })
-                            ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
+                        {/* Histórico de Notas (Read-only) */}
+                        <div className="mt-4 p-4 border rounded-lg bg-gray-50 max-h-64 overflow-y-auto">
+                            <h3 className="font-semibold mb-2 text-gray-700 border-b border-gray-200 pb-1">Histórico</h3>
+                            <div className="space-y-3">
+                                {leadData.notes && Array.isArray(leadData.notes) && leadData.notes.length > 0 ? (
+                                    // Inverte a ordem para mostrar o mais recente primeiro
+                                    leadData.notes.slice().reverse().map((note, index) => {
+                                        const noteText = note.text || note.fileUrl || note.fileName;
+                                        const noteTimestamp = note.timestamp || Date.now();
+                                        const isAttachment = note.fileUrl || (note.fileName && !note.text);
+                                        
+                                        return (
+                                            <div key={index} className={`border-l-4 ${isAttachment ? 'border-yellow-400' : 'border-gray-300'} pl-3`}>
+                                                {/* AJUSTE DE COR: indigo-600 -> green-600 */}
+                                                <p className="font-semibold text-xs text-green-600">{formatNoteDate(noteTimestamp)}</p>
+                                                <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
+                                                    {isAttachment ? `Anexo: ${note.fileName}` : noteText}
+                                                    {isAttachment && note.fileUrl && (
+                                                        <a href={note.fileUrl} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:text-blue-800 underline">
+                                                            (Ver Arquivo)
+                                                        </a>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        );
+                                    })
+                                ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -263,9 +269,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                     <button 
                         type="button"
-                        onClick={saveLeadChanges} 
+                        onClick={handleSave} 
                         disabled={saving} 
-                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                        // AJUSTE DE COR: indigo-600 -> green-600 / hover:bg-indigo-700 -> hover:bg-green-700
+                        className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 flex items-center space-x-2"
                     >
                         <FaSave size={16} />
                         <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
