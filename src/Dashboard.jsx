@@ -1,57 +1,52 @@
-// src/Dashboard.jsx - CÓDIGO FINAL COM SIDEBAR MINIMIZADO/EXPANSÍVEL E LAYOUT AJUSTADO
+// src/Dashboard.jsx - CÓDIGO FINAL COM SIDEBAR MINIMIZADO/EXPANSÍVEL E LAYOUT CORRIGIDO
 
 import React, { useState } from 'react';
-import { FaBars, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft } from 'react-icons/fa'; 
+import { FaBars, FaTimes } from 'react-icons/fa'; 
 import { Outlet } from 'react-router-dom'; 
 
 import Sidebar from './components/Sidebar'; 
 
 const Dashboard = () => {
-    // 🚨 NOVO ESTADO: Controla se o Sidebar está expandido (ícones+texto) ou minimizado (apenas ícones)
-    // Por padrão, queremos ele minimizado em desktop e como drawer em mobile.
+    // 1. Estado para EXPANSÃO (Desktop: ícones/ícones+texto). Por padrão, MINIMIZADO (false).
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(false); 
     
-    // Estado para controlar a visibilidade do Sidebar em mobile (drawer)
+    // 2. Estado para MOBILE (Drawer: aberto/fechado).
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     // Função para alternar o estado de expansão (desktop)
     const toggleSidebarExpansion = () => {
-        setIsSidebarExpanded(!isSidebarExpanded);
+        setIsSidebarExpanded(prev => !prev);
     };
 
     // Função para alternar a visibilidade do Sidebar em mobile (drawer)
     const toggleMobileSidebar = () => {
-        setIsMobileSidebarOpen(!isMobileSidebarOpen);
+        setIsMobileSidebarOpen(prev => !prev);
     };
 
-    // Determina a largura base do Sidebar para classes de main
-    const sidebarWidthClass = isSidebarExpanded ? 'md:w-64' : 'md:w-20'; // md:w-20 para minimizado, md:w-64 para expandido
-    const sidebarActualWidth = isSidebarExpanded ? 'w-64' : 'w-20'; // Usado para o próprio Sidebar
+    // Determina as classes de largura e margem
+    const sidebarWidthClass = isSidebarExpanded ? 'md:w-64' : 'md:w-20'; // Desktop: 64 ou 20
+    const mainMarginClass = isSidebarExpanded ? 'md:ml-64' : 'md:ml-20'; // Desktop: ml-64 ou ml-20
 
     return (
         <div className="flex h-screen bg-gray-100"> 
             
-            {/* Sidebar (Agora com lógica de expansão e comportamento em mobile) */}
-            {/* Em telas menores (mobile), ele ainda será um drawer 'fixed' */}
-            {/* Em telas maiores (md), ele será 'relative' e ocupará espaço, ou 'fixed' e flutuará */}
+            {/* Sidebar Container (Fixo na tela, mas ocupando espaço com margem no main) */}
             <div 
-                // 🚨 CLASSES CRÍTICAS DO SIDEBAR CONTAINER
                 className={`
                     fixed inset-y-0 left-0 
                     ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                    ${sidebarActualWidth} // Largura dinâmica em mobile e desktop
+                    ${sidebarWidthClass} // Largura dinâmica em desktop
                     md:translate-x-0 // Sempre visível em desktop
-                    ${sidebarWidthClass} // Ocupa espaço em desktop
                     bg-gray-800 text-white shadow-xl 
                     flex flex-col z-40 
                     transition-all duration-300 ease-in-out
                 `}
             >
-                {/* 🚨 Passe os dois estados para o Sidebar */}
+                {/* 🚨 Passe os estados e toggles para o Sidebar */}
                 <Sidebar 
                     isExpanded={isSidebarExpanded} 
                     toggleExpansion={toggleSidebarExpansion} 
-                    toggleMobileSidebar={toggleMobileSidebar} // Para o botão de fechar em mobile
+                    toggleMobileSidebar={toggleMobileSidebar} 
                 /> 
             </div>
 
@@ -63,43 +58,24 @@ const Dashboard = () => {
                 />
             )}
             
-            {/* Main Content (Onde o conteúdo da rota vai) */}
+            {/* Main Content (Conteúdo principal) */}
             <main 
-                // 🚨 CLASSES CRÍTICAS DO CONTEÚDO PRINCIPAL (AJUSTA PADDING ESQUERDO)
+                // 🚨 CRÍTICO: Ajusta a margem esquerda para compensar a largura do sidebar
                 className={`
                     flex-1 overflow-y-auto 
                     transition-all duration-300 ease-in-out
-                    pl-4 // Padding base para evitar que o conteúdo fique grudado na esquerda
-                    ${isSidebarExpanded ? 'md:ml-64' : 'md:ml-20'} // Ajusta margem esquerda em desktop
-                    md:pt-4 // Padding superior em desktop
+                    ${mainMarginClass} // Margem dinâmica em desktop (ml-64 ou ml-20)
                 `}
             > 
-                {/* Botão de Toggle do Sidebar (em desktop) ou para abrir menu (em mobile) */}
+                {/* Botão de Toggle do Sidebar (Menu Hamburguer) - Apenas em mobile */}
                 <button 
-                    onClick={isMobileSidebarOpen ? toggleMobileSidebar : toggleSidebarExpansion}
-                    className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg md:hidden hover:bg-indigo-700 transition" // Botão mobile
+                    onClick={toggleMobileSidebar}
+                    className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg md:hidden hover:bg-indigo-700 transition"
                 >
                     {isMobileSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
-
-                {/* Botão de Toggle para expandir/minimizar (apenas em desktop) */}
-                <button
-                    onClick={toggleSidebarExpansion}
-                    className={`
-                        hidden md:block // Visível apenas em desktop
-                        fixed top-4 
-                        ${isSidebarExpanded ? 'left-[calc(16rem-1rem)]' : 'left-[calc(5rem-1rem)]'} // left-64-4 (240px) ou left-20-4 (64px)
-                        z-50 p-2 rounded-full shadow-lg 
-                        bg-indigo-600 text-white hover:bg-indigo-700 transition
-                    `}
-                    style={{
-                        marginLeft: '-1rem' // Ajusta para o botão ficar um pouco fora do sidebar
-                    }}
-                >
-                    {isSidebarExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
-                </button>
                 
-                {/* Outlet renderiza o componente da rota aninhada */}
+                {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc.) */}
                 <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile, pt-4 para desktop */}
                     <Outlet />
                 </div>

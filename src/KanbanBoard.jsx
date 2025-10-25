@@ -1,7 +1,7 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM COLUNAS AINDA MAIS ESTREITAS (w-52)
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM COLUNAS ESTREITAS (w-52)
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
+import { FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
@@ -147,7 +147,7 @@ const KanbanBoard = () => {
     const closeLeadModal = useCallback(() => {
         setIsModalOpen(false);
         setSelectedLead(null);
-        fetchLeads(); // Recarregar após o fechamento para garantir dados atualizados
+        fetchLeads(); 
     }, [fetchLeads]);
     
     // Handler de input do modal
@@ -205,20 +205,17 @@ const KanbanBoard = () => {
     
     // Lógica de Drag and Drop
     const handleDrop = async (leadId, newStatus) => {
-        // Encontra o lead no estado atual
         const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
         const leadToUpdate = leads.find(l => l._id === idToFind);
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
-        // Atualização otimista do estado (para a visualização ser instantânea)
         const oldStatus = leadToUpdate.status;
         setLeads(prevLeads => prevLeads.map(l => 
             l._id === idToFind ? { ...l, status: newStatus } : l
         ));
 
         try {
-            // Envia a requisição para o backend
             const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
 
             const dataToSend = {
@@ -240,7 +237,6 @@ const KanbanBoard = () => {
         } catch (error) {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
-            // Reverte o estado em caso de falha
             setLeads(prevLeads => prevLeads.map(l => 
                 l._id === idToFind ? { ...l, status: oldStatus } : l
             ));
@@ -257,7 +253,7 @@ const KanbanBoard = () => {
             return (
                 <div 
                     key={status} 
-                    // 🚨 ALTERAÇÃO CRÍTICA: w-52 para otimizar espaço
+                    // 🚨 Largura otimizada
                     className="flex-shrink-0 w-52 bg-white p-4 rounded-lg shadow-lg"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
@@ -275,7 +271,6 @@ const KanbanBoard = () => {
                             key={lead._id}
                             draggable
                             onDragStart={(e) => {
-                                // Adiciona o ID do lead ao evento de arrasto
                                 e.dataTransfer.setData("leadId", lead._id.toString());
                             }}
                         >
