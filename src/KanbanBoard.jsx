@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE NOTAS, LAYOUT COMPACTO, DRAG/DROP FUNCIONANDO E COLUNAS MAIS ESTREITAS
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM COLUNAS AINDA MAIS ESTREITAS (w-52)
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaSearch, FaBolt, FaPlus, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
@@ -6,18 +6,17 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
 
-// Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban
+// Estágios do Kanban e suas cores
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Para Contatar': 'bg-blue-200 text-blue-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
+    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
 };
 
 // Componente simples de Toast para feedback
@@ -40,7 +39,6 @@ const Toast = ({ message, type, onClose }) => {
 
 // Componente Card de Lead
 const LeadCard = ({ lead, onClick }) => {
-    // Adicionado onDragStart aqui para suportar o Drag and Drop
     return (
         <div 
             onClick={() => onClick(lead)}
@@ -55,7 +53,7 @@ const LeadCard = ({ lead, onClick }) => {
     );
 };
 
-// Função auxiliar para formatar a data da nota
+// Função auxiliar de formatação de data
 const formatNoteDate = (timestamp) => {
     if (!timestamp) return 'Sem Data';
     try {
@@ -83,13 +81,14 @@ const KanbanBoard = () => {
     const navigate = useNavigate();
     const { token, logout } = useAuth();
     
-    // Estado do formulário no Modal, para edição
+    // Estado usado para o formulário do modal
     const [leadData, setLeadData] = useState({
         name: '', phone: '', document: '', address: '', status: '', origin: '', email: '', 
         uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], 
         lat: null, lng: null
     });
 
+    // Função para buscar os leads
     const fetchLeads = useCallback(async () => {
         if (!token) return;
 
@@ -117,7 +116,7 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // Função para abrir o Modal e inicializar o estado
+    // Lógica para abrir o modal de edição
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
         
@@ -135,7 +134,7 @@ const KanbanBoard = () => {
             avgConsumption: lead.avgConsumption || '',
             estimatedSavings: lead.estimatedSavings || '',
             qsa: lead.qsa || '',
-            notes: currentNotes, // Array de Objetos
+            notes: currentNotes, 
             lat: lead.lat || null,
             lng: lead.lng || null,
         });
@@ -144,18 +143,20 @@ const KanbanBoard = () => {
         setIsModalOpen(true);
     }, []);
 
+    // Lógica para fechar o modal
     const closeLeadModal = useCallback(() => {
         setIsModalOpen(false);
         setSelectedLead(null);
-    }, []);
+        fetchLeads(); // Recarregar após o fechamento para garantir dados atualizados
+    }, [fetchLeads]);
     
-    // Handle change para campos do formulário
+    // Handler de input do modal
     const handleChange = (e) => {
         const { name, value } = e.target;
         setLeadData(prev => ({ ...prev, [name]: value }));
     };
 
-    // Função para adicionar uma nova nota
+    // Adiciona nota ao estado local do modal
     const addNewNote = () => {
         if (newNoteText.trim() === '') return;
 
@@ -172,32 +173,28 @@ const KanbanBoard = () => {
         setNewNoteText('');
     };
 
-
-    // Função para salvar as alterações do Lead (usada pelo botão Salvar e pelo Drag/Drop)
+    // Salva as alterações do lead via modal
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
 
         try {
-            // CRÍTICO: Antes de enviar ao backend, converte o Array de Notas para String JSON
+            // Prepara os dados para o backend
             const dataToSend = {
                 ...leadData,
-                notes: JSON.stringify(leadData.notes || []), // TRANSFORMA O ARRAY DE OBJETOS EM STRING JSON VÁLIDA
-                // Garante que os números são números ou null
+                notes: JSON.stringify(leadData.notes || []), 
                 avgConsumption: parseFloat(leadData.avgConsumption) || null,
                 estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
             };
 
-            // Remove o _id para não enviar na carga (PUT usa _id do params)
             delete dataToSend._id; 
 
-            const response = await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSend, {
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
             closeLeadModal();
-            fetchLeads(); // Recarrega os leads
         } catch (error) {
             console.error("Erro ao salvar lead:", error.response?.data || error);
             setToast({ message: error.response?.data?.error || 'Falha ao salvar lead.', type: 'error' });
@@ -206,21 +203,22 @@ const KanbanBoard = () => {
         }
     };
     
-    // Função para tratar o Drop (Mudança de status via arrastar e soltar)
+    // Lógica de Drag and Drop
     const handleDrop = async (leadId, newStatus) => {
-        // Converte o ID para o tipo correto (número ou string, dependendo do que o leadId no estado é)
+        // Encontra o lead no estado atual
         const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
         const leadToUpdate = leads.find(l => l._id === idToFind);
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
-        // --- 1. Atualização Otimista (Visual) ---
+        // Atualização otimista do estado (para a visualização ser instantânea)
+        const oldStatus = leadToUpdate.status;
         setLeads(prevLeads => prevLeads.map(l => 
             l._id === idToFind ? { ...l, status: newStatus } : l
         ));
 
         try {
-            // --- 2. Preparação dos Dados para o Backend ---
+            // Envia a requisição para o backend
             const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
 
             const dataToSend = {
@@ -233,7 +231,6 @@ const KanbanBoard = () => {
 
             delete dataToSend._id; 
             
-            // --- 3. Chamada da API ---
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -243,9 +240,9 @@ const KanbanBoard = () => {
         } catch (error) {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
-            // --- 4. Reverte em caso de falha (Atualização Pessimista) ---
+            // Reverte o estado em caso de falha
             setLeads(prevLeads => prevLeads.map(l => 
-                l._id === idToFind ? { ...l, status: leadToUpdate.status } : l
+                l._id === idToFind ? { ...l, status: oldStatus } : l
             ));
             
             setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
@@ -253,15 +250,15 @@ const KanbanBoard = () => {
         }
     };
 
-    // Renderização das colunas do Kanban
+    // Renderiza as colunas do Kanban
     const renderColumns = () => {
         const columns = Object.keys(STAGES).map(status => {
             const statusLeads = leads.filter(lead => lead.status === status);
             return (
                 <div 
                     key={status} 
-                    // *** NOVO AJUSTE: w-80 para w-64 (256px) para compactar o layout ***
-                    className="flex-shrink-0 w-64 bg-white p-4 rounded-lg shadow-lg"
+                    // 🚨 ALTERAÇÃO CRÍTICA: w-52 para otimizar espaço
+                    className="flex-shrink-0 w-52 bg-white p-4 rounded-lg shadow-lg"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                         e.preventDefault();
@@ -278,6 +275,7 @@ const KanbanBoard = () => {
                             key={lead._id}
                             draggable
                             onDragStart={(e) => {
+                                // Adiciona o ID do lead ao evento de arrasto
                                 e.dataTransfer.setData("leadId", lead._id.toString());
                             }}
                         >
@@ -303,18 +301,13 @@ const KanbanBoard = () => {
         return <div className="p-8 text-center text-red-600">{apiError}</div>;
     }
 
-    // Modal de Edição (KanbanBoard)
     return (
         <div className="p-6">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
-            <div className="mb-6 flex justify-between items-center">
-                {/* ... (Busca e botão adicionar) ... */}
-            </div>
-
-            {/* Container do Kanban: Permite scroll horizontal */}
+            {/* Container do Kanban: Permite scroll horizontal e ajusta a altura com base na tela */}
             <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-140px)]">
                 {renderColumns()}
             </div>
@@ -333,6 +326,7 @@ const KanbanBoard = () => {
 
                         <div className="space-y-6">
                             
+                            {/* Informações do Lead */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -351,6 +345,7 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
+                            {/* Informações Técnicas */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -363,6 +358,7 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
+                            {/* Notas e Histórico */}
                             <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
                                 
@@ -400,6 +396,7 @@ const KanbanBoard = () => {
                             
                         </div>
 
+                        {/* Botões do Modal */}
                         <div className="mt-6 flex justify-end space-x-2">
                             <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                             <button 
