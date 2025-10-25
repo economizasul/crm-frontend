@@ -1,31 +1,31 @@
-// src/components/Sidebar.jsx - CÓDIGO COMPLETO COM TEAL
+// src/components/Sidebar.jsx - CÓDIGO FINAL COM BOTÃO DE EXPANSÃO NO TOPO E NOME DA EMPRESA CONDICIONAL
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes } from 'react-icons/fa';
+import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft } from 'react-icons/fa';
 import { useAuth } from '../AuthContext.jsx'; 
 
 // Estilos para os links de navegação (agora com texto condicional)
 const LinkClass = ({ isActive, isExpanded }) => 
     `w-full flex items-center p-3 rounded-xl transition duration-200 
     ${isActive 
-        ? 'bg-teal-700 text-white shadow-lg' // ATIVO: bg-teal-700
-        : 'text-teal-200 hover:bg-teal-700 hover:text-white'} // NORMAL/HOVER: text-teal-200, hover:bg-teal-700
-    ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
+        ? 'bg-indigo-700 text-white shadow-lg' 
+        : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}
+    ${isExpanded ? 'justify-start space-x-3' : 'justify-center'} // Alinha itens para centralizar ícones quando minimizado
     `;
 
+// CRÍTICO: Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
 const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => { 
     const navigate = useNavigate();
     const { logout } = useAuth(); 
 
-    // Fecha o sidebar móvel após um clique no link
+    // Função que fecha o menu (principalmente para mobile)
     const handleNavLinkClick = () => {
-        if (window.innerWidth < 768 && toggleMobileSidebar) {
+        if (window.innerWidth < 768 && toggleMobileSidebar) { 
             toggleMobileSidebar(); 
         }
     };
     
-    // Lógica de logout que também fecha o sidebar móvel
     const handleLogout = () => {
         logout(); 
         navigate('/login', { replace: true }); 
@@ -34,39 +34,61 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         }
     };
 
+    // Menu de navegação
     const navItems = [
-        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt },
-        { name: 'Buscar Leads', path: '/leads', icon: FaSearch },
-        { name: 'Cadastrar Lead', path: '/register-lead', icon: FaUserPlus },
+        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
+        { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
+        { name: 'Cadastrar', path: '/register-lead', icon: FaUserPlus },
     ];
-
+    
+    // Links de Rodapé
     const footerItems = [
         { name: 'Relatórios', path: '/reports', icon: FaChartBar },
         { name: 'Configurações', path: '/settings', icon: FaCogs },
     ];
 
-
     return (
-        <div 
-            className={`flex flex-col ${isExpanded ? 'w-64' : 'w-20'} bg-teal-800 text-white p-4 shadow-xl h-full transition-all duration-300 ease-in-out`} // FUNDO PRINCIPAL: bg-teal-800
-        >
+        <div className={`
+            w-full
+            bg-gray-800 text-white p-4 shadow-xl h-full flex flex-col
+            transition-all duration-300 ease-in-out
+        `}>
             
-            {/* Cabeçalho com Logo/Nome e Botão de Fechar (Mobile) */}
-            <div className="flex justify-between items-center mb-6">
-                <div className={`text-xl font-bold transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                    <span className="text-teal-100">ECONOMIZA SUL</span> {/* TEXTO LOGO: text-teal-100 */}
-                </div>
-                
-                {/* Botão para fechar em mobile */}
-                <button 
-                    onClick={toggleMobileSidebar}
-                    className="md:hidden text-teal-200 hover:text-white"
+            {/* 🚨 NOVO CABEÇALHO COM BOTÃO DE EXPANSÃO NO TOPO */}
+            <div className={`
+                flex items-center border-b border-indigo-700 pb-3 mb-4
+                ${isExpanded ? 'justify-between' : 'justify-center'}
+            `}>
+                {/* 1. Logo/Título (Apenas se expandido ou se for mobile) */}
+                {isExpanded ? (
+                    <div className="text-xl font-bold text-indigo-100 flex-1">
+                        ECONOMIZA SUL
+                    </div>
+                ) : (
+                    // 🚨 Vazio ou um ícone simples quando minimizado
+                    <div className="text-xl font-bold text-indigo-100 p-2">
+                        {/* Podemos deixar vazio ou usar um ícone simples, aqui deixaremos vazio para um look mais clean */}
+                    </div>
+                )}
+
+                {/* 2. Botão de Toggle (APENAS DESKTOP) */}
+                <button
+                    onClick={toggleExpansion}
+                    className="hidden md:block p-1 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200 ml-auto"
+                    title={isExpanded ? "Minimizar Menu" : "Expandir Menu"}
                 >
-                    <FaTimes className="w-6 h-6" />
+                    {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
+                </button>
+                
+                {/* 3. Botão de Fechar (APENAS MOBILE) */}
+                <button 
+                    onClick={toggleMobileSidebar} 
+                    className="text-indigo-200 hover:text-white md:hidden"
+                >
+                    <FaTimes size={20} />
                 </button>
             </div>
-
-
+            
             {/* Links Principais */}
             <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
@@ -74,7 +96,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         key={item.name} 
                         to={item.path} 
                         className={(navData) => LinkClass({ ...navData, isExpanded })}
-                        onClick={handleNavLinkClick}
+                        onClick={handleNavLinkClick} 
                     >
                         <item.icon className="w-5 h-5" />
                         {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
@@ -83,7 +105,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
             </nav>
 
             {/* Links de Rodapé */}
-            <div className="mt-auto space-y-2 border-t border-teal-700 pt-4"> {/* BORDA: border-teal-700 */}
+            <div className="mt-auto space-y-2 border-t border-indigo-700 pt-4">
                 {footerItems.map((item) => (
                     <NavLink 
                         key={item.name} 
@@ -101,7 +123,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     onClick={handleLogout} 
                     className={`
                         w-full flex items-center p-3 rounded-xl 
-                        text-red-300 hover:bg-teal-700 hover:text-red-100 transition duration-200 // HOVER: hover:bg-teal-700
+                        text-red-300 hover:bg-indigo-700 hover:text-red-100 transition duration-200 
                         ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
                     `}
                 >
@@ -109,6 +131,8 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     {isExpanded && <span className="whitespace-nowrap">Sair</span>}
                 </button>
             </div>
+            
+            {/* O botão de expansão/minimização foi movido para o cabeçalho */}
             
         </div>
     );

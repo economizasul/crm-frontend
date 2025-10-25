@@ -1,8 +1,9 @@
-// src/Dashboard.jsx - CÓDIGO COMPLETO COM TEAL E ESTRUTURA DE LAYOUT (Outlet)
+// src/Dashboard.jsx - CÓDIGO FINAL COM SIDEBAR MINIMIZADO/EXPANSÍVEL E LAYOUT CORRIGIDO
 
 import React, { useState } from 'react';
-import { FaBars, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft } from 'react-icons/fa'; 
-import { Outlet } from 'react-router-dom'; // CRÍTICO: Para Rotas Aninhadas
+import { FaBars, FaTimes } from 'react-icons/fa'; 
+import { Outlet } from 'react-router-dom'; 
+
 import Sidebar from './components/Sidebar'; 
 
 const Dashboard = () => {
@@ -27,25 +28,26 @@ const Dashboard = () => {
     const mainMarginClass = isSidebarExpanded ? 'md:ml-64' : 'md:ml-20'; // Desktop: ml-64 ou ml-20
 
     return (
-        // Container principal
         <div className="flex h-screen bg-gray-100"> 
             
-            {/* Sidebar (Controlado por ambos os estados e com transição de largura) */}
+            {/* Sidebar Container (Fixo na tela, mas ocupando espaço com margem no main) */}
             <div 
                 className={`
                     fixed inset-y-0 left-0 
-                    ${isSidebarExpanded ? 'w-64' : 'w-20'} // Largura desktop padrão
-                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} // Toggle mobile
-                    transition-all duration-300 ease-in-out z-40 
-                    md:relative md:translate-x-0 // Visível sempre em desktop
-                    ${sidebarWidthClass} // Aplica a largura do desktop
+                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                    ${sidebarWidthClass} // Largura dinâmica em desktop
+                    md:translate-x-0 // Sempre visível em desktop
+                    bg-gray-800 text-white shadow-xl 
+                    flex flex-col z-40 
+                    transition-all duration-300 ease-in-out
                 `}
             >
+                {/* 🚨 Passe os estados e toggles para o Sidebar */}
                 <Sidebar 
                     isExpanded={isSidebarExpanded} 
-                    toggleExpansion={toggleSidebarExpansion}
-                    toggleMobileSidebar={toggleMobileSidebar} // Passa a função de fechar mobile
-                />
+                    toggleExpansion={toggleSidebarExpansion} 
+                    toggleMobileSidebar={toggleMobileSidebar} 
+                /> 
             </div>
 
             {/* Overlay para fechar o sidebar em telas menores */}
@@ -58,6 +60,7 @@ const Dashboard = () => {
             
             {/* Main Content (Conteúdo principal) */}
             <main 
+                // 🚨 CRÍTICO: Ajusta a margem esquerda para compensar a largura do sidebar
                 className={`
                     flex-1 overflow-y-auto 
                     transition-all duration-300 ease-in-out
@@ -67,30 +70,13 @@ const Dashboard = () => {
                 {/* Botão de Toggle do Sidebar (Menu Hamburguer) - Apenas em mobile */}
                 <button 
                     onClick={toggleMobileSidebar}
-                    className="fixed top-4 left-4 z-50 p-2 bg-teal-600 text-white rounded-full shadow-lg md:hidden hover:bg-teal-700 transition" // Botão mobile: bg-teal-600
+                    className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg md:hidden hover:bg-indigo-700 transition"
                 >
                     {isMobileSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
                 
-                {/* Botão de Toggle para expandir/minimizar (apenas em desktop) */}
-                <button
-                    onClick={toggleSidebarExpansion}
-                    className={`
-                        hidden md:block // Visível apenas em desktop
-                        fixed top-4 
-                        ${isSidebarExpanded ? 'left-64' : 'left-20'} 
-                        z-50 p-2 rounded-full shadow-lg 
-                        bg-teal-600 text-white hover:bg-teal-700 transition // Botão desktop: bg-teal-600
-                    `}
-                    style={{
-                        marginLeft: '-1rem' // Ajusta para o botão ficar um pouco fora do sidebar
-                    }}
-                >
-                    {isSidebarExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
-                </button>
-                
                 {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc.) */}
-                <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile (para evitar o botão), pt-4 para desktop */}
+                <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile, pt-4 para desktop */}
                     <Outlet />
                 </div>
                 

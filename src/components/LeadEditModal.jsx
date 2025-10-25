@@ -8,7 +8,7 @@ import { STAGES } from '../KanbanBoard.jsx';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 
-// --- FUNÇÕES AUXILIARES (Mantidas) ---
+// --- FUNÇÕES AUXILIARES ---
 
 const formatNoteDate = (timestamp) => {
     if (timestamp === 0 || !timestamp) return 'Sem Data';
@@ -25,255 +25,229 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Função de debounce para otimizar as chamadas à API (Mantida)
-const debounce = (func, delay) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), delay);
-    };
-};
-
-
-// --- COMPONENTE LEAD EDIT MODAL (Layout Atualizado) ---
+// --- COMPONENTE LEAD EDIT MODAL ---
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     // Inicializa o estado com o lead selecionado ou um objeto vazio
     const [leadData, setLeadData] = useState(selectedLead || {});
-    const [newNote, setNewNote] = useState('');
+    const [newNoteText, setNewNoteText] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null); 
     const [saving, setSaving] = useState(false);
-    const [isSavingNote, setIsSavingNote] = useState(false);
+    const [apiError, setApiError] = useState(null);
     
-    // Efeito para recarregar os dados do lead sempre que o 'selectedLead' externo mudar
+    // Efeito para sincronizar o estado quando o lead selecionado muda
     useEffect(() => {
         if (selectedLead) {
-            setLeadData(selectedLead);
+            // Garante que as notas sejam formatadas como objetos ao carregar
+            const leadNotes = Array.isArray(selectedLead.notes) 
+                ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
+                : [];
+            
+            setLeadData({ ...selectedLead, notes: leadNotes });
+            setNewNoteText('');
+            setSelectedFile(null);
+            setApiError(null);
         }
     }, [selectedLead]);
+    
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setLeadData((prev) => ({ ...prev, [name]: value }));
+    };
+    
+    // Lida com o upload de arquivo
+    const handleFileChange = (e) => {
+        setSelectedFile(e.target.files[0] || null);
+    };
 
-    // Se o modal não estiver aberto, não renderiza nada
-    if (!isModalOpen) return null;
+    // Adiciona a nota/anexo ao histórico LOCAL (no frontend)
+    const handleAddNewNote = () => {
+        if (!newNoteText.trim() && !selectedFile) return;
 
-    // Lógica para salvar as alterações do lead (MANTIDA)
-    const saveLeadChanges = async () => {
-        if (saving) return;
+        let notesArray = leadData.notes ? [...leadData.notes] : [];
 
-        setSaving(true);
-        try {
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            
-            // Cria um objeto com os dados que podem ser atualizados
-            const dataToUpdate = {
-                name: leadData.name,
-                email: leadData.email,
-                phone: leadData.phone,
-                company: leadData.company,
-                status: leadData.status,
-                // Outros campos relevantes para edição
-            };
+        // 1. Adiciona o texto da nota, se houver
+        if (newNoteText.trim()) {
+            notesArray.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        }
 
-            await axios.put(
-                `${API_BASE_URL}/api/v1/leads/${leadData.id}`,
-                dataToUpdate,
-                config
-            );
-
-            onSave(true, 'Lead atualizado com sucesso!');
-            onClose(); // Fecha o modal
-        } catch (error) {
-            console.error('Erro ao salvar o lead:', error);
-            onSave(false, 'Falha ao atualizar o lead.');
-        } finally {
-            setSaving(false);
+        // 2. Adiciona a "nota" de anexo
+        if (selectedFile) {
+             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+             notesArray.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+        }
+        
+        // Atualiza o estado do lead e limpa os campos
+        setLeadData((prev) => ({ ...prev, notes: notesArray }));
+        setNewNoteText('');
+        setSelectedFile(null);
+        
+        // Limpa o input de arquivo
+        const fileInput = document.getElementById('attachment-input');
+        if (fileInput) {
+            fileInput.value = '';
         }
     };
     
-    // Lógica para adicionar uma nova nota (MANTIDA)
-    const handleAddNote = async () => {
-        if (!newNote.trim() || isSavingNote) return;
 
-        setIsSavingNote(true);
+    const saveLeadChanges = async () => {
+        if (!leadData || saving) return;
+
+        setSaving(true);
+        setApiError(null);
+
+        let internalNotes = leadData.notes ? [...leadData.notes] : [];
+        
+        // Trata pendências: Se há texto/arquivo no input, mas o usuário não clicou em "Adicionar Nota", adicionamos antes de salvar.
+        if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
+             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        }
+        if (selectedFile && !internalNotes.some(n => n.text.includes(selectedFile.name))) {
+            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+            internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+        }
+        
+        // CRÍTICO: Mapeia o array de objetos {text: string, timestamp: number} para um array de strings
+        // O backend espera um array de strings para salvar no campo JSONB `notes`.
+        const notesToSend = internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean);
+
+
+        const dataToSend = {
+            status: leadData.status, 
+            name: leadData.name,
+            phone: leadData.phone,
+            document: leadData.document,
+            address: leadData.address,
+            origin: leadData.origin,
+            email: leadData.email, // <-- Enviado para o backend
+            avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+            estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+            notes: notesToSend, // <-- Envia o array de strings CORRETO
+            uc: leadData.uc,
+            qsa: leadData.qsa || null,
+        };
+
         try {
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            
-            const noteData = {
-                text: newNote.trim(),
-                // A timestamp será gerada pelo backend, mas é bom ter um placeholder
-            };
+            const config = { headers: { 'Authorization': `Bearer ${token}` } };
+            // Usa o ID correto para a chamada PUT
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData._id}`, dataToSend, config);
 
-            const response = await axios.post(
-                `${API_BASE_URL}/api/v1/leads/${leadData.id}/notes`,
-                noteData,
-                config
-            );
-            
-            // Atualiza o estado local do modal com a nova nota retornada pelo backend
-            setLeadData(prev => ({
-                ...prev,
-                notes: [response.data.note, ...prev.notes], // Adiciona a nota no topo
-            }));
-            
-            setNewNote('');
-            // onSave(true, 'Nota adicionada com sucesso!'); // Não exibir toast de sucesso para notas
+            await fetchLeads(); // Atualiza a lista de leads
+            onClose(); // Fecha o modal
+            onSave(true, 'Lead salvo com sucesso!'); 
+
         } catch (error) {
-            console.error('Erro ao adicionar nota:', error);
-            // onSave(false, 'Falha ao adicionar nota.');
+            console.error('Erro ao salvar lead:', error.response?.data || error.message);
+            // Mensagem de erro do servidor
+            const serverError = error.response?.data?.error || 'Erro desconhecido';
+            setApiError(`Falha ao salvar: ${serverError}`);
         } finally {
-            setIsSavingNote(false);
+            setSaving(false); 
         }
     };
 
-
-    // Função auxiliar para atualização dos inputs
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setLeadData(prev => ({ ...prev, [name]: value }));
-    };
-
-    // --- Renderização do Modal (Layout Atualizado) ---
-
-    // Classes comuns para inputs (Atualizado com foco Indigo)
-    const inputClass = "w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150";
-    const labelClass = "block text-sm font-medium text-gray-700 mb-1";
-
+    if (!isModalOpen) return null;
+    
+    // Variável de controle do botão de adicionar nota
+    const canAddNewNote = newNoteText.trim() || selectedFile;
 
     return (
-        // Overlay (fundo escuro)
-        <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4"
-            onClick={onClose} // Fecha ao clicar fora
-        >
-            {/* Corpo do Modal */}
-            <div 
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
-                onClick={(e) => e.stopPropagation()} // Impede que o clique interno feche
-            >
-                {/* Cabeçalho do Modal (Atualizado com tema Indigo) */}
-                <div className="flex justify-between items-center p-5 border-b border-indigo-100 bg-indigo-600 text-white rounded-t-2xl">
-                    <h2 className="text-xl font-bold">Editar Lead: {leadData.name}</h2>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-indigo-700 transition duration-150">
-                        <FaTimes size={18} />
-                    </button>
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                
+                {/* Cabeçalho */}
+                <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <h2 className="text-2xl font-bold text-indigo-800">Editar Lead: {leadData.name}</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><FaTimes size={20} /></button>
                 </div>
-
-                {/* Conteúdo Principal (Scroll interno) */}
-                <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
+                
+                {/* Corpo do Formulário */}
+                <div className="space-y-4">
+                    {/* Campos Principais - Linha 1 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label><input type="text" name="document" className="w-full border rounded px-3 py-2" value={leadData.document || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
+                    </div>
                     
-                    {/* Coluna de Dados do Lead (2/3 da largura em telas maiores) */}
-                    <div className="lg:col-span-2 space-y-4">
-                        <h3 className="text-lg font-semibold text-indigo-700 border-b pb-2 mb-4">Informações Principais</h3>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Nome */}
-                            <div>
-                                <label htmlFor="name" className={labelClass}>Nome</label>
-                                <input 
-                                    type="text" 
-                                    id="name" 
-                                    name="name" 
-                                    value={leadData.name || ''} 
-                                    onChange={handleInputChange} 
-                                    className={inputClass}
-                                />
-                            </div>
-                            {/* Email */}
-                            <div>
-                                <label htmlFor="email" className={labelClass}>Email</label>
-                                <input 
-                                    type="email" 
-                                    id="email" 
-                                    name="email" 
-                                    value={leadData.email || ''} 
-                                    onChange={handleInputChange} 
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {/* Telefone */}
-                            <div>
-                                <label htmlFor="phone" className={labelClass}>Telefone</label>
-                                <input 
-                                    type="text" 
-                                    id="phone" 
-                                    name="phone" 
-                                    value={leadData.phone || ''} 
-                                    onChange={handleInputChange} 
-                                    className={inputClass}
-                                />
-                            </div>
-                            {/* Empresa */}
-                            <div>
-                                <label htmlFor="company" className={labelClass}>Empresa</label>
-                                <input 
-                                    type="text" 
-                                    id="company" 
-                                    name="company" 
-                                    value={leadData.company || ''} 
-                                    onChange={handleInputChange} 
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Status (Etapa do Kanban) */}
+                    {/* Campos Principais - Linha 2 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem</label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} /></div>
                         <div>
-                            <label htmlFor="status" className={labelClass}>Status (Etapa do Kanban)</label>
-                            <select
-                                id="status"
-                                name="status"
-                                value={leadData.status || ''}
-                                onChange={handleInputChange}
-                                className={inputClass}
-                            >
-                                {Object.keys(STAGES).map(stage => (
-                                    <option key={stage} value={stage}>{stage}</option>
-                                ))}
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
+                            <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
+                            <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Para Contatar'} onChange={handleInputChange}>
+                                {STAGES.map(stage => (<option key={stage.id} value={stage.id}>{stage.title}</option>))}
                             </select>
                         </div>
-                        
-                        {/* Outros campos de formulário podem ser adicionados aqui */}
-                        
                     </div>
 
-                    {/* Coluna de Notas (1/3 da largura em telas maiores) */}
-                    <div className="lg:col-span-1 border-l lg:pl-6 border-gray-200">
-                        <h3 className="text-lg font-semibold text-indigo-700 border-b pb-2 mb-4">Notas e Histórico</h3>
+                    {/* Quadro de Adicionar Nova Nota / Anexo */}
+                    <div className="border p-4 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
                         
-                        {/* Adicionar Nova Nota */}
-                        <div className="mb-4 p-4 border border-indigo-200 rounded-lg bg-indigo-50">
-                            <textarea
-                                placeholder="Adicionar nova nota..."
-                                value={newNote}
-                                onChange={(e) => setNewNote(e.target.value)}
-                                rows="3"
-                                className={`${inputClass} mb-2`}
+                        <textarea
+                            rows={3}
+                            name="newNoteText"
+                            className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Descreva o atendimento ou a anotação aqui..."
+                            value={newNoteText}
+                            onChange={(e) => setNewNoteText(e.target.value)}
+                        />
+                        
+                        {/* Campo de Anexo (Upload) */}
+                        <div className="mb-4">
+                            <label htmlFor="attachment-input" className="block text-sm font-medium text-gray-700 mb-1">Anexo (Foto, PDF, etc.)</label>
+                            <input
+                                id="attachment-input"
+                                type="file"
+                                accept=".pdf,image/*"
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                onChange={handleFileChange}
                             />
-                            <button
-                                onClick={handleAddNote}
-                                disabled={isSavingNote || !newNote.trim()}
-                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition duration-200"
-                            >
-                                <FaPlus size={14} />
-                                <span>{isSavingNote ? 'Salvando...' : 'Adicionar Nota'}</span>
-                            </button>
+                            {selectedFile && (
+                                <p className="mt-1 text-sm text-gray-600">Arquivo selecionado: {selectedFile.name}</p>
+                            )}
                         </div>
 
-                        {/* Lista de Notas */}
-                        <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                            {Array.isArray(leadData.notes) && leadData.notes.length > 0 ? (
-                                leadData.notes.sort((a, b) => b.timestamp - a.timestamp).map((note, index) => {
-                                    const noteText = note.text;
-                                    const noteTimestamp = note.timestamp;
-                                    const isAttachment = noteText.startsWith('[ANEXO:');
+                        {/* Botão para Adicionar Nota/Anexo */}
+                        <button
+                            type="button" // Garante que não submeta o formulário
+                            onClick={handleAddNewNote}
+                            disabled={!canAddNewNote}
+                            className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
+                        >
+                            <FaPlus size={14} />
+                            <span>Adicionar Nota ao Histórico</span>
+                        </button>
+                    </div>
 
+                    {/* Histórico de Notas */}
+                    <div>
+                        <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
+                        <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
+                            {leadData.notes && leadData.notes.length > 0 ? (
+                                // Reverte a ordem para mostrar as mais recentes primeiro
+                                [...leadData.notes].reverse().map((note, index) => {
+                                    const noteText = typeof note === 'string' ? note : (note.text || '');
+                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
+                                    
+                                    const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
+                                    const noteClass = isAttachment 
+                                        ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm" 
+                                        : "mb-2 p-2 border-b last:border-b-0 text-sm";
+                                    
                                     return (
-                                        // Estilo de nota atualizado
-                                        <div key={index} className={`p-3 rounded-lg border ${isAttachment ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white'} shadow-sm`}>
-                                            <p className="font-semibold text-xs text-indigo-600 mb-1">{formatNoteDate(noteTimestamp)}</p>
+                                        <div key={index} className={noteClass}>
+                                            <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(noteTimestamp)}</p>
                                             <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
-                                                {isAttachment ? <FaPaperclip className="inline mr-2" /> : ''}
                                                 {noteText}
                                             </p>
                                         </div>
@@ -284,15 +258,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     </div>
                 </div>
 
-                {/* Botões de Ação (Atualizados com tema Indigo) */}
-                <div className="p-5 border-t border-gray-200 flex justify-end space-x-3 rounded-b-2xl bg-gray-50">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition duration-200">Cancelar</button>
+                {/* Botões de Ação */}
+                <div className="mt-6 flex justify-end space-x-2">
+                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                     <button 
                         type="button"
                         onClick={saveLeadChanges} 
                         disabled={saving} 
-                        // Botão principal com tema Indigo
-                        className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2 shadow-md transition duration-200"
+                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
                     >
                         <FaSave size={16} />
                         <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
