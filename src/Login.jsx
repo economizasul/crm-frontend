@@ -1,4 +1,4 @@
-// src/Login.jsx - CÓDIGO FINAL COM DEGRADÊ AJUSTADO E LOGO MAIOR
+// src/Login.jsx - CÓDIGO FINAL E CORRIGIDO
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -42,37 +42,45 @@ const Login = () => {
         }
     };
 
-    // 🚨 NOVO ESTILO DE DEGRADÊ: Cor mais clara (#F98828) no centro, expandindo até 25% da área
-    const radialGradientStyle = {
+    // Estilo de degradê LARANJA (Col. Esquerda - Logo)
+    const orangeGradientStyle = {
         background: 'radial-gradient(circle, #F98828 0%, #F98828 25%, #935018 100%)',
     };
+    
+    // Estilo de degradê VERDE (Col. Direita - Background)
+    const greenGradientStyle = {
+        background: 'linear-gradient(to right, #035903 0%, #009F00 100%)',
+    };
+
 
     return (
-        // Container Principal (Tela Cheia)
+        // Container Principal (Tela Cheia) - Fundo cinza suave (bg-gray-100)
         <div className="min-h-screen flex bg-gray-100"> 
             
-            {/* 1. Coluna de Imagem/Branding (Desktop) */}
+            {/* 1. Coluna de Imagem/Branding (Desktop - 50%) */}
             <div 
                 className="hidden md:flex flex-col justify-center items-center w-1/2 p-12 shadow-2xl"
-                style={radialGradientStyle} // Aplica o degradê radial laranja em toda a coluna
+                style={orangeGradientStyle} 
             >
-                
-                {/* 🚨 LOGO MAIOR (Ajustada para h-96 - cerca de 384px) */}
                 <img 
                     src={EconomizaSulLogo} 
                     alt="Logo Economiza Sul" 
-                    // Classe ajustada para um tamanho maior e centralizada
                     className="h-96 w-auto p-4" 
                 />
             </div>
             
             {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
-            <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 md:p-12 shadow-2xl md:rounded-l-3xl"> 
-                <div className="w-full max-w-sm">
+            {/* Aplica o degradê VERDE como background da coluna, mas o formulário interno será branco */}
+            <div 
+                className="flex flex-col justify-center items-center w-full md:w-1/2 p-8 md:p-12 shadow-2xl md:rounded-l-3xl"
+                style={greenGradientStyle} 
+            > 
+                {/* CONTEÚDO DO FORMULÁRIO: Fundo BRANCO reintroduzido para contraste e visibilidade */}
+                <div className="w-full max-w-xs bg-white p-8 rounded-xl shadow-2xl"> 
                     
                     {/* Cabeçalho */}
                     <div className="text-center mb-8">
-                        {/* LOGO PARA MOBILE (Ainda visível em mobile) */}
+                        {/* LOGO PARA MOBILE */}
                         <div className="md:hidden mb-4">
                             <img 
                                 src={EconomizaSulLogo} 
@@ -93,7 +101,7 @@ const Login = () => {
                         <div>
                             <label htmlFor="email" className="sr-only">Email</label>
                             <div className="relative">
-                                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" /> 
                                 <input
                                     id="email"
                                     name="email"
@@ -102,7 +110,8 @@ const Login = () => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                    // 🚨 Foco dos inputs ajustado para GREEN
+                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
                                     placeholder="Seu Email"
                                 />
                             </div>
@@ -121,7 +130,8 @@ const Login = () => {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                                    // 🚨 Foco dos inputs ajustado para GREEN
+                                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
                                     placeholder="Sua Senha"
                                 />
                             </div>
@@ -134,12 +144,13 @@ const Login = () => {
                             </div>
                         )}
 
-                        {/* Botão de Login (Cor Indigo padrão) */}
+                        {/* Botão de Login (Cor VERDE) */}
                         <div>
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150"
+                                // 🚨 Botão ajustado para VERDE para combinar com o fundo
+                                className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition duration-150"
                             >
                                 {isLoading ? (
                                     <>
@@ -163,7 +174,10 @@ const Login = () => {
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-600">
                             Não tem uma conta?{' '}
-                            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+                            <Link to="/register" 
+                                // 🚨 Link ajustado para VERDE
+                                className="font-medium text-green-600 hover:text-green-500"
+                            >
                                 Crie uma aqui
                             </Link>
                         </p>
