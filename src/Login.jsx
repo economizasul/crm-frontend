@@ -1,4 +1,4 @@
-// src/Login.jsx - CÓDIGO FINAL E CORRIGIDO
+// src/Login.jsx - CÓDIGO FINAL COM DIVISÃO 70/30, DEGRADÊS DE TRÊS TONS E ESTILOS FINAIS
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -42,24 +42,25 @@ const Login = () => {
         }
     };
 
-    // Estilo de degradê LARANJA (Col. Esquerda - Logo)
+    // 🚨 Estilo de degradê LARANJA (Três tons: Branco/Laranja Claro/Laranja Escuro)
     const orangeGradientStyle = {
-        background: 'radial-gradient(circle, #F98828 0%, #F98828 25%, #935018 100%)',
+        background: 'radial-gradient(circle, #FFC28E 0%, #F98828 30%, #935018 100%)',
     };
     
-    // Estilo de degradê VERDE (Col. Direita - Background)
+    // 🚨 Estilo de degradê VERDE INVERSO: Claro na esquerda, Escuro na direita
     const greenGradientStyle = {
-        background: 'linear-gradient(to right, #035903 0%, #009F00 100%)',
+        background: 'linear-gradient(to right, #009F00 0%, #035903 100%)',
     };
-
 
     return (
         // Container Principal (Tela Cheia) - Fundo cinza suave (bg-gray-100)
         <div className="min-h-screen flex bg-gray-100"> 
             
-            {/* 1. Coluna de Imagem/Branding (Desktop - 50%) */}
+            {/* 1. Coluna de Imagem/Branding (Desktop - 70%) */}
             <div 
-                className="hidden md:flex flex-col justify-center items-center w-1/2 p-12 shadow-2xl"
+                // 🚨 w-7/10 (70%) para desktops. Não há classe padrão, usaremos w-7/10 customizada em tailwind.config.js
+                // Usando w-[70%] como fallback para o Tailwind JIT
+                className="hidden md:flex flex-col justify-center items-center w-full md:w-[70%] p-12 shadow-2xl"
                 style={orangeGradientStyle} 
             >
                 <img 
@@ -69,13 +70,14 @@ const Login = () => {
                 />
             </div>
             
-            {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
-            {/* Aplica o degradê VERDE como background da coluna, mas o formulário interno será branco */}
+            {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-3/10) */}
             <div 
-                className="flex flex-col justify-center items-center w-full md:w-1/2 p-8 md:p-12 shadow-2xl md:rounded-l-3xl"
+                // 🚨 w-3/10 (30%) para desktops.
+                // md:rounded-l-3xl removido para deixar o canto quadrado
+                className="flex flex-col justify-center items-center w-full md:w-[30%] p-8 md:p-12 shadow-2xl"
                 style={greenGradientStyle} 
             > 
-                {/* CONTEÚDO DO FORMULÁRIO: Fundo BRANCO reintroduzido para contraste e visibilidade */}
+                {/* CONTEÚDO DO FORMULÁRIO: Fundo BRANCO e Estreito */}
                 <div className="w-full max-w-xs bg-white p-8 rounded-xl shadow-2xl"> 
                     
                     {/* Cabeçalho */}
@@ -110,7 +112,6 @@ const Login = () => {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    // 🚨 Foco dos inputs ajustado para GREEN
                                     className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
                                     placeholder="Seu Email"
                                 />
@@ -130,7 +131,6 @@ const Login = () => {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    // 🚨 Foco dos inputs ajustado para GREEN
                                     className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 transition duration-150"
                                     placeholder="Sua Senha"
                                 />
@@ -149,7 +149,6 @@ const Login = () => {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                // 🚨 Botão ajustado para VERDE para combinar com o fundo
                                 className="w-full flex justify-center items-center space-x-2 py-3 px-4 border border-transparent rounded-lg shadow-md text-lg font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition duration-150"
                             >
                                 {isLoading ? (
@@ -175,7 +174,6 @@ const Login = () => {
                         <p className="text-sm text-gray-600">
                             Não tem uma conta?{' '}
                             <Link to="/register" 
-                                // 🚨 Link ajustado para VERDE
                                 className="font-medium text-green-600 hover:text-green-500"
                             >
                                 Crie uma aqui
