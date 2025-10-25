@@ -1,4 +1,4 @@
-// src/Login.jsx - CÓDIGO FINAL E REVISADO COM LAYOUT, COR LARANJA E LOGO MAIOR
+// src/Login.jsx - CÓDIGO FINAL COM DEGRADÊ AJUSTADO E LOGO MAIOR
 
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -42,10 +42,9 @@ const Login = () => {
         }
     };
 
-    // Estilo de degradê radial personalizado com as cores fornecidas
-    // Aplicado à coluna inteira (w-1/2)
+    // 🚨 NOVO ESTILO DE DEGRADÊ: Cor mais clara (#F98828) no centro, expandindo até 25% da área
     const radialGradientStyle = {
-        background: 'radial-gradient(circle, #F98828 0%, #935018 100%)',
+        background: 'radial-gradient(circle, #F98828 0%, #F98828 25%, #935018 100%)',
     };
 
     return (
@@ -53,23 +52,21 @@ const Login = () => {
         <div className="min-h-screen flex bg-gray-100"> 
             
             {/* 1. Coluna de Imagem/Branding (Desktop) */}
-            {/* 🚨 APLICAÇÃO DO DEGRADÊ E LOGO DIRETAMENTE NA COLUNA w-1/2 */}
             <div 
                 className="hidden md:flex flex-col justify-center items-center w-1/2 p-12 shadow-2xl"
-                style={radialGradientStyle} 
+                style={radialGradientStyle} // Aplica o degradê radial laranja em toda a coluna
             >
                 
-                {/* LOGO MAIOR (Ajustada para h-80/96 para refletir +20%) */}
+                {/* 🚨 LOGO MAIOR (Ajustada para h-96 - cerca de 384px) */}
                 <img 
                     src={EconomizaSulLogo} 
                     alt="Logo Economiza Sul" 
-                    // Ajustamos a classe para um tamanho visualmente maior, como h-80 (320px)
-                    className="h-80 w-auto p-4" 
+                    // Classe ajustada para um tamanho maior e centralizada
+                    className="h-96 w-auto p-4" 
                 />
             </div>
             
             {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-1/2) */}
-            {/* Fundo BRANCO (bg-white) */}
             <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white p-8 md:p-12 shadow-2xl md:rounded-l-3xl"> 
                 <div className="w-full max-w-sm">
                     
