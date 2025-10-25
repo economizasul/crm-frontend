@@ -1,10 +1,8 @@
-// src/Dashboard.jsx - CÓDIGO FINAL COM SIDEBAR MINIMIZADO/EXPANSÍVEL E CORES AJUSTADAS
+// src/Dashboard.jsx - CÓDIGO COMPLETO COM TEAL E ESTRUTURA DE LAYOUT (Outlet)
 
 import React, { useState } from 'react';
-// Ícones para o menu e expansão
 import { FaBars, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft } from 'react-icons/fa'; 
-import { Outlet } from 'react-router-dom'; 
-
+import { Outlet } from 'react-router-dom'; // CRÍTICO: Para Rotas Aninhadas
 import Sidebar from './components/Sidebar'; 
 
 const Dashboard = () => {
@@ -32,18 +30,22 @@ const Dashboard = () => {
         // Container principal
         <div className="flex h-screen bg-gray-100"> 
             
-            {/* Sidebar (Controlado) */}
-            <div className={`fixed inset-y-0 left-0 transform 
-                ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                transition-transform duration-300 ease-in-out z-40 
-                md:relative md:translate-x-0 ${sidebarWidthClass}`
-            }>
-                {/* Passamos o estado e as funções de toggle */}
+            {/* Sidebar (Controlado por ambos os estados e com transição de largura) */}
+            <div 
+                className={`
+                    fixed inset-y-0 left-0 
+                    ${isSidebarExpanded ? 'w-64' : 'w-20'} // Largura desktop padrão
+                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} // Toggle mobile
+                    transition-all duration-300 ease-in-out z-40 
+                    md:relative md:translate-x-0 // Visível sempre em desktop
+                    ${sidebarWidthClass} // Aplica a largura do desktop
+                `}
+            >
                 <Sidebar 
                     isExpanded={isSidebarExpanded} 
-                    toggleExpansion={toggleSidebarExpansion} 
-                    toggleMobileSidebar={toggleMobileSidebar}
-                /> 
+                    toggleExpansion={toggleSidebarExpansion}
+                    toggleMobileSidebar={toggleMobileSidebar} // Passa a função de fechar mobile
+                />
             </div>
 
             {/* Overlay para fechar o sidebar em telas menores */}
@@ -56,7 +58,6 @@ const Dashboard = () => {
             
             {/* Main Content (Conteúdo principal) */}
             <main 
-                // CRÍTICO: Ajusta a margem esquerda para compensar a largura do sidebar
                 className={`
                     flex-1 overflow-y-auto 
                     transition-all duration-300 ease-in-out
@@ -66,8 +67,7 @@ const Dashboard = () => {
                 {/* Botão de Toggle do Sidebar (Menu Hamburguer) - Apenas em mobile */}
                 <button 
                     onClick={toggleMobileSidebar}
-                    // AJUSTE DE COR: indigo-600 -> green-600 / hover:bg-indigo-700 -> hover:bg-green-700
-                    className="fixed top-4 left-4 z-50 p-2 bg-green-600 text-white rounded-full shadow-lg md:hidden hover:bg-green-700 transition"
+                    className="fixed top-4 left-4 z-50 p-2 bg-teal-600 text-white rounded-full shadow-lg md:hidden hover:bg-teal-700 transition" // Botão mobile: bg-teal-600
                 >
                     {isMobileSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
@@ -76,12 +76,11 @@ const Dashboard = () => {
                 <button
                     onClick={toggleSidebarExpansion}
                     className={`
-                        hidden md:block 
+                        hidden md:block // Visível apenas em desktop
                         fixed top-4 
-                        ${isSidebarExpanded ? 'left-[calc(16rem-1rem)]' : 'left-[calc(5rem-1rem)]'} 
+                        ${isSidebarExpanded ? 'left-64' : 'left-20'} 
                         z-50 p-2 rounded-full shadow-lg 
-                        // AJUSTE DE COR: indigo-600 -> green-600 / hover:bg-indigo-700 -> hover:bg-green-700
-                        bg-green-600 text-white hover:bg-green-700 transition
+                        bg-teal-600 text-white hover:bg-teal-700 transition // Botão desktop: bg-teal-600
                     `}
                     style={{
                         marginLeft: '-1rem' // Ajusta para o botão ficar um pouco fora do sidebar
@@ -91,7 +90,7 @@ const Dashboard = () => {
                 </button>
                 
                 {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc.) */}
-                <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile, pt-4 para desktop (para evitar o botão) */}
+                <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile (para evitar o botão), pt-4 para desktop */}
                     <Outlet />
                 </div>
                 

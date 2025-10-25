@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORES DE BOTÃO AJUSTADAS PARA O TEMA VERDE
+// src/KanbanBoard.jsx - CÓDIGO COMPLETO COM TEAL
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
@@ -8,7 +8,7 @@ import { useAuth } from './AuthContext.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban e suas cores (Mantidas para diferenciação visual)
+// Estágios do Kanban e suas cores (ATUALIZADO PARA TEAL)
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Para Contatar': 'bg-blue-200 text-blue-800',
@@ -16,7 +16,7 @@ export const STAGES = {
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800', 
+    'Retorno Agendado': 'bg-teal-200 text-teal-800', // COR ALTERADA: indigo -> teal
 };
 
 // Componente simples de Toast para feedback
@@ -37,86 +37,154 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Componente Card de Lead (Mantido)
-const LeadCard = React.memo(({ lead, onClick, isDragging }) => {
-    // ... (código LeadCard mantido)
-    const statusClasses = STAGES[lead.status] || STAGES['Novo'];
-
+// Componente Card de Lead
+const LeadCard = ({ lead, onClick }) => {
+    const stageClass = STAGES[lead.stage] || 'bg-gray-200 text-gray-800';
     return (
         <div 
-            draggable 
-            onDragStart={(e) => {
-                e.dataTransfer.setData('leadId', lead._id);
-            }}
             onClick={() => onClick(lead)}
-            className={`bg-white p-3 border border-gray-200 rounded-lg shadow-md cursor-pointer mb-2 transition transform hover:shadow-lg ${isDragging ? 'opacity-50 border-dashed border-2 border-gray-400' : ''}`}
+            draggable
+            onDragStart={(e) => {
+                e.dataTransfer.setData("leadId", lead.id);
+                e.dataTransfer.effectAllowed = "move";
+            }}
+            className={`bg-white p-3 border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer mb-3`}
         >
-            <h3 className="text-sm font-semibold text-gray-800 truncate" title={lead.name}>{lead.name}</h3>
-            <p className="text-xs text-gray-500 truncate" title={`UC: ${lead.uc}`}>UC: {lead.uc}</p>
-            <div className="flex justify-between items-center mt-2">
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusClasses}`}>
-                    {lead.status}
-                </span>
-                {lead.avgConsumption > 0 && (
-                    <span className="text-xs font-bold text-blue-600">
-                        {lead.avgConsumption} kWh
-                    </span>
-                )}
-            </div>
-        </div>
-    );
-});
-
-
-// Componente Coluna do Kanban (Mantido)
-const KanbanColumn = ({ status, leads, onDropLead, openLeadModal }) => {
-    // ... (código KanbanColumn mantido)
-    const titleClass = STAGES[status];
-
-    const handleDrop = (e) => {
-        e.preventDefault();
-        const leadId = e.dataTransfer.getData('leadId');
-        onDropLead(leadId, status);
-    };
-
-    return (
-        <div 
-            onDragOver={(e) => e.preventDefault()} 
-            onDrop={handleDrop}
-            className="w-full sm:w-64 md:w-56 lg:w-64 flex-shrink-0 mx-2 p-3 bg-gray-50 rounded-lg shadow-inner overflow-y-auto max-h-full"
-        >
-            <h2 className={`text-center text-sm font-bold p-2 mb-3 rounded shadow-md ${titleClass}`}>
-                {status} ({leads.length})
-            </h2>
-            <div className="space-y-2">
-                {leads.map((lead) => (
-                    <LeadCard key={lead._id} lead={lead} onClick={openLeadModal} />
-                ))}
-            </div>
-            {leads.length === 0 && (
-                <p className="text-center text-gray-400 text-sm italic py-4">Arraste leads para cá</p>
-            )}
+            <h4 className="font-semibold text-sm truncate">{lead.name}</h4>
+            <p className="text-xs text-gray-600 truncate">{lead.email}</p>
+            <p className="text-xs text-gray-600 truncate">{lead.phone}</p>
+            <div className={`mt-2 text-xs font-medium px-2 py-1 rounded-full text-center ${stageClass}`}>{lead.stage}</div>
         </div>
     );
 };
 
-// Componente Principal
+// Hook de Debounce para busca
+const useDebounce = (value, delay) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+};
+
+
 const KanbanBoard = () => {
-    const [leads, setLeads] = useState([]);
+    const [leads, setLeads] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
-    const { token } = useAuth();
-    const navigate = useNavigate();
-
-    // Estado do Modal
+    const [searchTerm, setSearchTerm] = useState('');
+    const [toast, setToast] = useState(null);
+    
+    // Estados para o Modal de Edição (mantido aqui por conveniência)
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedLead, setSelectedLead] = useState(null);
-    const [formData, setFormData] = useState({});
+    const [leadData, setLeadData] = useState({});
     const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState(null);
+    const [newNote, setNewNote] = useState('');
+    const [notes, setNotes] = useState([]);
 
-    // Função de formatação de data (mantida)
-    const formatNoteDate = useCallback((timestamp) => {
+
+    const { token } = useAuth();
+    const navigate = useNavigate();
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+    // Função para carregar os leads da API
+    const fetchLeads = useCallback(async () => {
+        if (!token) {
+            setApiError("Não autenticado. Por favor, faça login.");
+            setIsLoading(false);
+            return;
+        }
+        setIsLoading(true);
+        setApiError(null);
+        try {
+            const config = {
+                headers: { Authorization: `Bearer ${token}` }
+            };
+            const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, config);
+            
+            // Agrupar leads por estágio
+            const groupedLeads = Object.keys(STAGES).reduce((acc, stage) => {
+                acc[stage] = response.data.filter(lead => lead.stage === stage);
+                return acc;
+            }, {});
+
+            setLeads(groupedLeads);
+
+        } catch (error) {
+            console.error("Erro ao buscar leads:", error.response?.data?.error || error.message);
+            setApiError("Erro ao carregar dados. Por favor, tente novamente.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [token]);
+
+    useEffect(() => {
+        fetchLeads();
+    }, [fetchLeads]);
+
+    // Filtragem de Leads (incluindo o estado)
+    const filteredLeads = useMemo(() => {
+        if (!debouncedSearchTerm) {
+            return leads;
+        }
+
+        const lowerCaseSearch = debouncedSearchTerm.toLowerCase();
+        
+        return Object.keys(leads).reduce((acc, stage) => {
+            acc[stage] = leads[stage].filter(lead =>
+                lead.name.toLowerCase().includes(lowerCaseSearch) ||
+                lead.email.toLowerCase().includes(lowerCaseSearch) ||
+                lead.phone.toLowerCase().includes(lowerCaseSearch)
+            );
+            return acc;
+        }, {});
+    }, [leads, debouncedSearchTerm]);
+
+    // Função para mover o card
+    const handleDrop = useCallback(async (leadId, targetStage) => {
+        const lead = Object.values(leads).flat().find(l => l.id === leadId);
+        
+        if (!lead || lead.stage === targetStage) return;
+
+        // Atualização otimista da UI
+        const oldStage = lead.stage;
+        const newLeads = { ...leads };
+
+        newLeads[oldStage] = newLeads[oldStage].filter(l => l.id !== leadId);
+        newLeads[targetStage] = [...newLeads[targetStage], { ...lead, stage: targetStage }];
+
+        setLeads(newLeads);
+
+        try {
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, { stage: targetStage }, config);
+            setToast({ message: `Lead '${lead.name}' movido para ${targetStage}!`, type: 'success' });
+            // Não é necessário refetch, a atualização otimista é suficiente
+        } catch (error) {
+            console.error("Erro ao atualizar estágio do lead:", error);
+            setToast({ message: `Falha ao mover o lead: ${error.message}`, type: 'error' });
+
+            // Reverter a UI em caso de falha
+            const revertedLeads = { ...leads };
+            revertedLeads[targetStage] = revertedLeads[targetStage].filter(l => l.id !== leadId);
+            revertedLeads[oldStage] = [...revertedLeads[oldStage], lead];
+            setLeads(revertedLeads);
+        }
+    }, [leads, token]);
+    
+    // --- Lógica do Modal de Edição (Duplicada de LeadEditModal, mas mantida aqui para ser autossuficiente) ---
+    
+    // Função auxiliar para formatar datas (necessária para as notas)
+    const formatNoteDate = (timestamp) => {
         if (timestamp === 0 || !timestamp) return 'Sem Data';
         try {
             const date = new Date(timestamp);
@@ -129,163 +197,225 @@ const KanbanBoard = () => {
         } catch (e) {
             return 'Erro de Formato';
         }
-    }, []);
-
-    // Fetch Leads (mantida)
-    const fetchLeads = useCallback(async () => {
-        setIsLoading(true);
-        setApiError(null);
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setLeads(response.data.data);
-        } catch (err) {
-            setApiError('Falha ao carregar leads. Tente novamente mais tarde.');
-            console.error('Erro ao carregar leads:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [token]);
+    };
     
-    useEffect(() => {
-        fetchLeads();
-    }, [fetchLeads]);
-
-    // Lógica Drag/Drop (mantida)
-    const handleDropLead = useCallback(async (leadId, newStatus) => {
-        const leadToUpdate = leads.find(l => l._id === leadId);
-        if (!leadToUpdate || leadToUpdate.status === newStatus) return;
-
-        setLeads(prev => prev.map(l => l._id === leadId ? { ...l, status: newStatus } : l));
+    const openLeadModal = useCallback(async (lead) => {
+        setSelectedLead(lead);
         
-        try {
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, 
-                { status: newStatus },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            setToast({ message: `Status do Lead '${leadToUpdate.name}' alterado para '${newStatus}'.`, type: 'success' });
-        } catch (error) {
-            // Reverter em caso de erro
-            setLeads(prev => prev.map(l => l._id === leadId ? { ...l, status: leadToUpdate.status } : l));
-            setToast({ message: 'Falha ao atualizar status do Lead.', type: 'error' });
-            console.error('Erro ao atualizar status:', error);
-        }
-
-    }, [leads, token]);
-    
-    // Lógica do Modal (mantida)
-    const openLeadModal = useCallback((lead) => {
+        // Formata as notas para exibição (garante que é um array)
         const leadNotes = Array.isArray(lead.notes) ? lead.notes : [];
-        const leadCopy = { ...lead, notes: leadNotes };
-
-        setSelectedLead(leadCopy);
-        setFormData(leadCopy);
+        setNotes(leadNotes); 
+        
+        // Define leadData com os dados do lead
+        const leadCopy = { 
+            name: lead.name || '', 
+            email: lead.email || '', 
+            phone: lead.phone || '', 
+            stage: lead.stage || 'Novo',
+            // Adicionar mais campos se necessário
+        };
+        setLeadData(leadCopy);
         setIsModalOpen(true);
     }, []);
 
     const closeLeadModal = useCallback(() => {
         setIsModalOpen(false);
         setSelectedLead(null);
-    }, []);
+        setLeadData({});
+        setNewNote('');
+        setNotes([]);
+        fetchLeads(); // Recarrega a lista para refletir as mudanças
+    }, [fetchLeads]);
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+    const handleDataChange = (e) => {
+        const { name, value } = e.target;
+        setLeadData(prev => ({ ...prev, [name]: value }));
     };
-    
+
+    // Salvar Alterações
     const saveLeadChanges = async () => {
+        if (!selectedLead || saving) return;
+
         setSaving(true);
+        setApiError(null);
+
         try {
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, formData, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setToast({ message: `Lead '${selectedLead.name}' atualizado com sucesso.`, type: 'success' });
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+            
+            // 1. Atualizar dados do Lead
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, leadData, config);
+
+            // 2. Adicionar nova nota, se houver
+            if (newNote.trim()) {
+                const notePayload = { text: newNote.trim() };
+                await axios.post(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}/notes`, notePayload, config);
+            }
+
+            setToast({ message: `Lead '${selectedLead.name}' atualizado com sucesso!`, type: 'success' });
             closeLeadModal();
-            fetchLeads(); // Recarregar a lista após salvar
         } catch (error) {
-            setToast({ message: 'Falha ao salvar alterações do Lead.', type: 'error' });
-            console.error('Erro ao salvar lead:', error);
+            console.error("Erro ao salvar lead:", error.response?.data?.error || error.message);
+            setApiError("Falha ao salvar. Verifique se todos os campos estão corretos.");
         } finally {
             setSaving(false);
         }
     };
     
-    // Filtrar e agrupar leads (mantida)
-    const groupedLeads = useMemo(() => {
-        return Object.keys(STAGES).reduce((acc, status) => {
-            acc[status] = leads.filter(lead => lead.status === status);
-            return acc;
-        }, {});
-    }, [leads]);
-    
-    return (
-        <div className="flex-1 p-4 overflow-hidden h-full">
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Kanban Board</h1>
-            
-            {isLoading && <div className="text-center text-lg">Carregando Leads...</div>}
-            {apiError && <div className="text-center text-red-600">{apiError}</div>}
+    // --- Fim da Lógica do Modal ---
 
-            <div className="flex overflow-x-auto space-x-4 pb-4 h-[calc(100vh-140px)]">
-                {Object.keys(groupedLeads).map((status) => (
-                    <KanbanColumn
-                        key={status}
-                        status={status}
-                        leads={groupedLeads[status]}
-                        onDropLead={handleDropLead}
-                        openLeadModal={openLeadModal}
-                    />
-                ))}
+
+    if (isLoading) {
+        return <div className="p-4 text-center text-gray-500">Carregando quadro Kanban...</div>;
+    }
+
+    if (apiError && !toast) { // Se houver erro e o toast não estiver visível (para evitar dois feedbacks)
+        setToast({ message: apiError, type: 'error' });
+    }
+
+    return (
+        <div className="p-4 min-h-full">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+            {/* Cabeçalho e Busca */}
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-gray-800">Quadro Kanban</h1>
+                <button 
+                    onClick={() => navigate('/register-lead')} 
+                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition flex items-center space-x-2" // Botão Novo Lead: bg-teal-600
+                >
+                    <FaPlus /> <span>Novo Lead</span>
+                </button>
             </div>
 
-            {/* Modal de Edição (Estilo Tailwind) */}
-            {isModalOpen && selectedLead && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center border-b pb-3 mb-4">
-                            <h2 className="text-2xl font-bold text-gray-800">Editar Lead: {selectedLead.name}</h2>
-                            <button onClick={closeLeadModal} className="text-gray-400 hover:text-gray-600"><FaTimes size={20} /></button>
+            {/* Barra de Pesquisa */}
+            <div className="mb-6 relative">
+                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    placeholder="Buscar leads por nome, email ou telefone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-3 pl-10 border border-gray-300 rounded-lg shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                />
+            </div>
+
+
+            {/* Kanban Board */}
+            <div className="flex overflow-x-auto space-x-4 pb-4">
+                {Object.keys(STAGES).map(stage => {
+                    const stageLeads = filteredLeads[stage] || [];
+                    const stageClass = STAGES[stage].replace('text-gray-800', 'text-gray-900').replace('bg-gray-200', 'bg-gray-100');
+                    const headerClass = STAGES[stage].replace('text-gray-800', 'text-white').replace('bg-gray-200', 'bg-teal-600'); // Fundo do header pode ser ajustado, aqui uso a cor do stage, exceto para 'Novo'
+
+                    return (
+                        <div 
+                            key={stage} 
+                            className="flex-shrink-0 w-64 bg-white rounded-xl shadow-lg border border-gray-200"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const leadId = e.dataTransfer.getData("leadId");
+                                handleDrop(leadId, stage);
+                            }}
+                        >
+                            <h3 
+                                className={`text-lg font-semibold p-3 rounded-t-xl text-center ${stage === 'Novo' ? 'bg-gray-200 text-gray-800' : headerClass}`}
+                                style={stage === 'Novo' ? {} : {backgroundColor: STAGES[stage].split(' ')[0].replace('bg-', '#') + '50', color: STAGES[stage].split(' ')[1].replace('text-', '#') + '00'}}
+                            >
+                                {stage} ({stageLeads.length})
+                            </h3>
+                            <div className="p-3 space-y-3 min-h-[500px] max-h-[70vh] overflow-y-auto">
+                                {stageLeads.length > 0 ? (
+                                    stageLeads.map(lead => (
+                                        <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-sm italic p-2 text-center">Nenhum lead neste estágio.</p>
+                                )}
+                            </div>
                         </div>
+                    );
+                })}
+            </div>
+
+            {/* Modal de Edição de Lead (Integrado no KanbanBoard) */}
+            {isModalOpen && selectedLead && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto transform transition-all">
                         
-                        {/* Conteúdo do Formulário */}
-                        <div className="space-y-4">
+                        {/* Cabeçalho do Modal */}
+                        <div className="flex justify-between items-start border-b pb-4 mb-4">
+                            <h2 className="text-2xl font-semibold text-teal-600">Detalhes do Lead: {selectedLead.name}</h2> {/* TÍTULO: text-teal-600 */}
+                            <button onClick={closeLeadModal} className="text-gray-400 hover:text-gray-600">
+                                <FaTimes size={20} />
+                            </button>
+                        </div>
+
+                        {/* Corpo do Modal - Formulário */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Coluna 1: Dados do Lead */}
+                            <div>
+                                <h3 className="text-xl font-semibold mb-3 text-teal-600">Dados Principais</h3> {/* SUBTÍTULO: text-teal-600 */}
+                                
+                                {/* Nome */}
+                                <div className="mb-4">
+                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nome</label>
+                                    <input type="text" id="name" name="name" value={leadData.name} onChange={handleDataChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
+                                </div>
+                                
+                                {/* Email */}
+                                <div className="mb-4">
+                                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                    <input type="email" id="email" name="email" value={leadData.email} onChange={handleDataChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
+                                </div>
+                                
+                                {/* Telefone */}
+                                <div className="mb-4">
+                                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Telefone</label>
+                                    <input type="text" id="phone" name="phone" value={leadData.phone} onChange={handleDataChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" />
+                                </div>
+
+                                {/* Estágio */}
+                                <div className="mb-4">
+                                    <label htmlFor="stage" className="block text-sm font-medium text-gray-700">Estágio</label>
+                                    <select id="stage" name="stage" value={leadData.stage} onChange={handleDataChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                                        {Object.keys(STAGES).map(stage => (
+                                            <option key={stage} value={stage}>{stage}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
                             
-                            <select name="status" value={formData.status || ''} onChange={handleChange} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500"> {/* AJUSTE DE FOCO: green-500 */}
-                                {Object.keys(STAGES).map(status => (
-                                    <option key={status} value={status}>{status}</option>
-                                ))}
-                            </select>
-                            <input name="name" type="text" value={formData.name || ''} onChange={handleChange} placeholder="Nome" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500" /> {/* AJUSTE DE FOCO: green-500 */}
-                            <input name="email" type="email" value={formData.email || ''} onChange={handleChange} placeholder="Email" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500" /> {/* AJUSTE DE FOCO: green-500 */}
-                            <input name="phone" type="text" value={formData.phone || ''} onChange={handleChange} placeholder="Telefone" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500" /> {/* AJUSTE DE FOCO: green-500 */}
-                            <input name="uc" type="text" value={formData.uc || ''} onChange={handleChange} placeholder="UC" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500" /> {/* AJUSTE DE FOCO: green-500 */}
-                            <input name="avgConsumption" type="number" value={formData.avgConsumption || ''} onChange={handleChange} placeholder="Consumo Médio (kWh)" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500" /> {/* AJUSTE DE FOCO: green-500 */}
-                            <textarea name="notes" value={formData.notes?.map(n => n.text).join('\n') || ''} onChange={handleChange} placeholder="Notas (uma por linha)" className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-green-500 focus:border-green-500 min-h-[100px]"></textarea> {/* AJUSTE DE FOCO: green-500 */}
-                            
-                            {/* Histórico de Notas (Read-only) */}
-                            <div className="mt-4 p-4 border rounded-lg bg-gray-50 max-h-48 overflow-y-auto">
-                                <h3 className="font-semibold mb-2 text-gray-700">Histórico de Notas</h3>
-                                <div className="space-y-3">
-                                    {selectedLead.notes && Array.isArray(selectedLead.notes) && selectedLead.notes.length > 0 ? (
-                                        selectedLead.notes
-                                            .slice().reverse().map((note, index) => (
-                                                <div key={index} className="border-l-4 border-gray-300 pl-3">
-                                                    <p className="font-semibold text-xs text-gray-500">
-                                                        {formatNoteDate(note.timestamp)}
-                                                    </p>
-                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
-                                                </div>
-                                            ))
+                            {/* Coluna 2: Notas */}
+                            <div>
+                                <h3 className="text-xl font-semibold mb-3 text-teal-600">Notas</h3> {/* SUBTÍTULO: text-teal-600 */}
+                                
+                                {/* Adicionar Nota */}
+                                <div className="mb-4">
+                                    <textarea
+                                        rows="2"
+                                        placeholder="Adicione uma nova nota..."
+                                        value={newNote}
+                                        onChange={(e) => setNewNote(e.target.value)}
+                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500"
+                                    />
+                                    {/* Nota será salva junto com as alterações do Lead */}
+                                </div>
+
+                                {/* Lista de Notas Existentes */}
+                                <div className="space-y-4 max-h-60 overflow-y-auto p-2 border rounded-md bg-gray-50">
+                                    {notes.length > 0 ? (
+                                        notes.map((note, index) => (
+                                            <div key={index} className="border-b pb-2 last:border-b-0">
+                                                <p className="font-semibold text-xs text-teal-600">{formatNoteDate(note.timestamp)}</p> {/* DATA DA NOTA: text-teal-600 */}
+                                                <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
+                                            </div>
+                                        ))
                                     ) : (
                                         <p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>
                                     )}
                                 </div>
                             </div>
-
                         </div>
 
                         {/* Botões do Modal */}
@@ -294,8 +424,7 @@ const KanbanBoard = () => {
                             <button 
                                 onClick={saveLeadChanges} 
                                 disabled={saving} 
-                                // AJUSTE DE COR: indigo-600 -> green-600 / hover:bg-indigo-700 -> hover:bg-green-700
-                                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60 flex items-center space-x-2"
+                                className="px-4 py-2 rounded bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60 flex items-center space-x-2" // BOTÃO SALVAR: bg-teal-600
                             >
                                 <FaSave size={16} />
                                 <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
