@@ -1,105 +1,80 @@
-// controllers/authController.js
+// src/AuthContext.jsx
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 
-const { pool } = require('../config/db'); 
-const bcrypt = require('bcryptjs'); 
-const jwt = require('jsonwebtoken');
+// Variável de ambiente para URL da API
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com/api/v1';
 
-// Função auxiliar para gerar JWT
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: '30d', // Token expira em 30 dias
-    });
+// 1. Cria o Contexto
+const AuthContext = createContext(null);
+
+// 2. Cria o Provedor
+export const AuthProvider = ({ children }) => {
+    // Estado de autenticação: null (inicial/carregando), string (token), ou false (não autenticado)
+    const [token, setToken] = useState(() => localStorage.getItem('token'));
+    const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+    const [isAuthReady, setIsAuthReady] = useState(false); // Indica se a verificação inicial terminou
+    const [user, setUser] = useState(null);
+
+    // Efeito para sincronizar o estado com o localStorage na inicialização
+    useEffect(() => {
+        if (token) {
+            // Se houver um token, tentamos carregar dados do usuário (opcional, mas recomendado)
+            // Por simplicidade, assumimos que o token é válido para iniciar
+            setIsAuthenticated(true);
+            // Aqui você pode adicionar uma chamada à API para validar o token e buscar dados do user
+        }
+        setIsAuthReady(true); // O contexto está pronto
+    }, [token]);
+
+    // Função de Login
+    const login = useCallback(async (email, password) => {
+        try {
+            const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+            
+            const { token, ...userData } = response.data;
+
+            localStorage.setItem('token', token);
+            setToken(token);
+            setUser(userData);
+            setIsAuthenticated(true);
+            return { success: true };
+        } catch (error) {
+            console.error("Erro de Login:", error);
+            // Retorna a mensagem de erro da API ou uma mensagem padrão
+            return { 
+                success: false, 
+                message: error.response?.data?.error || 'Credenciais inválidas ou erro de conexão.' 
+            };
+        }
+    }, []);
+
+    // Função de Logout
+    const logout = useCallback(() => {
+        localStorage.removeItem('token');
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+    }, []);
+
+    // Valor do Contexto
+    const value = {
+        isAuthenticated,
+        isAuthReady,
+        user,
+        token,
+        login,
+        logout,
+    };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// @desc    Registrar novo usuário
-// @route   POST /api/v1/auth/register
-// @access  Public
-const registerUser = async (req, res) => {
-    const { name, email, password, role } = req.body;
-
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Por favor, preencha todos os campos.' });
+// 3. Cria o Hook Personalizado (🚨 CORREÇÃO: Adicionamos o 'export' aqui)
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === null) {
+        throw new Error('useAuth deve ser usado dentro de um AuthProvider');
     }
-
-    try {
-        // 1. Verificar se o usuário já existe
-        const userExists = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-
-        if (userExists.rows.length > 0) {
-            return res.status(400).json({ error: 'Usuário já existe.' });
-        }
-
-        // 2. Hash da senha
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        
-        // 3. Inserir novo usuário
-        // O papel (role) padrão é 'user' se não for fornecido
-        const userRole = role || 'user'; 
-        
-        const newUser = await pool.query(
-            'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-            [name, email, hashedPassword, userRole]
-        );
-
-        const user = newUser.rows[0];
-
-        if (user) {
-            // Sucesso no registro
-            res.status(201).json({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                token: generateToken(user.id),
-            });
-        } else {
-            res.status(400).json({ error: 'Dados de usuário inválidos.' });
-        }
-
-    } catch (error) {
-        console.error("Erro ao registrar usuário:", error.message);
-        res.status(500).json({ error: 'Erro interno do servidor ao registrar.' });
-    }
-};
-
-// @desc    Autenticar (login) um usuário
-// @route   POST /api/v1/auth/login
-// @access  Public
-const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Por favor, forneça email e senha.' });
-    }
-
-    try {
-        // Seleciona explicitamente a coluna 'password'
-        const result = await pool.query('SELECT id, name, email, role, password FROM users WHERE email = $1', [email]);
-        const user = result.rows[0];
-        
-        // Verifica se o usuário existe e se a senha corresponde
-        if (user && await bcrypt.compare(password, user.password)) {
-            // Sucesso no login
-            res.json({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                token: generateToken(user.id),
-            });
-        } else {
-            // Falha na autenticação (usuário não encontrado ou senha incorreta)
-            res.status(401).json({ error: 'Credenciais inválidas.' });
-        }
-
-    } catch (error) {
-        console.error("Erro ao fazer login:", error.message);
-        res.status(500).json({ error: 'Erro interno do servidor.' });
-    }
-};
-
-module.exports = {
-    registerUser,
-    loginUser,
+    return context;
 };
