@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa'; 
-import { Outlet } from 'react-router-dom'; 
+import { Outlet } from 'react-router-dom'; // Importante para renderizar rotas aninhadas
 
 import Sidebar from './components/Sidebar'; 
 
@@ -28,21 +28,20 @@ const Dashboard = () => {
     const mainMarginClass = isSidebarExpanded ? 'md:ml-64' : 'md:ml-20'; // Desktop: ml-64 ou ml-20
 
     return (
+        // Container principal
         <div className="flex h-screen bg-gray-100"> 
             
-            {/* Sidebar Container (Fixo na tela, mas ocupando espaço com margem no main) */}
+            {/* Sidebar Container */}
             <div 
                 className={`
                     fixed inset-y-0 left-0 
-                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                    ${sidebarWidthClass} // Largura dinâmica em desktop
-                    md:translate-x-0 // Sempre visível em desktop
-                    bg-gray-800 text-white shadow-xl 
-                    flex flex-col z-40 
-                    transition-all duration-300 ease-in-out
+                    ${isMobileSidebarOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'} 
+                    transition-transform duration-300 ease-in-out z-40 
+                    md:relative md:translate-x-0 
+                    ${sidebarWidthClass} // Aplica a largura condicional em desktop
                 `}
             >
-                {/* 🚨 Passe os estados e toggles para o Sidebar */}
+                {/* Passamos todos os handlers e o estado de expansão */}
                 <Sidebar 
                     isExpanded={isSidebarExpanded} 
                     toggleExpansion={toggleSidebarExpansion} 
@@ -60,7 +59,7 @@ const Dashboard = () => {
             
             {/* Main Content (Conteúdo principal) */}
             <main 
-                // 🚨 CRÍTICO: Ajusta a margem esquerda para compensar a largura do sidebar
+                // Ajusta a margem esquerda para compensar a largura do sidebar em desktop
                 className={`
                     flex-1 overflow-y-auto 
                     transition-all duration-300 ease-in-out

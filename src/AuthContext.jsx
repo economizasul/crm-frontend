@@ -1,72 +1,105 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// controllers/authController.js
 
-// 1. Criação do Contexto
-const AuthContext = createContext();
+const { pool } = require('../config/db'); 
+const bcrypt = require('bcryptjs'); 
+const jwt = require('jsonwebtoken');
 
-// Hook personalizado para fácil acesso ao contexto
-export const useAuth = () => useContext(AuthContext);
+// Função auxiliar para gerar JWT
+const generateToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d', // Token expira em 30 dias
+    });
+};
 
-// 2. Provedor do Contexto
-export const AuthProvider = ({ children }) => {
-    // Tenta carregar o token e o userId do localStorage na inicialização
-    const [token, setToken] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    
-    // Estado para sinalizar que a verificação inicial terminou. CRUCIAL.
-    const [isAuthReady, setIsAuthReady] = useState(false);
+// @desc    Registrar novo usuário
+// @route   POST /api/v1/auth/register
+// @access  Public
+const registerUser = async (req, res) => {
+    const { name, email, password, role } = req.body;
 
-    // Efeito para carregar o estado inicial de autenticação do localStorage
-    useEffect(() => {
-        const initialToken = localStorage.getItem('token');
-        const initialUserId = localStorage.getItem('userId');
-        
-        if (initialToken) {
-            setToken(initialToken);
-            setUserId(initialUserId);
-            setIsAuthenticated(true);
-        }
-        setIsAuthReady(true); // O estado inicial foi verificado
-    }, []);
-
-    // Função de login que atualiza o localStorage E o estado React
-    const login = (newToken, newUserId) => {
-        // 1. Salva no localStorage
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('userId', newUserId);
-        
-        // 2. Atualiza o estado
-        setToken(newToken);
-        setUserId(newUserId);
-        setIsAuthenticated(true);
-    };
-
-    // Função de logout que limpa o localStorage E o estado React
-    const logout = () => {
-        // 1. Remove do localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
-        
-        // 2. Limpa o estado
-        setToken(null);
-        setUserId(null);
-        setIsAuthenticated(false);
-    };
-
-    const value = {
-        token,
-        userId,
-        isAuthenticated,
-        isAuthReady, // Indica que o token inicial foi lido
-        login,
-        logout,
-    };
-
-    // Renderiza children apenas quando o estado de autenticação estiver pronto
-    if (!isAuthReady) {
-        // Você pode colocar um spinner ou tela de carregamento aqui
-        return <div className="min-h-screen flex items-center justify-center text-indigo-600 text-lg">Carregando Sessão...</div>;
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Por favor, preencha todos os campos.' });
     }
-    
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+
+    try {
+        // 1. Verificar se o usuário já existe
+        const userExists = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+
+        if (userExists.rows.length > 0) {
+            return res.status(400).json({ error: 'Usuário já existe.' });
+        }
+
+        // 2. Hash da senha
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        // 3. Inserir novo usuário
+        // O papel (role) padrão é 'user' se não for fornecido
+        const userRole = role || 'user'; 
+        
+        const newUser = await pool.query(
+            'INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
+            [name, email, hashedPassword, userRole]
+        );
+
+        const user = newUser.rows[0];
+
+        if (user) {
+            // Sucesso no registro
+            res.status(201).json({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                token: generateToken(user.id),
+            });
+        } else {
+            res.status(400).json({ error: 'Dados de usuário inválidos.' });
+        }
+
+    } catch (error) {
+        console.error("Erro ao registrar usuário:", error.message);
+        res.status(500).json({ error: 'Erro interno do servidor ao registrar.' });
+    }
+};
+
+// @desc    Autenticar (login) um usuário
+// @route   POST /api/v1/auth/login
+// @access  Public
+const loginUser = async (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'Por favor, forneça email e senha.' });
+    }
+
+    try {
+        // Seleciona explicitamente a coluna 'password'
+        const result = await pool.query('SELECT id, name, email, role, password FROM users WHERE email = $1', [email]);
+        const user = result.rows[0];
+        
+        // Verifica se o usuário existe e se a senha corresponde
+        if (user && await bcrypt.compare(password, user.password)) {
+            // Sucesso no login
+            res.json({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                token: generateToken(user.id),
+            });
+        } else {
+            // Falha na autenticação (usuário não encontrado ou senha incorreta)
+            res.status(401).json({ error: 'Credenciais inválidas.' });
+        }
+
+    } catch (error) {
+        console.error("Erro ao fazer login:", error.message);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
+};
+
+module.exports = {
+    registerUser,
+    loginUser,
 };
