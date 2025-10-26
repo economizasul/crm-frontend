@@ -1,80 +1,72 @@
-// src/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-// Variável de ambiente para URL da API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com/api/v1';
+// 1. Criação do Contexto
+const AuthContext = createContext();
 
-// 1. Cria o Contexto
-const AuthContext = createContext(null);
+// Hook personalizado para fácil acesso ao contexto
+export const useAuth = () => useContext(AuthContext);
 
-// 2. Cria o Provedor
+// 2. Provedor do Contexto
 export const AuthProvider = ({ children }) => {
-    // Estado de autenticação: null (inicial/carregando), string (token), ou false (não autenticado)
-    const [token, setToken] = useState(() => localStorage.getItem('token'));
-    const [isAuthenticated, setIsAuthenticated] = useState(!!token);
-    const [isAuthReady, setIsAuthReady] = useState(false); // Indica se a verificação inicial terminou
-    const [user, setUser] = useState(null);
+    // Tenta carregar o token e o userId do localStorage na inicialização
+    const [token, setToken] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    
+    // Estado para sinalizar que a verificação inicial terminou. CRUCIAL.
+    const [isAuthReady, setIsAuthReady] = useState(false);
 
-    // Efeito para sincronizar o estado com o localStorage na inicialização
+    // Efeito para carregar o estado inicial de autenticação do localStorage
     useEffect(() => {
-        if (token) {
-            // Se houver um token, tentamos carregar dados do usuário (opcional, mas recomendado)
-            // Por simplicidade, assumimos que o token é válido para iniciar
+        const initialToken = localStorage.getItem('token');
+        const initialUserId = localStorage.getItem('userId');
+        
+        if (initialToken) {
+            setToken(initialToken);
+            setUserId(initialUserId);
             setIsAuthenticated(true);
-            // Aqui você pode adicionar uma chamada à API para validar o token e buscar dados do user
         }
-        setIsAuthReady(true); // O contexto está pronto
-    }, [token]);
-
-    // Função de Login
-    const login = useCallback(async (email, password) => {
-        try {
-            const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
-            
-            const { token, ...userData } = response.data;
-
-            localStorage.setItem('token', token);
-            setToken(token);
-            setUser(userData);
-            setIsAuthenticated(true);
-            return { success: true };
-        } catch (error) {
-            console.error("Erro de Login:", error);
-            // Retorna a mensagem de erro da API ou uma mensagem padrão
-            return { 
-                success: false, 
-                message: error.response?.data?.error || 'Credenciais inválidas ou erro de conexão.' 
-            };
-        }
+        setIsAuthReady(true); // O estado inicial foi verificado
     }, []);
 
-    // Função de Logout
-    const logout = useCallback(() => {
+    // Função de login que atualiza o localStorage E o estado React
+    const login = (newToken, newUserId) => {
+        // 1. Salva no localStorage
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('userId', newUserId);
+        
+        // 2. Atualiza o estado
+        setToken(newToken);
+        setUserId(newUserId);
+        setIsAuthenticated(true);
+    };
+
+    // Função de logout que limpa o localStorage E o estado React
+    const logout = () => {
+        // 1. Remove do localStorage
         localStorage.removeItem('token');
+        localStorage.removeItem('userId');
+        
+        // 2. Limpa o estado
         setToken(null);
-        setUser(null);
+        setUserId(null);
         setIsAuthenticated(false);
-    }, []);
+    };
 
-    // Valor do Contexto
     const value = {
-        isAuthenticated,
-        isAuthReady,
-        user,
         token,
+        userId,
+        isAuthenticated,
+        isAuthReady, // Indica que o token inicial foi lido
         login,
         logout,
     };
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-// 3. Cria o Hook Personalizado (🚨 CORREÇÃO: Adicionamos o 'export' aqui)
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === null) {
-        throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+    // Renderiza children apenas quando o estado de autenticação estiver pronto
+    if (!isAuthReady) {
+        // Você pode colocar um spinner ou tela de carregamento aqui
+        return <div className="min-h-screen flex items-center justify-center text-indigo-600 text-lg">Carregando Sessão...</div>;
     }
-    return context;
+    
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

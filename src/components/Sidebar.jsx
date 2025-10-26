@@ -21,64 +21,84 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
 
     // Função que fecha o menu (principalmente para mobile)
     const handleNavLinkClick = () => {
-        // Fecha o sidebar apenas em telas menores que 'md' (768px)
-        if (window.innerWidth < 768 && toggleMobileSidebar) {
-            toggleMobileSidebar();
+        if (window.innerWidth < 768 && toggleMobileSidebar) { 
+            toggleMobileSidebar(); 
         }
     };
     
     const handleLogout = () => {
         logout(); 
         navigate('/login', { replace: true }); 
-        handleNavLinkClick(); // Fecha o sidebar após o logout, se estiver em mobile
+        if (window.innerWidth < 768 && toggleMobileSidebar) {
+            toggleMobileSidebar();
+        }
     };
 
-    // Menu de navegação (corrigidos os paths para rotas aninhadas)
+    // Menu de navegação
     const navItems = [
-        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt },
-        { name: 'Buscar Leads', path: '/leads', icon: FaSearch },
-        { name: 'Cadastrar Lead', path: '/register-lead', icon: FaUserPlus },
+        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
+        { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
+        { name: 'Cadastrar', path: '/register-lead', icon: FaUserPlus },
     ];
-
-    // Menu de rodapé
+    
+    // Links de Rodapé
     const footerItems = [
         { name: 'Relatórios', path: '/reports', icon: FaChartBar },
         { name: 'Configurações', path: '/settings', icon: FaCogs },
     ];
 
     return (
-        <div className={`flex flex-col bg-indigo-800 text-white shadow-xl h-full p-4 ${isExpanded ? 'w-64' : 'w-20'} transition-all duration-300 ease-in-out`}>
+        <div className={`
+            w-full
+            bg-gray-800 text-white p-4 shadow-xl h-full flex flex-col
+            transition-all duration-300 ease-in-out
+        `}>
             
-            {/* Header / Logo */}
-            <div className={`flex items-center mb-6 h-12 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
-                {isExpanded && (
-                    <div className="text-xl font-bold text-indigo-100 whitespace-nowrap overflow-hidden">
+            {/* 🚨 NOVO CABEÇALHO COM BOTÃO DE EXPANSÃO NO TOPO */}
+            <div className={`
+                flex items-center border-b border-indigo-700 pb-3 mb-4
+                ${isExpanded ? 'justify-between' : 'justify-center'}
+            `}>
+                {/* 1. Logo/Título (Apenas se expandido ou se for mobile) */}
+                {isExpanded ? (
+                    <div className="text-xl font-bold text-indigo-100 flex-1">
                         ECONOMIZA SUL
                     </div>
+                ) : (
+                    // 🚨 Vazio ou um ícone simples quando minimizado
+                    <div className="text-xl font-bold text-indigo-100 p-2">
+                        {/* Podemos deixar vazio ou usar um ícone simples, aqui deixaremos vazio para um look mais clean */}
+                    </div>
                 )}
-                
-                {/* Botão de Toggle (Apenas visível em desktop) */}
-                <button 
-                    onClick={toggleExpansion} 
-                    className="p-2 text-indigo-200 hover:text-white hover:bg-indigo-700 rounded-full transition duration-200 hidden md:block"
-                    title={isExpanded ? 'Minimizar Menu' : 'Expandir Menu'}
+
+                {/* 2. Botão de Toggle (APENAS DESKTOP) */}
+                <button
+                    onClick={toggleExpansion}
+                    className="hidden md:block p-1 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200 ml-auto"
+                    title={isExpanded ? "Minimizar Menu" : "Expandir Menu"}
                 >
                     {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
+                </button>
+                
+                {/* 3. Botão de Fechar (APENAS MOBILE) */}
+                <button 
+                    onClick={toggleMobileSidebar} 
+                    className="text-indigo-200 hover:text-white md:hidden"
+                >
+                    <FaTimes size={20} />
                 </button>
             </div>
             
             {/* Links Principais */}
-            <nav className="flex-1 space-y-2 overflow-y-auto">
+            <nav className="flex-1 space-y-2">
                 {navItems.map((item) => (
                     <NavLink 
                         key={item.name} 
                         to={item.path} 
-                        // Passa isExpanded para a função LinkClass
                         className={(navData) => LinkClass({ ...navData, isExpanded })}
-                        onClick={handleNavLinkClick}
+                        onClick={handleNavLinkClick} 
                     >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
-                        {/* Renderiza o nome do item apenas se expandido */}
+                        <item.icon className="w-5 h-5" />
                         {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
                     </NavLink>
                 ))}
@@ -93,7 +113,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         className={(navData) => LinkClass({ ...navData, isExpanded })}
                         onClick={handleNavLinkClick}
                     >
-                        <item.icon className="w-5 h-5 flex-shrink-0" />
+                        <item.icon className="w-5 h-5" />
                         {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
                     </NavLink>
                 ))}
@@ -107,10 +127,12 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
                     `}
                 >
-                    <FaSignOutAlt className="w-5 h-5 flex-shrink-0" />
+                    <FaSignOutAlt className="w-5 h-5" />
                     {isExpanded && <span className="whitespace-nowrap">Sair</span>}
                 </button>
             </div>
+            
+            {/* O botão de expansão/minimização foi movido para o cabeçalho */}
             
         </div>
     );
