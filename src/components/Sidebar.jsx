@@ -3,21 +3,22 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft, FaLock } from 'react-icons/fa';
+// CRÍTICO: Importar useAuth para acessar o objeto 'user'
 import { useAuth } from '../AuthContext.jsx'; 
 
-// Estilos para os links de navegação (agora com texto condicional)
+// Estilos para os links de navegação
 const LinkClass = ({ isActive, isExpanded }) => 
     `w-full flex items-center p-3 rounded-xl transition duration-200 
     ${isActive 
         ? 'bg-indigo-700 text-white shadow-lg' 
         : 'text-indigo-200 hover:bg-indigo-700 hover:text-white'}
-    ${isExpanded ? 'justify-start space-x-3' : 'justify-center'} // Alinha itens para centralizar ícones quando minimizado
+    ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
     `;
 
-// CRÍTICO: Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
+// Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
 const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => { 
     const navigate = useNavigate();
-    // CORREÇÃO: Obtém o objeto 'user' do contexto de autenticação
+    // CORRIGIDO: Obtém o objeto 'user' e a função 'logout'
     const { logout, user } = useAuth(); 
 
     // Função que fecha o menu (principalmente para mobile)
@@ -35,7 +36,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         }
     };
 
-    // CRÍTICO: Assume-se que o role do usuário está em user.role e que o valor para Admin é 'admin'
+    // CRÍTICO: Variável de permissão. true se o usuário e o role forem 'admin'.
     const isAdmin = user && user.role === 'admin';
 
     // 1. Links principais de navegação 
@@ -43,16 +44,14 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
         { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
         { name: 'Cadastrar Lead', path: '/register-lead', icon: FaUserPlus },
-        // NOVO/CORRIGIDO: Link de Cadastro de Usuário (APENAS ADMIN)
+        // CRÍTICO: Renderização Condicional
         ...(isAdmin ? [{ name: 'Cadastrar Usuário', path: '/user-register', icon: FaUserPlus }] : []),
     ];
     
     // 2. Links de Rodapé
-    // Inclui a função Troca de Senha nas Configurações
     const footerItems = [
         { name: 'Relatórios', path: '/reports', icon: FaChartBar },
         { name: 'Configurações', path: '/settings', icon: FaCogs },
-        // NOVO: Link de Troca de Senha (ADMIN E USUÁRIO)
         { name: 'Trocar Senha', path: '/change-password', icon: FaLock },
     ];
 
@@ -63,24 +62,22 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
             transition-all duration-300 ease-in-out
         `}>
             
-            {/* 🚨 NOVO CABEÇALHO COM BOTÃO DE EXPANSÃO NO TOPO */}
+            {/* Cabeçalho/Botão de Expansão */}
             <div className={`
                 flex items-center border-b border-indigo-700 pb-3 mb-4
                 ${isExpanded ? 'justify-between' : 'justify-center'}
             `}>
-                {/* 1. Logo/Título (Apenas se expandido ou se for mobile) */}
                 {isExpanded ? (
                     <div className="text-xl font-bold text-indigo-100 flex-1">
                         ECONOMIZA SUL
                     </div>
                 ) : (
-                    // Vazio ou um ícone simples quando minimizado
                     <div className="text-xl font-bold text-indigo-100 p-2">
-                        {/* Deixado vazio para um look mais clean quando minimizado */}
+                        {/* Vazio ou um ícone simples quando minimizado */}
                     </div>
                 )}
 
-                {/* 2. Botão de Toggle (APENAS DESKTOP) */}
+                {/* Botão de Toggle (APENAS DESKTOP) */}
                 <button
                     onClick={toggleExpansion}
                     className="hidden md:block p-1 rounded-full bg-indigo-700 text-white hover:bg-indigo-600 transition duration-200 ml-auto"
@@ -89,7 +86,7 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     {isExpanded ? <FaAngleDoubleLeft size={16} /> : <FaAngleDoubleRight size={16} />}
                 </button>
                 
-                {/* 3. Botão de Fechar (APENAS MOBILE) */}
+                {/* Botão de Fechar (APENAS MOBILE) */}
                 <button 
                     onClick={toggleMobileSidebar} 
                     className="text-indigo-200 hover:text-white md:hidden"
