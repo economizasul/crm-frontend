@@ -1,8 +1,7 @@
-// src/Register.jsx - TELA DE GESTÃO DE USUÁRIOS (Admin) com Debugging
+// src/Register.jsx - TELA DE GESTÃO DE USUÁRIOS (Admin) - VERSÃO FINAL COM FALLBACK FORTE PARA E-MAIL
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// Certifique-se de que todas essas imports estão disponíveis no seu projeto
 import { User, Mail, Lock, LogIn, Loader2, Phone, Users, Search, ToggleLeft, ToggleRight, X } from 'lucide-react'; 
 import { useAuth } from './AuthContext.jsx';
 
@@ -28,13 +27,47 @@ function UserManagement() {
     const { user, logout } = useAuth(); 
     const navigate = useNavigate();
 
+    // Função auxiliar para realizar a requisição de busca
+    const performSearch = async (searchType, searchValue, token) => {
+        const encodedValue = encodeURIComponent(searchValue);
+        const searchUrl = `${API_BASE_URL}/api/v1/users/search?${searchType}=${encodedValue}`;
+        
+        console.log(`[DEBUG - FRONTEND] Tentando busca: ${searchType}=${searchValue} em URL: ${searchUrl}`);
+        
+        try {
+            const response = await fetch(searchUrl, {
+                method: 'GET',
+                headers: { 
+                    'Authorization': `Bearer ${token}` 
+                },
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                const foundUser = Array.isArray(userData) ? userData[0] : userData;
+                if (foundUser && foundUser._id) {
+                    return { success: true, user: foundUser };
+                }
+            }
+            
+            console.log(`[DEBUG - FRONTEND] Busca por ${searchType} falhou com status: ${response.status}`);
+            return { success: false, status: response.status };
+
+        } catch (error) {
+            console.error(`[DEBUG - FRONTEND] Erro de Conexão na busca por ${searchType}:`, error);
+            return { success: false, status: 503, error: 'Erro de conexão' };
+        }
+    }
+
+
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA SIMPLIFICADA E DIRETA
+    // LÓGICA DE BUSCA COM FALLBACK
     // ----------------------------------------------------
     const handleSearch = async (e) => {
         e.preventDefault();
         setMessage('');
         setLoading(true);
+        resetFormState(); // Limpa o formulário antes de começar
 
         const token = user?.token || localStorage.getItem('token');
         if (!token || user.role.toLowerCase() !== 'admin') {
@@ -49,56 +82,39 @@ function UserManagement() {
             return;
         }
 
-        const isEmailSearch = searchQuery.includes('@');
-        const searchType = isEmailSearch ? 'email' : 'name';
-        const encodedValue = encodeURIComponent(searchQuery);
+        const query = searchQuery.trim();
+        const isEmail = query.includes('@');
+        let searchResult = { success: false };
 
-        const searchUrl = `${API_BASE_URL}/api/v1/users/search?${searchType}=${encodedValue}`;
-        let success = false;
-        let finalUser = null;
+        // 1. Tenta a busca primária (Email ou Nome)
+        searchResult = await performSearch(isEmail ? 'email' : 'name', query, token);
 
-        // 🚨 NOVO: Loga o URL exato para debugging do Backend
-        console.log(`[DEBUG - FRONTEND] Tentando buscar com URL: ${searchUrl}`);
-
-        try {
-            const response = await fetch(searchUrl, {
-                method: 'GET',
-                headers: { 
-                    'Authorization': `Bearer ${token}` 
-                },
-            });
-            
-            // 🚨 NOVO: Loga o Status de Resposta
-            console.log(`[DEBUG - FRONTEND] Status da Resposta: ${response.status}`);
-
-            if (response.ok) {
-                const userData = await response.json();
-                finalUser = Array.isArray(userData) ? userData[0] : userData;
-                success = !!finalUser && !!finalUser._id;
-            } else if (response.status === 404) {
-                 setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
-            } else {
-                const errorData = await response.json();
-                setMessage(`Falha na busca: ${errorData.error || response.statusText}.`);
-            }
-
-        } catch (error) {
-            console.error('[DEBUG - FRONTEND] Erro de Conexão:', error);
-            setMessage('Erro de conexão com o servidor. Tente novamente.');
-        } finally {
-            setLoading(false);
+        // 2. Se a busca primária falhar, tenta o FALLBACK:
+        // Se falhou por Nome, tenta buscar a string como E-mail.
+        if (!searchResult.success && !isEmail) {
+            console.log("[DEBUG - FRONTEND] Busca por Nome falhou. Tentando FALLBACK por Email.");
+            searchResult = await performSearch('email', query, token);
         }
+        // Se falhou por E-mail, tenta buscar a string como Nome.
+        if (!searchResult.success && isEmail) {
+            console.log("[DEBUG - FRONTEND] Busca por Email falhou. Tentando FALLBACK por Nome.");
+            searchResult = await performSearch('name', query, token);
+        }
+
 
         // --------------------------------
         // Lógica de Preenchimento do Formulário
         // --------------------------------
-        if (success && finalUser) {
+        if (searchResult.success && searchResult.user) {
+            const finalUser = searchResult.user;
+            
             if (finalUser._id === user._id) {
                 setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
             } else {
                 setMessage(`Usuário ${finalUser.name || finalUser.email} carregado com sucesso para edição.`);
             }
             
+            // Popula o formulário para edição.
             setUserId(finalUser._id);
             setName(finalUser.name || ''); 
             setEmail(finalUser.email || '');
@@ -108,18 +124,25 @@ function UserManagement() {
             setPassword(''); 
             
             setIsEditMode(true);
-        } else if (!isEditMode) {
-             resetFormState(); 
-             if (isEmailSearch) {
-                 setEmail(searchQuery);
+            
+        } else {
+            // Não encontrado (prepara para criar novo)
+            setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
+            // Preenche o formulário para novo cadastro com a query
+            if (isEmail) {
+                setEmail(query);
              } else {
-                 setName(searchQuery);
+                setName(query);
              }
-             setIsEditMode(false);
+            setIsEditMode(false);
         }
+        
+        setLoading(false);
     };
     
-    // ... restante do código (handleSubmit, resetFormState, e JSX) MANTIDO IGUAL ...
+    // ----------------------------------------------------
+    // LÓGICA DE CRIAÇÃO/EDIÇÃO (MANTIDA)
+    // ----------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -170,7 +193,6 @@ function UserManagement() {
                     ? `Usuário ${name} (${role.toUpperCase()}) atualizado com sucesso!` 
                     : `Novo usuário ${role.toUpperCase()} criado com sucesso!`);
                 
-                // Se o Admin inativar a si mesmo, força o logout.
                 if (isEditMode && !isActive && userId === user._id) {
                     setMessage('Sua conta foi inativada. Redirecionando para o Login.');
                     setTimeout(logout, 3000); 
