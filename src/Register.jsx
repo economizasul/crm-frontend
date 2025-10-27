@@ -1,25 +1,25 @@
 // src/Register.jsx - AGORA É A TELA DE GESTÃO E EDIÇÃO DE USUÁRIOS (Admin)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, LogIn, Loader2, Phone, Users, Search, ToggleLeft, ToggleRight, X } from 'lucide-react';
 import { useAuth } from './AuthContext.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Renomeado para refletir a nova funcionalidade de edição/gestão
 function UserManagement() {
+    // Estados do Formulário de Usuário
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState(''); // Usado apenas para criação
+    const [password, setPassword] = useState(''); 
     const [role, setRole] = useState('user');
-    const [isActive, setIsActive] = useState(true); // NOVO: Campo de status
+    const [isActive, setIsActive] = useState(true); 
     
     // Estados para Busca e Modo de Formulário
-    const [searchEmail, setSearchEmail] = useState('');
+    const [searchQuery, setSearchQuery] = useState(''); // CORRIGIDO: Campo genérico para Nome OU Email
     const [isEditMode, setIsEditMode] = useState(false);
-    const [userId, setUserId] = useState(null); // ID do usuário em edição
+    const [userId, setUserId] = useState(null); 
     
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ function UserManagement() {
     const navigate = useNavigate();
 
     // ----------------------------------------------------
-    // 1. LÓGICA DE BUSCA
+    // LÓGICA DE BUSCA POR NOME OU EMAIL
     // ----------------------------------------------------
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -41,10 +41,18 @@ function UserManagement() {
             setLoading(false);
             return;
         }
+        
+        // Verifica se a busca está vazia
+        if (!searchQuery.trim()) {
+            setMessage('Por favor, insira um nome ou e-mail para buscar.');
+            setLoading(false);
+            return;
+        }
 
         try {
-            // CRÍTICO: Endpoint de busca (assumindo que o backend suporta buscar por email)
-            const response = await fetch(`${API_BASE_URL}/api/v1/users/search?email=${searchEmail}`, {
+            // CRÍTICO: Endpoint de busca agora usa 'query'. O backend deve buscar por Nome OU Email.
+            const encodedQuery = encodeURIComponent(searchQuery);
+            const response = await fetch(`${API_BASE_URL}/api/v1/users/search?query=${encodedQuery}`, {
                 method: 'GET',
                 headers: { 
                     'Authorization': `Bearer ${token}` 
@@ -54,29 +62,51 @@ function UserManagement() {
             if (response.ok) {
                 const userData = await response.json();
                 
-                // CRÍTICO: Se o usuário logado tentar editar a si mesmo, impede inativação.
-                if (userData._id === user._id) {
+                // Trata o caso em que a resposta pode ser um array de resultados, pegando o primeiro
+                const userToEdit = Array.isArray(userData) ? userData[0] : userData;
+
+                if (!userToEdit || !userToEdit._id) {
+                     setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
+                     resetFormState(); 
+                     // Preenche os campos para o novo cadastro
+                     if (searchQuery.includes('@')) {
+                        setEmail(searchQuery);
+                     } else {
+                        setName(searchQuery);
+                     }
+                     setIsEditMode(false);
+                     setLoading(false);
+                     return;
+                }
+
+                // Se o Admin tentar carregar a própria conta, avisa sobre inativação
+                if (userToEdit._id === user._id) {
                     setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
                 } else {
-                    setMessage(`Usuário ${userData.name} carregado com sucesso para edição.`);
+                    // Usa o nome ou o email como fallback, para usuários antigos sem nome
+                    setMessage(`Usuário ${userToEdit.name || userToEdit.email} carregado com sucesso para edição.`);
                 }
                 
-                // Popula o formulário para edição
-                setUserId(userData._id);
-                setName(userData.name);
-                setEmail(userData.email);
-                setPhone(userData.phone || '');
-                setRole(userData.role || 'user');
-                setIsActive(userData.isActive !== undefined ? userData.isActive : true); // Padrão é ativo
-                setPassword(''); // Nunca carrega senha
+                // Popula o formulário para edição. Usa fallback para campos ausentes.
+                setUserId(userToEdit._id);
+                setName(userToEdit.name || ''); 
+                setEmail(userToEdit.email || '');
+                setPhone(userToEdit.phone || '');
+                setRole(userToEdit.role || 'user');
+                setIsActive(userToEdit.isActive !== undefined ? userToEdit.isActive : true); 
+                setPassword(''); 
                 
                 setIsEditMode(true);
                 
             } else if (response.status === 404) {
-                setMessage('Usuário não encontrado. Você pode criar um novo com este e-mail.');
-                // Limpa e prepara para novo cadastro
+                setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
+                // Limpa e prepara para novo cadastro, preenchendo o email/nome com a query
                 resetFormState(); 
-                setEmail(searchEmail);
+                if (searchQuery.includes('@')) {
+                    setEmail(searchQuery);
+                 } else {
+                    setName(searchQuery);
+                 }
                 setIsEditMode(false);
             } else {
                 const errorData = await response.json();
@@ -93,7 +123,7 @@ function UserManagement() {
     };
     
     // ----------------------------------------------------
-    // 2. LÓGICA DE CRIAÇÃO/EDIÇÃO
+    // LÓGICA DE CRIAÇÃO/EDIÇÃO
     // ----------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -108,15 +138,27 @@ function UserManagement() {
         }
 
         const endpoint = isEditMode 
-            ? `${API_BASE_URL}/api/v1/users/${userId}` // Rota PATCH/PUT para edição
-            : `${API_BASE_URL}/api/v1/auth/register`; // Rota POST para criação
+            ? `${API_BASE_URL}/api/v1/users/${userId}` 
+            : `${API_BASE_URL}/api/v1/auth/register`; 
             
         const method = isEditMode ? 'PATCH' : 'POST';
         
-        // Dados a enviar
         const payload = isEditMode
-            ? { name, email, phone, role, isActive } // Edição não envia senha
-            : { name, email, phone, password, role }; // Criação exige senha
+            ? { name, email, phone, role, isActive } 
+            : { name, email, phone, password, role: role || 'user' }; 
+
+        // Validações
+        if (!isEditMode && (!name || !email || !phone || !password)) {
+             setMessage('Preencha Nome, E-mail, Telefone e Senha para criar um novo usuário.');
+             setLoading(false);
+             return;
+        }
+        if (isEditMode && (!name || !email || !phone)) {
+            setMessage('Preencha Nome, E-mail e Telefone para editar o usuário.');
+            setLoading(false);
+            return;
+       }
+
 
         try {
             const response = await fetch(endpoint, {
@@ -133,13 +175,12 @@ function UserManagement() {
                     ? `Usuário ${name} (${role.toUpperCase()}) atualizado com sucesso!` 
                     : `Novo usuário ${role.toUpperCase()} criado com sucesso!`);
                 
-                // CRÍTICO: Se o usuário editado for inativado e for o próprio admin, deve deslogar.
+                // Se o Admin inativar a si mesmo, força o logout.
                 if (isEditMode && !isActive && userId === user._id) {
                     setMessage('Sua conta foi inativada. Redirecionando para o Login.');
                     setTimeout(logout, 3000); 
                 }
                 
-                // Limpa e volta para o modo de busca/criação
                 resetFormState(true);
                 
             } else {
@@ -154,7 +195,7 @@ function UserManagement() {
         }
     };
     
-    // Reseta o estado do formulário (mantendo o e-mail de busca)
+    // Reseta o estado do formulário (limpa os campos e volta para o modo de busca)
     const resetFormState = (clearSearch = false) => {
         setName('');
         setEmail('');
@@ -165,7 +206,7 @@ function UserManagement() {
         setUserId(null);
         setIsEditMode(false);
         if (clearSearch) {
-            setSearchEmail('');
+            setSearchQuery('');
             setMessage('');
         }
     }
@@ -191,29 +232,29 @@ function UserManagement() {
                 )}
                 
                 {/* --------------------------- */}
-                {/* CAMPO DE BUSCA */}
+                {/* CAMPO DE BUSCA (ATUALIZADO) */}
                 {/* --------------------------- */}
                 <form className="mb-6 border-b pb-4" onSubmit={handleSearch}>
-                    <label htmlFor="searchEmail" className="block text-sm font-medium text-gray-700 mb-2">
-                        Buscar Usuário por E-mail
+                    <label htmlFor="searchQuery" className="block text-sm font-medium text-gray-700 mb-2">
+                        Buscar Usuário (Nome ou E-mail)
                     </label>
                     <div className="flex space-x-2">
                         <div className="relative flex-grow">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                             <input
-                                id="searchEmail"
-                                name="searchEmail"
-                                type="email"
+                                id="searchQuery"
+                                name="searchQuery"
+                                type="text" // Tipo mudado para text para aceitar Nome ou Email
                                 required
-                                value={searchEmail}
-                                onChange={(e) => setSearchEmail(e.target.value)}
-                                placeholder="E-mail do usuário para edição"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Nome ou E-mail do usuário" 
                                 className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             />
                         </div>
                         <button
                             type="submit"
-                            disabled={loading || !searchEmail}
+                            disabled={loading || !searchQuery}
                             className="flex-shrink-0 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400"
                         >
                             {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Buscar'}
@@ -222,152 +263,162 @@ function UserManagement() {
                 </form>
 
                 {/* --------------------------- */}
-                {/* FORMULÁRIO DE CADASTRO/EDIÇÃO */}
+                {/* FORMULÁRIO DE CADASTRO/EDIÇÃO (Aparece se estiver em Edição ou se houver uma Query para Novo Cadastro) */}
                 {/* --------------------------- */}
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">
-                    {isEditMode ? `Editando Usuário: ${name}` : 'Novo Cadastro'}
-                </h3>
-                
-                <form className="space-y-4" onSubmit={handleSubmit}>
-                    
-                    {/* Campo E-mail (read-only na edição) */}
-                    <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            value={email}
-                            readOnly={isEditMode} // Não permite alterar o email na edição
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Endereço de E-mail"
-                            className={`appearance-none block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm sm:text-sm ${isEditMode ? 'bg-gray-100 border-gray-300 text-gray-600' : 'border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500'}`}
-                        />
-                    </div>
-                    
-                    {/* Campo Nome */}
-                    <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            id="name"
-                            name="name"
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="Nome Completo"
-                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        />
-                    </div>
-
-                    {/* Campo Telefone */}
-                    <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                        <input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            required
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder="Telefone (ex: 5541999999999)"
-                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                        />
-                    </div>
-
-                    {/* Campo Senha (Apenas na Criação) */}
-                    {!isEditMode && (
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Definir Senha Inicial"
-                                className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            />
-                        </div>
-                    )}
-                    
-                    <div className="flex space-x-4">
-                        {/* Campo Tipo de Usuário (Role) */}
-                        <div className="relative flex-1">
-                            <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                            <select
-                                id="role"
-                                name="role"
-                                required
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            >
-                                <option value="user">Usuário</option>
-                                <option value="admin">Administrador</option>
-                            </select>
-                        </div>
+                {(isEditMode || (searchQuery && !loading)) && (
+                    <>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                            {isEditMode ? `Editando Usuário: ${name || email}` : 'Novo Cadastro'}
+                        </h3>
                         
-                        {/* NOVO CAMPO: Ativo/Inativo (Apenas na Edição) */}
-                        {isEditMode && (
-                            <div className="flex items-center space-x-3 p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 flex-1">
-                                <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</span>
-                                {/* Lógica para impedir que o Admin inative a si mesmo */}
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (userId !== user._id) {
-                                            setIsActive(!isActive)
-                                        } else {
-                                            setMessage('Você não pode inativar sua própria conta.');
-                                        }
-                                    }}
-                                    className={`flex items-center text-sm font-medium rounded-full p-1 transition duration-150 ${isActive ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
-                                    aria-checked={isActive}
-                                    disabled={userId === user._id}
-                                >
-                                    {isActive ? (
-                                        <ToggleRight className="w-8 h-8 text-white" />
-                                    ) : (
-                                        <ToggleLeft className="w-8 h-8 text-white" />
-                                    )}
-                                    <span className="ml-2 text-white">{isActive ? 'Ativo' : 'Inativo'}</span>
-                                </button>
+                        <form className="space-y-4" onSubmit={handleSubmit}>
+                            
+                            {/* Campo E-mail (read-only na edição) */}
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    required
+                                    value={email}
+                                    readOnly={isEditMode} 
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Endereço de E-mail"
+                                    className={`appearance-none block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm sm:text-sm ${isEditMode ? 'bg-gray-100 border-gray-300 text-gray-600' : 'border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500'}`}
+                                />
                             </div>
-                        )}
-                    </div>
+                            
+                            {/* Campo Nome */}
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <input
+                                    id="name"
+                                    name="name"
+                                    type="text"
+                                    required
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Nome Completo"
+                                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                            </div>
 
-                    {/* Botão de Submissão */}
-                    <div className="pt-2 flex space-x-2">
-                        <button
-                            type="submit"
-                            disabled={loading || (isEditMode && userId === user._id && !isActive)} // Impede salvar a inativação de si mesmo
-                            className="group relative flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
-                        >
-                            {loading ? (
-                                <Loader2 className="animate-spin w-5 h-5 mr-3" />
-                            ) : (
-                                <LogIn className="w-5 h-5 mr-3" />
+                            {/* Campo Telefone */}
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <input
+                                    id="phone"
+                                    name="phone"
+                                    type="tel"
+                                    required
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="Telefone (ex: 5541999999999)"
+                                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                            </div>
+
+                            {/* Campo Senha (Apenas na Criação) */}
+                            {!isEditMode && (
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="Definir Senha Inicial"
+                                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    />
+                                </div>
                             )}
-                            {loading ? 'Processando...' : (isEditMode ? 'Salvar Edição' : 'Criar Novo Usuário')}
-                        </button>
-                        
-                        {/* Botão Limpar/Cancelar Edição */}
-                        {isEditMode && (
-                            <button
-                                type="button"
-                                onClick={() => resetFormState(true)}
-                                className="group relative w-1/4 flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150"
-                            >
-                                <X className="w-5 h-5 mr-1" />
-                                Limpar
-                            </button>
-                        )}
-                    </div>
-                </form>
+                            
+                            <div className="flex space-x-4">
+                                {/* Campo Tipo de Usuário (Role) */}
+                                <div className="relative flex-1">
+                                    <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                    <select
+                                        id="role"
+                                        name="role"
+                                        required
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    >
+                                        <option value="user">Usuário</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                </div>
+                                
+                                {/* Campo Ativo/Inativo (Apenas na Edição) */}
+                                {isEditMode && (
+                                    <div className="flex items-center space-x-3 p-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 flex-1">
+                                        <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (userId !== user._id) {
+                                                    setIsActive(!isActive)
+                                                } else {
+                                                    setMessage('Você não pode inativar sua própria conta.');
+                                                }
+                                            }}
+                                            className={`flex items-center text-sm font-medium rounded-full p-1 transition duration-150 ${isActive ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
+                                            aria-checked={isActive}
+                                            disabled={userId === user._id}
+                                        >
+                                            {isActive ? (
+                                                <ToggleRight className="w-8 h-8 text-white" />
+                                            ) : (
+                                                <ToggleLeft className="w-8 h-8 text-white" />
+                                            )}
+                                            <span className="ml-2 text-white">{isActive ? 'Ativo' : 'Inativo'}</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Botão de Submissão */}
+                            <div className="pt-2 flex space-x-2">
+                                <button
+                                    type="submit"
+                                    disabled={loading || (isEditMode && userId === user._id && !isActive)} 
+                                    className="group relative flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                                >
+                                    {loading ? (
+                                        <Loader2 className="animate-spin w-5 h-5 mr-3" />
+                                    ) : (
+                                        <LogIn className="w-5 h-5 mr-3" />
+                                    )}
+                                    {loading ? 'Processando...' : (isEditMode ? 'Salvar Edição' : 'Criar Novo Usuário')}
+                                </button>
+                                
+                                {/* Botão Limpar/Cancelar Edição */}
+                                {isEditMode && (
+                                    <button
+                                        type="button"
+                                        onClick={() => resetFormState(true)}
+                                        className="group relative w-1/4 flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150"
+                                    >
+                                        <X className="w-5 h-5 mr-1" />
+                                        Limpar
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </>
+                )}
+                
+                {/* Mensagem de instrução quando o formulário está vazio */}
+                {!isEditMode && !searchQuery && !loading && (
+                     <div className="p-4 text-center text-gray-500">
+                        Use o campo acima para buscar um usuário existente ou comece digitando o nome/e-mail para criar um novo.
+                     </div>
+                )}
             </div>
         </div>
     );
