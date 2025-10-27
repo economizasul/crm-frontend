@@ -13,10 +13,9 @@ import KanbanBoard from './KanbanBoard.jsx'; // O conteúdo do Dashboard
 import LeadSearch from './LeadSearch.jsx'; // Tela de Busca/Lista
 import LeadForm from './LeadForm.jsx'; // Cadastro ou Edição de Lead (antigo /leads/cadastro)
 
-// Componente para proteger rotas - AGORA COM VERIFICAÇÃO DE ROLE (adminOnly)
-const ProtectedRoute = ({ children, adminOnly = false }) => { // 🚨 Adicionado 'adminOnly'
-    // 🚨 Certifique-se de que useAuth retorna o objeto 'user' com a 'role'
-    const { isAuthenticated, isAuthReady, user } = useAuth();
+// Componente para proteger rotas (Mantido do seu código)
+const ProtectedRoute = ({ children }) => {
+    const { isAuthenticated, isAuthReady } = useAuth();
     
     if (!isAuthReady) {
         return (
@@ -25,19 +24,8 @@ const ProtectedRoute = ({ children, adminOnly = false }) => { // 🚨 Adicionado
             </div>
         );
     }
-    
-    // Se não estiver autenticado, redireciona para o login
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    // NOVO: Se adminOnly for true e o usuário não for Admin, redireciona.
-    if (adminOnly && (!user || user.role !== 'admin')) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
-    // Renderiza o componente
-    return children;
+    // Renderiza o componente ou redireciona para o login
+    return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 // Componente para redirecionar após login (Mantido do seu código)
@@ -47,7 +35,8 @@ const RedirectAfterLogin = () => {
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Usa navigate em vez de window.location.href para SPA
+            // Usa navigate em vez de window.location.href para ser mais "React-friendly"
+            // Se precisar de um refresh completo, mantenha window.location.href
             window.location.href = '/dashboard'; 
         }
     }, [isAuthenticated, location]);
@@ -61,16 +50,13 @@ function App() {
             <Routes>
                 {/* Rotas Públicas */}
                 <Route path="/login" element={<><Login /><RedirectAfterLogin /></>} />
+                <Route path="/register" element={<Register />} />
                 
-                {/* 🚨 REMOVIDO a rota /register pública. Redireciona para o login caso alguém tente acessar. */}
-                <Route path="/register" element={<Navigate to="/login" replace />} />
-
-                {/* 🚨 NOVO: Rota de Cadastro de Usuário PROTEGIDA (Admin-only) */}
-                <Route path="/register-user" element={<ProtectedRoute adminOnly={true}><Register /></ProtectedRoute>} /> 
-
+                {/* Rota raiz / redireciona para o Dashboard */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                {/* Rotas Protegidas (Layout Principal: Dashboard com Sidebar e Conteúdo Aninhado) */}
+                {/* 🚨 ROTA DE LAYOUT PROTEGIDA: Dashboard é o componente Pai */}
+                {/* O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
                     {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
@@ -84,10 +70,10 @@ function App() {
                     {/* 3. Cadastro/Edição de Leads (Corrigido para /register-lead, conforme o Sidebar) */}
                     <Route path="/register-lead" element={<LeadForm />} />
                     
-                    {/* Rotas de Rodapé (Ex: /settings, /reports) */}
-                    {/* Adicione rotas de rodapé aqui conforme necessário, o ProtectedRoute padrão já as protege */}
-                    <Route path="/settings" element={<div>Página de Configurações</div>} />
-                    <Route path="/reports" element={<div>Página de Relatórios</div>} />
+                    {/* Adicione aqui rotas de rodapé do Sidebar (/reports, /settings) se existirem */}
+                    {/* Exemplo: */}
+                    {/* <Route path="/reports" element={<div>Página de Relatórios</div>} /> */}
+                    {/* <Route path="/settings" element={<div>Página de Configurações</div>} /> */}
 
                 </Route>
                 
@@ -98,4 +84,4 @@ function App() {
     );
 }
 
-export default App;S
+export default App;
