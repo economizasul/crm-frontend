@@ -1,18 +1,18 @@
 // src/AuthContext.jsx
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // Você provavelmente usa isto para verificar o token
+// CRÍTICO: Certifique-se de que a importação é feita desta forma, conforme o pacote.
+import { jwtDecode } from 'jwt-decode'; 
 
 const AuthContext = createContext(null);
 
-// Nomes das chaves no localStorage
 const TOKEN_KEY = 'token';
-const USER_KEY = 'user'; // CRÍTICO: Chave para armazenar o objeto de usuário completo
+const USER_KEY = 'user'; 
 
 export const AuthProvider = ({ children }) => {
-    // Inicializa o estado lendo o token e os dados do usuário do localStorage
+    
+    // ... restante da lógica de inicialização (mantida da última sugestão) ...
     const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY));
-    // CRÍTICO: Tenta desserializar os dados do usuário. Usa um bloco try/catch.
     const [user, setUser] = useState(() => {
         try {
             const storedUser = localStorage.getItem(USER_KEY);
@@ -46,21 +46,18 @@ export const AuthProvider = ({ children }) => {
             }
         }
         
-        // CRÍTICO: Garante que o estado de autenticação reflita o token e o objeto user
         setIsAuthenticated(valid && !!user); 
         setIsAuthReady(true);
-    }, [token, user]); // Dependência em 'user' para reagir a atualizações (como a role)
+    }, [token, user]); 
 
     // Função de LOGIN
     const login = (newToken, userData) => {
-        // 1. Atualiza o estado
         setToken(newToken);
-        setUser(userData); // CRÍTICO: Salva o objeto completo que contém a role
+        setUser(userData); 
         setIsAuthenticated(true);
         
-        // 2. Persiste no localStorage
         localStorage.setItem(TOKEN_KEY, newToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(userData)); // CRÍTICO: Persiste o objeto user
+        localStorage.setItem(USER_KEY, JSON.stringify(userData)); 
     };
 
     // Função de LOGOUT
@@ -69,7 +66,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setIsAuthenticated(false);
         localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY); // CRÍTICO: Remove o user
+        localStorage.removeItem(USER_KEY);
     };
     
     // Função para atualizar apenas o usuário (ex: após mudar a senha)
@@ -94,4 +91,4 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-export const useAuth = () => useContext(AuthContext);S
+export const useAuth = () => useContext(AuthContext);
