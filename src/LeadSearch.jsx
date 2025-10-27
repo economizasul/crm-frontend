@@ -1,12 +1,15 @@
 // src/LeadSearch.jsx
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'; 
-import { FaSearch, FaPlus, FaEdit, FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaEdit } from 'react-icons/fa'; // Mantidos os ícones que parecem ser usados
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
-import LeadEditModal from './components/LeadEditModal';
 import { STAGES } from './KanbanBoard.jsx'; 
+
+// 💡 CORREÇÃO: Removida a importação de LeadEditModal e outros ícones não utilizados na versão final
+// import LeadEditModal from './components/LeadEditModal'; 
+// import { FaTimes, FaSave, FaPaperclip } from 'react-icons/fa';
 
 // Variável de ambiente para URL da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -28,11 +31,8 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Função para mapear status para cor (consistente com Kanban)
+// Função para mapear status para cor (mantida)
 const statusColor = (status) => {
-    // Estas classes Tailwind CSS devem estar definidas em seu `KanbanBoard.jsx` (ou em um arquivo de estilos global)
-    // Se seu STAGES é apenas um Array (como na versão anterior), você precisa de um mapeamento explícito.
-    // Usaremos as classes que você mencionou anteriormente para evitar quebras visuais.
     switch (status) {
         case 'Fechado': return 'bg-green-100 text-green-800';
         case 'Proposta Enviada': return 'bg-blue-100 text-blue-800';
@@ -44,8 +44,8 @@ const statusColor = (status) => {
 };
 
 
-// Componente de Conteúdo da Busca (LeadSearchContent)
-const LeadSearchContent = React.memo(({ isLoading, apiError, navigate, searchTerm, handleSearchChange, filteredLeads, openLeadModal }) => {
+// Componente de Conteúdo da Busca (LeadSearchContent) - Agora recebe handleEdit
+const LeadSearchContent = React.memo(({ isLoading, apiError, navigate, searchTerm, handleSearchChange, filteredLeads, handleEdit }) => {
     return (
         <div className="p-6">
             <h1 className="text-3xl font-bold text-gray-800 mb-6 flex items-center justify-between">
@@ -96,8 +96,9 @@ const LeadSearchContent = React.memo(({ isLoading, apiError, navigate, searchTer
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        {/* 💡 AÇÃO DE EDIÇÃO CORRIGIDA: Usa navegação direta */}
                                         <button 
-                                            onClick={() => openLeadModal(lead)}
+                                            onClick={() => handleEdit(lead._id)}
                                             className="text-indigo-600 hover:text-indigo-900 flex items-center space-x-1"
                                         >
                                             <FaEdit size={14} /> <span>Editar</span>
@@ -127,13 +128,15 @@ const LeadSearch = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedLead, setSelectedLead] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // 💡 REMOVIDOS estados e funções de Modal: selectedLead, isModalOpen, closeLeadModal, handleSaveFeedback
+    // const [selectedLead, setSelectedLead] = useState(null);
+    // const [isModalOpen, setIsModalOpen] = useState(false);
     
     const navigate = useNavigate();
     const { token, logout } = useAuth();
     
-    // 💡 CORREÇÃO CRÍTICA: Implementação completa da função fetchLeads
+    // Função fetchLeads (Mantida e Corrigida)
     const fetchLeads = useCallback(async () => {
         if (!token) {
             setApiError('Token de autenticação ausente. Redirecionando...');
@@ -157,12 +160,10 @@ const LeadSearch = () => {
         } catch (err) {
             console.error("Erro ao buscar leads:", err.response?.data || err.message);
             setApiError('Falha ao carregar leads. Verifique a conexão com o servidor ou o token.');
-            // Se for erro 401/403 (Token Inválido), force o logout
             if (err.response && (err.response.status === 401 || err.response.status === 403)) {
                  logout();
             }
         } finally {
-            // CRÍTICO: Sempre define isLoading como false
             setIsLoading(false); 
         }
     }, [token, navigate, logout]);
@@ -175,7 +176,12 @@ const LeadSearch = () => {
         setSearchTerm(e.target.value);
     };
 
-    // Lógica de filtro aprimorada
+    // 💡 NOVA FUNÇÃO: Navegação direta para a tela de edição
+    const handleEdit = (leadId) => {
+        navigate(`/register-lead/${leadId}`); 
+    };
+
+    // Lógica de filtro aprimorada (Mantida)
     const filteredLeads = useMemo(() => {
         if (!searchTerm) return leads;
 
@@ -185,27 +191,10 @@ const LeadSearch = () => {
             lead.name.toLowerCase().includes(lowerCaseSearch) ||
             lead.phone.includes(searchTerm) ||
             lead.email.toLowerCase().includes(lowerCaseSearch) ||
-            lead.uc?.toLowerCase().includes(lowerCaseSearch) || // 💡 Adicionado UC na busca
-            lead.document?.includes(searchTerm) // 💡 Adicionado Documento na busca
+            lead.uc?.toLowerCase().includes(lowerCaseSearch) || 
+            lead.document?.includes(searchTerm)
         );
     }, [leads, searchTerm]);
-
-    const openLeadModal = useCallback((lead) => {
-        const leadNotes = Array.isArray(lead.notes) ? lead.notes : [];
-        const leadCopy = { ...lead, notes: leadNotes };
-        setSelectedLead(leadCopy);
-        setIsModalOpen(true);
-    }, []);
-
-    const closeLeadModal = useCallback(() => {
-        setIsModalOpen(false);
-        setSelectedLead(null);
-        fetchLeads(); // Recarregar a lista após fechar o modal
-    }, [fetchLeads]);
-    
-    const handleSaveFeedback = useCallback((success, message) => {
-        console.log(`Salvamento: ${success ? 'Sucesso' : 'Falha'} - ${message}`);
-    }, []);
 
 
     return (
@@ -217,22 +206,13 @@ const LeadSearch = () => {
                 searchTerm={searchTerm}
                 handleSearchChange={handleSearchChange}
                 filteredLeads={filteredLeads}
-                openLeadModal={openLeadModal}
+                // 💡 Passa a nova função de edição
+                handleEdit={handleEdit} 
+                // 💡 openLeadModal removido
             />
 
-            {selectedLead && (
-                <LeadEditModal 
-                    selectedLead={selectedLead}
-                    isModalOpen={isModalOpen}
-                    onClose={closeLeadModal}
-                    onSave={handleSaveFeedback}
-                    token={token}
-                    fetchLeads={fetchLeads}
-                    // Adicione 'user' e 'isAdmin' como props se LeadEditModal precisar
-                    // user={user} 
-                    // isAdmin={user && (user.role === 'Admin' || user.role === 'admin')}
-                />
-            )}
+            {/* 💡 BLOCO DO MODAL REMOVIDO: Não renderiza mais o LeadEditModal */}
+            
         </div>
     );
 };

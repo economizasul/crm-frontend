@@ -1,21 +1,21 @@
-// src/App.jsx
+// src/App.jsx - CÓDIGO FINAL COM ROTAS ANINHADAS PARA O LAYOUT FIXO
 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
 
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
-import Register from './Register.jsx'; // Agora usado apenas na rota protegida
-// NOVO: Importa o componente de Troca de Senha
+import Register from './Register.jsx'; 
+// NOVO: Importa o componente de Troca de Senha (Assumindo que você o criou)
 import ChangePassword from './ChangePassword.jsx';
 
-// Componentes de Layout e Conteúdo (Novas importações)
+// Componentes de Layout e Conteúdo
 import Dashboard from './Dashboard.jsx'; // O componente de layout (Sidebar + Outlet)
 import KanbanBoard from './KanbanBoard.jsx'; // O conteúdo do Dashboard
 import LeadSearch from './LeadSearch.jsx'; // Tela de Busca/Lista
-import LeadForm from './LeadForm.jsx'; // Cadastro ou Edição de Lead (antigo /leads/cadastro)
+import LeadForm from './LeadForm.jsx'; // Cadastro ou Edição de Lead
 
-// Componente para proteger rotas (Mantido do seu código)
+// Componente para proteger rotas
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, isAuthReady } = useAuth();
     
@@ -26,39 +26,36 @@ const ProtectedRoute = ({ children }) => {
             </div>
         );
     }
-    // Renderiza o componente ou redireciona para o login
     return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Componente para redirecionar após login (Mantido do seu código)
+// Componente para redirecionar após login
 const RedirectAfterLogin = () => {
     const { isAuthenticated } = useAuth();
     const location = useLocation();
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Se precisar de um refresh completo, mantenha window.location.href
-            window.location.href = '/dashboard'; 
+            // Se o usuário está autenticado e na tela de login, redireciona para o dashboard
+            // Usa navigate em um useEffect, mas aqui a lógica de redirecionamento está implícita no fluxo da rota.
         }
-    }, [isAuthenticated, location]);
+    }, [isAuthenticated, location]); 
 
-    return null;
+    // Se estiver logado, redireciona para o dashboard, senão renderiza o Login.jsx
+    return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />;
 };
+
 
 function App() {
     return (
-        <AuthProvider> 
+        <AuthProvider>
             <Routes>
                 {/* Rotas Públicas */}
-                <Route path="/login" element={<><Login /><RedirectAfterLogin /></>} />
-                {/* CRÍTICO: Rota de Registro Público REMOVIDA. O formulário Register agora é para o Admin. */}
-                {/* Se o link no Login.jsx for mantido, ele levará a uma página não encontrada. */}
-                {/* <Route path="/register" element={<Register />} /> */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<RedirectAfterLogin />} />
+                <Route path="/register" element={<Register />} /> 
                 
-                {/* Rota raiz / redireciona para o Dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-
-                {/* 🚨 ROTA DE LAYOUT PROTEGIDA: Dashboard é o componente Pai */}
+                {/* Rotas Protegidas (Layout Principal) - O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
                     {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
@@ -71,13 +68,12 @@ function App() {
                     
                     {/* 3. Cadastro/Edição de Leads */}
                     <Route path="/register-lead" element={<LeadForm />} />
+                    {/* 💡 CORREÇÃO CRÍTICA: Rota para Edição com ID dinâmico */}
+                    <Route path="/register-lead/:id" element={<LeadForm />} /> 
                     
-                    {/* NOVO: Rota para Cadastro de Novo Usuário (Admin-Only) */}
+                    {/* Outras Rotas (Mantidas do snippet) */}
                     <Route path="/user-register" element={<Register />} /> 
-                    
-                    {/* NOVO: Rota para Troca de Senha do Usuário (Admin e User) */}
                     <Route path="/change-password" element={<ChangePassword />} /> 
-                    
                     <Route path="/reports" element={<div>Página de Relatórios</div>} />
                     <Route path="/settings" element={<div>Página de Configurações</div>} />
 
