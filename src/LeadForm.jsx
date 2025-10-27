@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'; 
 import axios from 'axios';
 import { X, Save, ArrowLeft } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom'; // 💡 INCLUSÃO: useParams para edição
+// CRÍTICO: Importar useParams para ler o ID da URL e determinar o modo de Edição
+import { useNavigate, useParams } from 'react-router-dom'; 
 import { useAuth } from './AuthContext.jsx'; 
 
-// 🛑 CORREÇÃO CRÍTICA: Usa a variável de ambiente VITE_API_URL configurada no Render
+// 🛑 Usa a variável de ambiente VITE_API_URL configurada no Render
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 // Componente simples de Toast para feedback ao usuário
@@ -32,15 +33,15 @@ const STAGES = [
 
 
 function LeadForm() {
-    // 💡 NOVO: Pega o ID da URL para modo de Edição (Se o componente for usado em uma rota como /lead/edit/:id)
+    // 💡 CRÍTICO: Pega o ID da URL para modo de Edição
     const { id: leadId } = useParams(); 
     
-    // Pega o token E A ROLE do usuário logado
     const { token, user } = useAuth(); 
     const navigate = useNavigate();
     
-    // 💡 Variáveis de estado adicionadas
+    // 💡 Variáveis de estado para a lógica de transferência
     const isEditMode = !!leadId;
+    // Verifica se a role é 'Admin' ou 'admin'
     const isAdmin = user && (user.role === 'Admin' || user.role === 'admin');
     const [users, setUsers] = useState([]); // Lista de usuários para transferência
     const [assignedToId, setAssignedToId] = useState(''); // ID do proprietário atual/novo
@@ -61,8 +62,10 @@ function LeadForm() {
     };
 
     const handleBack = () => {
-        navigate('/dashboard', { replace: true });
+        // Volta para a tela de listagem de leads (onde geralmente o usuário estava)
+        navigate('/leads', { replace: true }); 
     };
+    
     
     // 💡 useEffect: Carregar dados do lead (Edição) e lista de usuários (Admin)
     useEffect(() => {
@@ -70,12 +73,13 @@ function LeadForm() {
         const fetchUsers = async () => {
             if (isAdmin) {
                  try {
+                    // Endpoint corrigido: /api/v1/leads/users/reassignment
                     const response = await axios.get(`${API_BASE_URL}/api/v1/leads/users/reassignment`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     setUsers(response.data);
                 } catch (error) {
-                    console.error("Erro ao carregar usuários:", error);
+                    console.error("Erro ao carregar usuários para transferência:", error);
                 }
             }
         };
@@ -90,18 +94,21 @@ function LeadForm() {
                     const leadData = response.data;
                     
                     // Converte o array de objetos notas (formatado pelo controller) para string de texto
-                    const notesString = leadData.notes.map(n => n.text).join('\n');
+                    // (As notas devem estar em formato de Array de objetos [{text: string, timestamp: number}] do controller)
+                    const notesString = Array.isArray(leadData.notes) 
+                        ? leadData.notes.map(n => n.text).join('\n')
+                        : '';
                     
                     // Preenche o formulário
                     setFormData({
-                        name: leadData.name, phone: leadData.phone, document: leadData.document || '',
-                        address: leadData.address || '', status: leadData.status, origin: leadData.origin,
+                        name: leadData.name || '', phone: leadData.phone || '', document: leadData.document || '',
+                        address: leadData.address || '', status: leadData.status || STAGES[0], origin: leadData.origin || '',
                         email: leadData.email || '', uc: leadData.uc || '', qsa: leadData.qsa || '',
                         avgConsumption: leadData.avgConsumption || '', estimatedSavings: leadData.estimatedSavings || '',
                         notes: notesString,
                     });
                     
-                    // Seta o proprietário atual para o campo de transferência
+                    // CRÍTICO: Seta o proprietário atual para o campo de transferência
                     setAssignedToId(leadData.ownerId); 
 
                 } catch (error) {
@@ -111,55 +118,46 @@ function LeadForm() {
             }
         };
 
+        // Executa as funções
         fetchUsers();
         fetchLeadData();
 
-    }, [leadId, token, isAdmin, isEditMode]); // Dependências do useEffect
+    }, [leadId, token, isAdmin, isEditMode, navigate]); // Dependências do useEffect
     
     
     // Lógica de Submissão
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setToastMessage(null); // Limpa mensagens anteriores
+        setToastMessage(null); 
 
-        // Prepara as notas em formato de Array de Objetos para que o backend stringifique corretamente
+        // CRÍTICO: Prepara as notas em formato de Array de Objetos para que o backend stringifique
         const notesArrayOfObjects = formData.notes.split('\n').map(n => n.trim()).filter(n => n.length > 0)
                                     .map(text => ({ text, timestamp: new Date().getTime() }));
         
         const dataToSend = {
             ...formData,
-            // Certifica-se que consumo e economia são números ou nulos
-            avgConsumption: formData.avgConsumption ? parseFloat(formData.avgConsumption) : null,
-            estimatedSavings: formData.estimatedSavings ? parseFloat(formData.estimatedSavings) : null,
-            // 💡 CRÍTICO: Stringifica o array de objetos notas para a coluna TEXT do DB
+            // Certifica-se que consumo e economia são números ou strings vazias
+            avgConsumption: formData.avgConsumption ? parseFloat(formData.avgConsumption) : undefined,
+            estimatedSavings: formData.estimatedSavings ? parseFloat(formData.estimatedSavings) : undefined,
+            // CRÍTICO: Stringifica o array de objetos notas para a coluna TEXT do DB (o controller fará o JSON.parse)
             notes: JSON.stringify(notesArrayOfObjects), 
         };
         
-        // 💡 LÓGICA DE TRANSFERÊNCIA NO PAYLOAD (só inclui se for Admin)
+        // 💡 LÓGICA DE TRANSFERÊNCIA NO PAYLOAD:
+        // Se for Admin E o ID selecionado for diferente do proprietário atual (assignedToId é o novo ownerId)
         if (isAdmin && assignedToId) {
-            dataToSend.assignedToId = assignedToId; // O controller irá usar este campo para atualizar o ownerId
+            dataToSend.assignedToId = assignedToId; 
+        } else {
+             // Garante que o campo assignedToId não será enviado se não for Admin ou se o valor for vazio
+             delete dataToSend.assignedToId;
         }
 
-        // Remove campos vazios ou irrelevantes para evitar problemas
-        Object.keys(dataToSend).forEach(key => {
-            if (dataToSend[key] === '' || dataToSend[key] === null) {
-                delete dataToSend[key];
-            }
-        });
-        
-        // ... (Verifica se o token existe)
-        if (!token) {
-            setLoading(false);
-            setToastMessage({ message: 'Erro de autenticação. Faça login novamente.', type: 'error' });
-            navigate('/login');
-            return;
-        }
 
         // Define a URL e o Método (POST para Criação, PUT para Edição)
         const method = isEditMode ? axios.put : axios.post;
         const url = isEditMode ? `${API_BASE_URL}/api/v1/leads/${leadId}` : `${API_BASE_URL}/api/v1/leads`;
-        const successMessage = isEditMode ? 'Lead atualizado e salvo com sucesso!' : 'Lead criado com sucesso!';
+        const successMessage = isEditMode ? 'Lead atualizado e salvo com sucesso!' : 'Lead criado com sucesso! Redirecionando...';
 
 
         try {
@@ -172,14 +170,10 @@ function LeadForm() {
 
             setToastMessage({ message: successMessage, type: 'success' });
             
-            // Limpa o formulário apenas se for criação
-            if (!isEditMode) {
-                setFormData({
-                    name: '', phone: '', document: '', address: '',
-                    status: STAGES[0], origin: '', email: '', uc: '',
-                    avgConsumption: '', estimatedSavings: '', qsa: '', notes: '',
-                });
-            }
+            // Redireciona de volta após salvar (Edição ou Criação)
+            setTimeout(() => {
+                navigate('/leads'); // Volta para a tela de lista após o sucesso
+            }, 1000); 
 
         } catch (error) {
             console.error('Erro ao salvar lead:', error.response?.data || error.message);
@@ -208,10 +202,10 @@ function LeadForm() {
                         className="flex items-center text-indigo-600 hover:text-indigo-800 transition duration-150"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
-                        <span>Voltar para o Kanban</span>
+                        <span>Voltar para Lista</span>
                     </button>
                     <h1 className="text-3xl font-bold text-gray-800">
-                        {isEditMode ? `Edição do Lead: ${formData.name}` : 'Cadastro de Novo Lead'}
+                        {isEditMode ? `Edição do Lead: ${formData.name || 'Carregando...'}` : 'Cadastro de Novo Lead'}
                     </h1>
                     <div className="w-20"></div> {/* Espaçador */}
                 </div>
@@ -260,7 +254,6 @@ function LeadForm() {
                             <input type="number" id="avgConsumption" name="avgConsumption" value={formData.avgConsumption} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                         <div>
-                            {/* O status deve ser sempre editável, em criação ou edição */}
                             <label htmlFor="status" className="block text-sm font-medium text-gray-700">Status</label>
                             <select id="status" name="status" value={formData.status} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500">
                                 {STAGES.map(stage => (
@@ -282,23 +275,27 @@ function LeadForm() {
                         </div>
                     </div>
                     
-                    {/* 💡 NOVO: Campo de Reatribuição (Visível apenas para Admin e em modo de edição) */}
+                    {/* 💡 CAMPO CRÍTICO DE TRANSFERÊNCIA: Visível apenas para Admin e em modo de Edição */}
                     {(isAdmin && isEditMode) && (
                         <div>
-                            <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700">Transferir Lead para:</label>
+                            <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700">Transferir Lead para (Admin):</label>
                             <select
                                 id="assignedTo"
                                 value={assignedToId}
                                 onChange={(e) => setAssignedToId(e.target.value)}
                                 className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-indigo-500 focus:border-indigo-500"
                             >
-                                <option value="">-- Manter Responsável Atual --</option>
+                                {/* O valor padrão é o ID do proprietário atual */}
+                                <option value={assignedToId}>-- Responsável Atual (ID: {assignedToId}) --</option> 
                                 {users.map((u) => (
                                     <option key={u.id} value={u.id}>
-                                        {u.name}
+                                        {u.name} (ID: {u.id})
                                     </option>
                                 ))}
                             </select>
+                            <p className="mt-1 text-xs text-gray-500">
+                                Mudar este campo reatribui a responsabilidade do lead para outro vendedor.
+                            </p>
                         </div>
                     )}
 
