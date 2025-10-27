@@ -1,4 +1,4 @@
-// src/Register.jsx - TELA DE GESTÃO DE USUÁRIOS (Admin) - VERSÃO FINAL COM FALLBACK FORTE PARA E-MAIL
+// src/Register.jsx - TELA DE GESTÃO DE USUÁRIOS (Admin) - VERSÃO FINAL E COMPLETA
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +19,7 @@ function UserManagement() {
     // Estados para Busca e Modo de Formulário
     const [searchQuery, setSearchQuery] = useState(''); 
     const [isEditMode, setIsEditMode] = useState(false);
+    // O ID do usuário no banco (usa 'id' ou '_id')
     const [userId, setUserId] = useState(null); 
     
     const [message, setMessage] = useState('');
@@ -44,8 +45,11 @@ function UserManagement() {
 
             if (response.ok) {
                 const userData = await response.json();
-                const foundUser = Array.isArray(userData) ? userData[0] : userData;
-                if (foundUser && foundUser._id) {
+                // A API deve retornar um único objeto, mas tratamos se vier como array
+                const foundUser = Array.isArray(userData) ? userData[0] : userData; 
+                
+                // Checa por _id ou id para garantir a compatibilidade
+                if (foundUser && (foundUser._id || foundUser.id)) { 
                     return { success: true, user: foundUser };
                 }
             }
@@ -61,7 +65,7 @@ function UserManagement() {
 
 
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA COM FALLBACK
+    // LÓGICA DE BUSCA COM FALLBACK (E-mail -> Nome)
     // ----------------------------------------------------
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -70,7 +74,10 @@ function UserManagement() {
         resetFormState(); // Limpa o formulário antes de começar
 
         const token = user?.token || localStorage.getItem('token');
-        if (!token || user.role.toLowerCase() !== 'admin') {
+        // Garante que a permissão de admin é verificada corretamente
+        const isAdmin = user && user.role.toLowerCase() === 'admin';
+        
+        if (!token || !isAdmin) {
             setMessage('Acesso negado. Apenas administradores podem gerenciar usuários.');
             setLoading(false);
             return;
@@ -86,42 +93,43 @@ function UserManagement() {
         const isEmail = query.includes('@');
         let searchResult = { success: false };
 
-        // 1. Tenta a busca primária (Email ou Nome)
+        // 1. Tenta a busca primária (Se for E-mail, busca por E-mail; se não, busca por Nome)
         searchResult = await performSearch(isEmail ? 'email' : 'name', query, token);
 
         // 2. Se a busca primária falhar, tenta o FALLBACK:
-        // Se falhou por Nome, tenta buscar a string como E-mail.
         if (!searchResult.success && !isEmail) {
             console.log("[DEBUG - FRONTEND] Busca por Nome falhou. Tentando FALLBACK por Email.");
             searchResult = await performSearch('email', query, token);
         }
-        // Se falhou por E-mail, tenta buscar a string como Nome.
         if (!searchResult.success && isEmail) {
             console.log("[DEBUG - FRONTEND] Busca por Email falhou. Tentando FALLBACK por Nome.");
             searchResult = await performSearch('name', query, token);
         }
-
 
         // --------------------------------
         // Lógica de Preenchimento do Formulário
         // --------------------------------
         if (searchResult.success && searchResult.user) {
             const finalUser = searchResult.user;
-            
-            if (finalUser._id === user._id) {
+            // Usa a propriedade correta de ID (ID do banco OU ID do token/contexto)
+            const finalId = finalUser._id || finalUser.id; 
+            const loggedInUserId = user._id || user.id; 
+
+            if (finalId === loggedInUserId) { 
                 setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
             } else {
                 setMessage(`Usuário ${finalUser.name || finalUser.email} carregado com sucesso para edição.`);
             }
             
             // Popula o formulário para edição.
-            setUserId(finalUser._id);
+            setUserId(finalId);
             setName(finalUser.name || ''); 
             setEmail(finalUser.email || '');
             setPhone(finalUser.phone || '');
             setRole(finalUser.role || 'user');
+            // 'isActive' é um BOOLEAN no DB (PostgreSQL), tratamos como tal.
             setIsActive(finalUser.isActive !== undefined ? finalUser.isActive : true); 
-            setPassword(''); 
+            setPassword(''); // Não exibe senha
             
             setIsEditMode(true);
             
@@ -141,7 +149,7 @@ function UserManagement() {
     };
     
     // ----------------------------------------------------
-    // LÓGICA DE CRIAÇÃO/EDIÇÃO (MANTIDA)
+    // LÓGICA DE CRIAÇÃO/EDIÇÃO
     // ----------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -149,33 +157,38 @@ function UserManagement() {
         setMessage(isEditMode ? 'Tentando salvar edição...' : 'Tentando criar novo usuário...');
 
         const token = user?.token || localStorage.getItem('token');
-        if (!token || user.role.toLowerCase() !== 'admin') {
+        const isAdmin = user && user.role.toLowerCase() === 'admin';
+        
+        if (!token || !isAdmin) {
             setMessage('Acesso negado. Apenas administradores podem gerenciar usuários.');
             setLoading(false);
             return;
         }
+        
+        // Validações de campos obrigatórios
+        if (isEditMode && (!name || !email || !phone)) {
+            setMessage('Preencha Nome, E-mail e Telefone para editar o usuário.');
+            setLoading(false);
+            return;
+        }
+        if (!isEditMode && (!name || !email || !phone || !password)) {
+             setMessage('Preencha Nome, E-mail, Telefone e Senha para criar um novo usuário.');
+             setLoading(false);
+             return;
+        }
 
+
+        // Se estiver em modo edição, usa a nova rota de PATCH, se não, usa a rota de POST/Register
         const endpoint = isEditMode 
             ? `${API_BASE_URL}/api/v1/users/${userId}` 
             : `${API_BASE_URL}/api/v1/auth/register`; 
             
         const method = isEditMode ? 'PATCH' : 'POST';
         
+        // Payload de Edição não precisa de senha
         const payload = isEditMode
             ? { name, email, phone, role, isActive } 
             : { name, email, phone, password, role: role || 'user' }; 
-
-        // Validações
-        if (!isEditMode && (!name || !email || !phone || !password)) {
-             setMessage('Preencha Nome, E-mail, Telefone e Senha para criar um novo usuário.');
-             setLoading(false);
-             return;
-        }
-        if (isEditMode && (!name || !email || !phone)) {
-            setMessage('Preencha Nome, E-mail e Telefone para editar o usuário.');
-            setLoading(false);
-            return;
-       }
 
 
         try {
@@ -193,7 +206,10 @@ function UserManagement() {
                     ? `Usuário ${name} (${role.toUpperCase()}) atualizado com sucesso!` 
                     : `Novo usuário ${role.toUpperCase()} criado com sucesso!`);
                 
-                if (isEditMode && !isActive && userId === user._id) {
+                const loggedInUserId = user._id || user.id; 
+                
+                // Se o próprio admin inativou sua conta, faz logout
+                if (isEditMode && !isActive && userId === loggedInUserId) {
                     setMessage('Sua conta foi inativada. Redirecionando para o Login.');
                     setTimeout(logout, 3000); 
                 }
@@ -378,7 +394,8 @@ function UserManagement() {
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                if (userId !== user._id) {
+                                                const loggedInUserId = user._id || user.id; 
+                                                if (userId !== loggedInUserId) { 
                                                     setIsActive(!isActive)
                                                 } else {
                                                     setMessage('Você não pode inativar sua própria conta.');
@@ -386,7 +403,7 @@ function UserManagement() {
                                             }}
                                             className={`flex items-center text-sm font-medium rounded-full p-1 transition duration-150 ${isActive ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'}`}
                                             aria-checked={isActive}
-                                            disabled={userId === user._id}
+                                            disabled={userId === (user._id || user.id)} // Impede o próprio admin de usar o botão
                                         >
                                             {isActive ? (
                                                 <ToggleRight className="w-8 h-8 text-white" />
@@ -403,7 +420,8 @@ function UserManagement() {
                             <div className="pt-2 flex space-x-2">
                                 <button
                                     type="submit"
-                                    disabled={loading || (isEditMode && userId === user._id && !isActive)} 
+                                    // Desabilita se estiver carregando ou se for o próprio admin tentando inativar
+                                    disabled={loading || (isEditMode && userId === (user._id || user.id) && !isActive)} 
                                     className="group relative flex-1 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
