@@ -1,8 +1,9 @@
-// src/Register.jsx - AGORA É A TELA DE GESTÃO E EDIÇÃO DE USUÁRIOS (Admin)
+// src/Register.jsx - TELA DE GESTÃO DE USUÁRIOS (Admin) com Debugging
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, LogIn, Loader2, Phone, Users, Search, ToggleLeft, ToggleRight, X } from 'lucide-react';
+// Certifique-se de que todas essas imports estão disponíveis no seu projeto
+import { User, Mail, Lock, LogIn, Loader2, Phone, Users, Search, ToggleLeft, ToggleRight, X } from 'lucide-react'; 
 import { useAuth } from './AuthContext.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -52,10 +53,12 @@ function UserManagement() {
         const searchType = isEmailSearch ? 'email' : 'name';
         const encodedValue = encodeURIComponent(searchQuery);
 
-        // CRÍTICO: Define o endpoint com o parâmetro correto.
         const searchUrl = `${API_BASE_URL}/api/v1/users/search?${searchType}=${encodedValue}`;
         let success = false;
         let finalUser = null;
+
+        // 🚨 NOVO: Loga o URL exato para debugging do Backend
+        console.log(`[DEBUG - FRONTEND] Tentando buscar com URL: ${searchUrl}`);
 
         try {
             const response = await fetch(searchUrl, {
@@ -64,23 +67,23 @@ function UserManagement() {
                     'Authorization': `Bearer ${token}` 
                 },
             });
+            
+            // 🚨 NOVO: Loga o Status de Resposta
+            console.log(`[DEBUG - FRONTEND] Status da Resposta: ${response.status}`);
 
             if (response.ok) {
                 const userData = await response.json();
-                // Trata arrays ou objetos únicos
                 finalUser = Array.isArray(userData) ? userData[0] : userData;
                 success = !!finalUser && !!finalUser._id;
             } else if (response.status === 404) {
-                 // A requisição foi bem-sucedida, mas o usuário não existe.
                  setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
             } else {
-                // Erros de servidor (500, etc.)
                 const errorData = await response.json();
                 setMessage(`Falha na busca: ${errorData.error || response.statusText}.`);
             }
 
         } catch (error) {
-            console.error('Erro de Conexão:', error);
+            console.error('[DEBUG - FRONTEND] Erro de Conexão:', error);
             setMessage('Erro de conexão com o servidor. Tente novamente.');
         } finally {
             setLoading(false);
@@ -96,7 +99,6 @@ function UserManagement() {
                 setMessage(`Usuário ${finalUser.name || finalUser.email} carregado com sucesso para edição.`);
             }
             
-            // Popula o formulário.
             setUserId(finalUser._id);
             setName(finalUser.name || ''); 
             setEmail(finalUser.email || '');
@@ -107,7 +109,6 @@ function UserManagement() {
             
             setIsEditMode(true);
         } else if (!isEditMode) {
-             // Limpa e prepara para novo cadastro, caso a busca tenha falhado com 404
              resetFormState(); 
              if (isEmailSearch) {
                  setEmail(searchQuery);
@@ -118,9 +119,7 @@ function UserManagement() {
         }
     };
     
-    // ----------------------------------------------------
-    // LÓGICA DE CRIAÇÃO/EDIÇÃO (Mantida)
-    // ----------------------------------------------------
+    // ... restante do código (handleSubmit, resetFormState, e JSX) MANTIDO IGUAL ...
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
