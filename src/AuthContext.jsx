@@ -1,72 +1,97 @@
+// src/AuthContext.jsx
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode'; // Você provavelmente usa isto para verificar o token
 
-// 1. Criação do Contexto
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-// Hook personalizado para fácil acesso ao contexto
-export const useAuth = () => useContext(AuthContext);
+// Nomes das chaves no localStorage
+const TOKEN_KEY = 'token';
+const USER_KEY = 'user'; // CRÍTICO: Chave para armazenar o objeto de usuário completo
 
-// 2. Provedor do Contexto
 export const AuthProvider = ({ children }) => {
-    // Tenta carregar o token e o userId do localStorage na inicialização
-    const [token, setToken] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    
-    // Estado para sinalizar que a verificação inicial terminou. CRUCIAL.
-    const [isAuthReady, setIsAuthReady] = useState(false);
-
-    // Efeito para carregar o estado inicial de autenticação do localStorage
-    useEffect(() => {
-        const initialToken = localStorage.getItem('token');
-        const initialUserId = localStorage.getItem('userId');
-        
-        if (initialToken) {
-            setToken(initialToken);
-            setUserId(initialUserId);
-            setIsAuthenticated(true);
+    // Inicializa o estado lendo o token e os dados do usuário do localStorage
+    const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY));
+    // CRÍTICO: Tenta desserializar os dados do usuário. Usa um bloco try/catch.
+    const [user, setUser] = useState(() => {
+        try {
+            const storedUser = localStorage.getItem(USER_KEY);
+            return storedUser ? JSON.parse(storedUser) : null;
+        } catch (e) {
+            console.error("Erro ao ler dados do usuário do localStorage", e);
+            localStorage.removeItem(USER_KEY);
+            return null;
         }
-        setIsAuthReady(true); // O estado inicial foi verificado
-    }, []);
+    });
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Função de login que atualiza o localStorage E o estado React
-    const login = (newToken, newUserId) => {
-        // 1. Salva no localStorage
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('userId', newUserId);
+    // Efeito para verificar o token e sincronizar o estado
+    useEffect(() => {
+        let valid = false;
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                // Verifica se o token não expirou
+                if (decoded.exp * 1000 > Date.now()) {
+                    valid = true;
+                } else {
+                    // Token expirado
+                    console.log("Token expirado.");
+                    logout(); 
+                }
+            } catch (e) {
+                console.error("Token inválido", e);
+                logout(); 
+            }
+        }
         
-        // 2. Atualiza o estado
+        // CRÍTICO: Garante que o estado de autenticação reflita o token e o objeto user
+        setIsAuthenticated(valid && !!user); 
+        setIsAuthReady(true);
+    }, [token, user]); // Dependência em 'user' para reagir a atualizações (como a role)
+
+    // Função de LOGIN
+    const login = (newToken, userData) => {
+        // 1. Atualiza o estado
         setToken(newToken);
-        setUserId(newUserId);
+        setUser(userData); // CRÍTICO: Salva o objeto completo que contém a role
         setIsAuthenticated(true);
-    };
-
-    // Função de logout que limpa o localStorage E o estado React
-    const logout = () => {
-        // 1. Remove do localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('userId');
         
-        // 2. Limpa o estado
+        // 2. Persiste no localStorage
+        localStorage.setItem(TOKEN_KEY, newToken);
+        localStorage.setItem(USER_KEY, JSON.stringify(userData)); // CRÍTICO: Persiste o objeto user
+    };
+
+    // Função de LOGOUT
+    const logout = () => {
         setToken(null);
-        setUserId(null);
+        setUser(null);
         setIsAuthenticated(false);
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY); // CRÍTICO: Remove o user
     };
-
-    const value = {
-        token,
-        userId,
-        isAuthenticated,
-        isAuthReady, // Indica que o token inicial foi lido
-        login,
-        logout,
-    };
-
-    // Renderiza children apenas quando o estado de autenticação estiver pronto
-    if (!isAuthReady) {
-        // Você pode colocar um spinner ou tela de carregamento aqui
-        return <div className="min-h-screen flex items-center justify-center text-indigo-600 text-lg">Carregando Sessão...</div>;
-    }
     
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    // Função para atualizar apenas o usuário (ex: após mudar a senha)
+    const updateUser = (newUserData) => {
+        setUser(newUserData);
+        localStorage.setItem(USER_KEY, JSON.stringify(newUserData));
+    }
+
+
+    return (
+        <AuthContext.Provider value={{ 
+            isAuthenticated, 
+            isAuthReady, 
+            user, 
+            token, 
+            login, 
+            logout,
+            updateUser
+        }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
+
+export const useAuth = () => useContext(AuthContext);S
