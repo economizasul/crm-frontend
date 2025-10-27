@@ -17,7 +17,7 @@ function UserManagement() {
     const [isActive, setIsActive] = useState(true); 
     
     // Estados para Busca e Modo de Formulário
-    const [searchQuery, setSearchQuery] = useState(''); // Campo genérico para Nome OU Email
+    const [searchQuery, setSearchQuery] = useState(''); 
     const [isEditMode, setIsEditMode] = useState(false);
     const [userId, setUserId] = useState(null); 
     
@@ -28,22 +28,8 @@ function UserManagement() {
     const navigate = useNavigate();
 
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA INTELIGENTE POR EMAIL OU NOME
+    // LÓGICA DE BUSCA SIMPLIFICADA E DIRETA
     // ----------------------------------------------------
-    const performSearch = async (type, value, token) => {
-        const encodedValue = encodeURIComponent(value);
-        let searchUrl = `${API_BASE_URL}/api/v1/users/search?${type}=${encodedValue}`;
-        
-        const response = await fetch(searchUrl, {
-            method: 'GET',
-            headers: { 
-                'Authorization': `Bearer ${token}` 
-            },
-        });
-        
-        return response;
-    };
-
     const handleSearch = async (e) => {
         e.preventDefault();
         setMessage('');
@@ -63,34 +49,32 @@ function UserManagement() {
         }
 
         const isEmailSearch = searchQuery.includes('@');
-        let response;
+        const searchType = isEmailSearch ? 'email' : 'name';
+        const encodedValue = encodeURIComponent(searchQuery);
+
+        // CRÍTICO: Define o endpoint com o parâmetro correto.
+        const searchUrl = `${API_BASE_URL}/api/v1/users/search?${searchType}=${encodedValue}`;
         let success = false;
         let finalUser = null;
 
         try {
-            // Tenta a busca principal (Email ou Nome)
-            if (isEmailSearch) {
-                response = await performSearch('email', searchQuery, token);
-            } else {
-                response = await performSearch('name', searchQuery, token);
-            }
-            
-            // Se a busca principal falhar com 404, tenta a busca secundária (fallback)
-            if (!response.ok && response.status === 404) {
-                 // Tenta o fallback: se falhou por email, tenta por nome (e vice-versa)
-                if (isEmailSearch) {
-                    response = await performSearch('name', searchQuery, token);
-                } else {
-                    response = await performSearch('email', searchQuery, token);
-                }
-            }
+            const response = await fetch(searchUrl, {
+                method: 'GET',
+                headers: { 
+                    'Authorization': `Bearer ${token}` 
+                },
+            });
 
-            // Processa a resposta
             if (response.ok) {
                 const userData = await response.json();
+                // Trata arrays ou objetos únicos
                 finalUser = Array.isArray(userData) ? userData[0] : userData;
-                success = !!finalUser;
-            } else if (response.status !== 404) {
+                success = !!finalUser && !!finalUser._id;
+            } else if (response.status === 404) {
+                 // A requisição foi bem-sucedida, mas o usuário não existe.
+                 setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
+            } else {
+                // Erros de servidor (500, etc.)
                 const errorData = await response.json();
                 setMessage(`Falha na busca: ${errorData.error || response.statusText}.`);
             }
@@ -106,14 +90,13 @@ function UserManagement() {
         // Lógica de Preenchimento do Formulário
         // --------------------------------
         if (success && finalUser) {
-            // Se o Admin tentar carregar a própria conta, avisa sobre inativação
             if (finalUser._id === user._id) {
                 setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
             } else {
                 setMessage(`Usuário ${finalUser.name || finalUser.email} carregado com sucesso para edição.`);
             }
             
-            // Popula o formulário para edição. Usa fallback para campos ausentes.
+            // Popula o formulário.
             setUserId(finalUser._id);
             setName(finalUser.name || ''); 
             setEmail(finalUser.email || '');
@@ -123,22 +106,20 @@ function UserManagement() {
             setPassword(''); 
             
             setIsEditMode(true);
-        } else {
-            // Não encontrado
-            setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
-            resetFormState(); 
-            // Preenche o formulário para novo cadastro com a query
-            if (isEmailSearch) {
-                setEmail(searchQuery);
+        } else if (!isEditMode) {
+             // Limpa e prepara para novo cadastro, caso a busca tenha falhado com 404
+             resetFormState(); 
+             if (isEmailSearch) {
+                 setEmail(searchQuery);
              } else {
-                setName(searchQuery);
+                 setName(searchQuery);
              }
-            setIsEditMode(false);
+             setIsEditMode(false);
         }
     };
     
     // ----------------------------------------------------
-    // LÓGICA DE CRIAÇÃO/EDIÇÃO (MANTIDA)
+    // LÓGICA DE CRIAÇÃO/EDIÇÃO (Mantida)
     // ----------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -247,7 +228,7 @@ function UserManagement() {
                 )}
                 
                 {/* --------------------------- */}
-                {/* CAMPO DE BUSCA (Busca por Nome OU E-mail) */}
+                {/* CAMPO DE BUSCA */}
                 {/* --------------------------- */}
                 <form className="mb-6 border-b pb-4" onSubmit={handleSearch}>
                     <label htmlFor="searchQuery" className="block text-sm font-medium text-gray-700 mb-2">
@@ -278,7 +259,7 @@ function UserManagement() {
                 </form>
 
                 {/* --------------------------- */}
-                {/* FORMULÁRIO DE CADASTRO/EDIÇÃO (Aparece se estiver em Edição ou se houver uma Query para Novo Cadastro) */}
+                {/* FORMULÁRIO DE CADASTRO/EDIÇÃO */}
                 {/* --------------------------- */}
                 {(isEditMode || (searchQuery && !loading && !message.includes('não encontrado') && !message.includes('Falha na busca'))) && (
                     <>
