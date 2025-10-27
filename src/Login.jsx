@@ -42,12 +42,12 @@ const Login = () => {
         }
     };
 
-    // Estilo de degradê LARANJA (Três tons: Branco/Laranja Claro/Laranja Escuro)
+    // 🚨 Estilo de degradê LARANJA (Três tons: Branco/Laranja Claro/Laranja Escuro)
     const orangeGradientStyle = {
         background: 'radial-gradient(circle, #FFC28E 0%, #F98828 30%, #935018 100%)',
     };
     
-    // Estilo de degradê VERDE INVERSO: Claro na esquerda, Escuro na direita
+    // 🚨 Estilo de degradê VERDE INVERSO: Claro na esquerda, Escuro na direita
     const greenGradientStyle = {
         background: 'linear-gradient(to right, #009F00 0%, #035903 100%)',
     };
@@ -58,7 +58,7 @@ const Login = () => {
             
             {/* 1. Coluna de Imagem/Branding (Desktop - 70%) */}
             <div 
-                // w-7/10 (70%) para desktops. Não há classe padrão, usaremos w-7/10 customizada em tailwind.config.js
+                // 🚨 w-7/10 (70%) para desktops. Não há classe padrão, usaremos w-7/10 customizada em tailwind.config.js
                 // Usando w-[70%] como fallback para o Tailwind JIT
                 className="hidden md:flex flex-col justify-center items-center w-full md:w-[70%] p-12 shadow-2xl"
                 style={orangeGradientStyle} 
@@ -72,7 +72,7 @@ const Login = () => {
             
             {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-3/10) */}
             <div 
-                // w-3/10 (30%) para desktops.
+                // 🚨 w-3/10 (30%) para desktops.
                 // md:rounded-l-3xl removido para deixar o canto quadrado
                 className="flex flex-col justify-center items-center w-full md:w-[30%] p-8 md:p-12 shadow-2xl"
                 style={greenGradientStyle} 
