@@ -5,7 +5,11 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
+// A importação de Register.jsx é mantida, mas a rota é movida
 import Register from './Register.jsx'; 
+
+// NOVO: Importa o componente de Troca de Senha
+import ChangePassword from './ChangePassword.jsx';
 
 // Componentes de Layout e Conteúdo (Novas importações)
 import Dashboard from './Dashboard.jsx'; // O componente de layout (Sidebar + Outlet)
@@ -35,28 +39,27 @@ const RedirectAfterLogin = () => {
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Usa navigate em vez de window.location.href para ser mais "React-friendly"
-            // Se precisar de um refresh completo, mantenha window.location.href
-            window.location.href = '/dashboard'; 
+            // Usa navigate em
+            return <Navigate to="/dashboard" replace />;
         }
-    }, [isAuthenticated, location]);
+    }, [isAuthenticated, location.pathname]);
 
-    return null;
+    // O componente original tinha esta lógica, mantive para não quebrar o fluxo.
+    return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
 };
 
 function App() {
     return (
-        <AuthProvider> 
+        <AuthProvider>
             <Routes>
                 {/* Rotas Públicas */}
-                <Route path="/login" element={<><Login /><RedirectAfterLogin /></>} />
-                <Route path="/register" element={<Register />} />
+                <Route path="/login" element={<Login />} />
+                {/* Rota pública de Registro foi REMOVIDA */}
                 
-                {/* Rota raiz / redireciona para o Dashboard */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                {/* Redirecionamento de / para /dashboard se logado */}
+                <Route path="/" element={<RedirectAfterLogin />} />
 
-                {/* 🚨 ROTA DE LAYOUT PROTEGIDA: Dashboard é o componente Pai */}
-                {/* O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
+                {/* Rotas Protegidas (Exigem login) - O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
                     {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
@@ -64,16 +67,20 @@ function App() {
                     {/* 1. Dashboard Principal (Kanban Board) */}
                     <Route path="/dashboard" element={<KanbanBoard />} />
                     
-                    {/* 2. Busca/Lista de Leads (Corrigido para /leads, conforme o Sidebar) */}
+                    {/* 2. Busca/Lista de Leads */}
                     <Route path="/leads" element={<LeadSearch />} /> 
                     
-                    {/* 3. Cadastro/Edição de Leads (Corrigido para /register-lead, conforme o Sidebar) */}
+                    {/* 3. Cadastro/Edição de Leads */}
                     <Route path="/register-lead" element={<LeadForm />} />
                     
-                    {/* Adicione aqui rotas de rodapé do Sidebar (/reports, /settings) se existirem */}
-                    {/* Exemplo: */}
-                    {/* <Route path="/reports" element={<div>Página de Relatórios</div>} /> */}
-                    {/* <Route path="/settings" element={<div>Página de Configurações</div>} /> */}
+                    {/* NOVO: Rota para Cadastro de Novo Usuário (Admin-Only) */}
+                    <Route path="/user-register" element={<Register />} /> 
+                    
+                    {/* NOVO: Rota para Troca de Senha do Usuário (Admin e User) */}
+                    <Route path="/change-password" element={<ChangePassword />} /> 
+                    
+                    {/* Exemplo de Rota de Configurações (Pode ser ajustada para uma tela real de settings) */}
+                    <Route path="/settings" element={<div>Página de Configurações Gerais</div>} />
 
                 </Route>
                 

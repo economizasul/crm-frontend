@@ -1,26 +1,40 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, LogIn, Loader2 } from 'lucide-react'; 
+import { useNavigate } from 'react-router-dom'; // 'Link' foi removido pois não é mais necessário
+// Importação de ícones: Adicionado 'Phone' e 'Users'
+import { User, Mail, Lock, LogIn, Loader2, Phone, Users } from 'lucide-react'; 
+import { useAuth } from './AuthContext.jsx'; // Necessário para obter o token do Admin
 
 // Usa a variável de ambiente VITE_API_URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
+// Alteração: Componente agora é para cadastro de novos usuários pelo Admin
 function Register() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState(''); // Novo campo: Telefone
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState('user'); // Novo campo: Tipo de Usuário (Padrão: user)
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    // Pega o usuário logado para obter o token (Admin)
+    const { user } = useAuth(); 
 
     const handleRegister = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setMessage('Tentando registro...');
+        setMessage('Tentando criar novo usuário...');
 
         // Validação básica
-        if (!name || !email || !password) {
+        if (!name || !email || !phone || !password || !role) {
             setMessage('Por favor, preencha todos os campos.');
+            setLoading(false);
+            return;
+        }
+        
+        // Verifica se o admin está logado (possui token) antes de tentar o cadastro
+        if (!user || !user.token) {
+            setMessage('Erro de autenticação: Admin não logado.');
             setLoading(false);
             return;
         }
@@ -28,126 +42,151 @@ function Register() {
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                // O backend que você forneceu espera: name, email, password, (role opcional)
-                body: JSON.stringify({ name, email, password }),
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // CRÍTICO: Envia o token do ADMIN para autorização
+                    'Authorization': `Bearer ${user.token}` 
+                },
+                // Dados completos: name, email, phone, password, role
+                body: JSON.stringify({ name, email, phone, password, role }),
             });
 
             if (response.ok) {
-                // Registro bem-sucedido: Navega para a tela de Login
-                setMessage('Conta criada com sucesso! Redirecionando para o login...');
+                setMessage(`Usuário ${role.toUpperCase()} criado com sucesso!`);
+                // Limpa o formulário
+                setName('');
+                setEmail('');
+                setPhone('');
+                setPassword('');
+                setRole('user');
                 
-                // Redireciona após um pequeno delay para o usuário ler a mensagem
-                setTimeout(() => {
-                    navigate('/login', { replace: true });
-                }, 1500);
-
             } else {
                 const errorData = await response.json();
-                setMessage(`Falha no registro: ${errorData.error || response.statusText}`);
+                setMessage(`Falha ao criar usuário: ${errorData.error || response.statusText}. Verifique se o Admin tem permissão.`);
             }
         } catch (error) {
-            console.error('Erro de rede ou na requisição:', error);
-            setMessage('Erro de conexão. Tente novamente mais tarde.');
+            console.error('Erro de Registro:', error);
+            setMessage('Erro de conexão com o servidor. Tente novamente.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        Crie sua conta
+        <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+            <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-2xl transition duration-300 hover:shadow-3xl">
+                <div className="text-center mb-6">
+                    {/* Alterado título para refletir a nova funcionalidade */}
+                    <h2 className="mt-2 text-3xl font-extrabold text-indigo-900">
+                        Criação de Novo Usuário
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
-                        Cadastre-se para acessar o sistema
+                    <p className="mt-2 text-sm text-gray-600">
+                        Preencha os dados do novo acesso
                     </p>
                 </div>
+                
+                {/* Mensagens de Erro/Sucesso (No topo para melhor visibilidade) */}
+                {message && message !== 'Tentando criar novo usuário...' && (
+                    <div className={`p-3 mb-4 rounded-lg text-sm text-center ${message.includes('sucesso') ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
+                        {message}
+                    </div>
+                )}
 
-                <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        {/* Campo Nome */}
-                        <div className="relative">
-                            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-t-md"
-                                placeholder="Seu Nome Completo"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                disabled={loading}
-                            />
-                        </div>
-                        {/* Campo Email */}
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                placeholder="Email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                disabled={loading}
-                            />
-                        </div>
-                        {/* Campo Senha */}
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                required
-                                className="appearance-none rounded-none relative block w-full pl-10 pr-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm rounded-b-md"
-                                placeholder="Senha"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                disabled={loading}
-                            />
-                        </div>
+                <form className="space-y-4" onSubmit={handleRegister}>
+                    {/* Campo Nome */}
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            id="name"
+                            name="name"
+                            type="text"
+                            required
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Nome Completo"
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                    </div>
+
+                    {/* Campo Email */}
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Endereço de E-mail"
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                    </div>
+                    
+                    {/* NOVO CAMPO: Telefone */}
+                    <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="Telefone (ex: 5541999999999)"
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                    </div>
+
+                    {/* Campo Senha */}
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete="new-password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Definir Senha"
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        />
+                    </div>
+                    
+                    {/* NOVO CAMPO: Tipo de Usuário (Role) */}
+                    <div className="relative">
+                        <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <select
+                            id="role"
+                            name="role"
+                            required
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        >
+                            <option value="user">Usuário Comum</option>
+                            <option value="admin">Administrador</option>
+                        </select>
                     </div>
 
                     {/* Botão de Registro */}
                     <button
                         type="submit"
                         disabled={loading}
-                        className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                        className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin w-5 h-5 mr-3" />
                         ) : (
                             <LogIn className="w-5 h-5 mr-3" />
                         )}
-                        {loading ? 'Registrando...' : 'Criar Conta'}
+                        {loading ? 'Criando...' : 'Criar Novo Usuário'}
                     </button>
                 </form>
                 
-                {/* Mensagens de Erro/Sucesso */}
-                {message && message !== 'Tentando registro...' && (
-                    <div className={`p-3 rounded-lg text-sm text-center ${message.includes('sucesso') ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
-                        {message}
-                    </div>
-                )}
-                
-                {/* Link de Login */}
-                <div className="text-center pt-2">
-                    <p className="text-sm text-gray-600">
-                        Já tem uma conta?{' '}
-                        <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700 transition duration-150">
-                            Faça login aqui
-                        </Link>
-                    </p>
-                </div>
+                {/* O LINK DE LOGIN FOI REMOVIDO CONFORME SOLICITADO */}
             </div>
         </div>
     );
