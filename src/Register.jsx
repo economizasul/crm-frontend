@@ -1,7 +1,11 @@
+// src/Register.jsx
+
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Removido 'Link'
-import { User, Mail, Lock, LogIn, Loader2, Phone, Users } from 'lucide-react'; // Adicionados Phone e Users
-import { useAuth } from './AuthContext.jsx'; // Necessário para obter o token do Admin
+// Removida a importação 'Link' pois a rota agora é protegida
+import { useNavigate } from 'react-router-dom'; 
+// Adicionados ícones Phone e Users e importado useAuth
+import { User, Mail, Lock, LogIn, Loader2, Phone, Users } from 'lucide-react'; 
+import { useAuth } from './AuthContext.jsx'; 
 
 // Usa a variável de ambiente VITE_API_URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -32,9 +36,9 @@ function Register() {
         }
         
         // Verifica se o admin está logado (possui token) antes de tentar o cadastro
-        // Esta validação pode ser reforçada no backend
-        if (!user || !user.token) {
-            setMessage('Erro de autenticação: Admin não logado. Faça login novamente.');
+        const token = user?.token || localStorage.getItem('token');
+        if (!user || !token || user.role !== 'admin') {
+            setMessage('Erro: Apenas administradores podem criar novos usuários.');
             setLoading(false);
             return;
         }
@@ -45,7 +49,7 @@ function Register() {
                 headers: { 
                     'Content-Type': 'application/json',
                     // CRÍTICO: Envia o token do ADMIN para autorização
-                    'Authorization': `Bearer ${user.token}` 
+                    'Authorization': `Bearer ${token}` 
                 },
                 // Dados completos: name, email, phone, password, role
                 body: JSON.stringify({ name, email, phone, password, role }),

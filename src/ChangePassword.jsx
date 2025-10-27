@@ -1,3 +1,5 @@
+// src/ChangePassword.jsx
+
 import React, { useState } from 'react';
 import { Lock, Loader2 } from 'lucide-react'; 
 import { useAuth } from './AuthContext.jsx'; 
@@ -30,15 +32,22 @@ function ChangePassword() {
             setLoading(false);
             return;
         }
+        
+        // Verifica se há token
+        const token = user?.token || localStorage.getItem('token');
+        if (!token) {
+            setMessage('Erro de autenticação: Você não está logado.');
+            setLoading(false);
+            return;
+        }
 
         try {
-            // CRÍTICO: Endpoint de mudança de senha (ajuste conforme o seu backend)
             const response = await fetch(`${API_BASE_URL}/api/v1/auth/change-password`, {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
                     // Envia o token do usuário logado (admin ou user)
-                    'Authorization': `Bearer ${user?.token || localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ 
                     currentPassword, 

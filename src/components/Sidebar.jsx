@@ -1,8 +1,7 @@
-// src/components/Sidebar.jsx - CÓDIGO FINAL COM BOTÃO DE EXPANSÃO NO TOPO E NOME DA EMPRESA CONDICIONAL
+// src/components/Sidebar.jsx
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-// Adicionada importação do ícone FaLock para Trocar Senha
 import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft, FaLock } from 'react-icons/fa';
 import { useAuth } from '../AuthContext.jsx'; 
 
@@ -18,7 +17,7 @@ const LinkClass = ({ isActive, isExpanded }) =>
 // CRÍTICO: Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
 const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => { 
     const navigate = useNavigate();
-    // CRÍTICO: Obtém o objeto 'user' para verificação de permissão (role)
+    // CORREÇÃO: Obtém o objeto 'user' do contexto de autenticação
     const { logout, user } = useAuth(); 
 
     // Função que fecha o menu (principalmente para mobile)
@@ -36,15 +35,15 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         }
     };
 
-    // Assume-se que o role do usuário está em user.role e que o valor para Admin é 'admin'
+    // CRÍTICO: Assume-se que o role do usuário está em user.role e que o valor para Admin é 'admin'
     const isAdmin = user && user.role === 'admin';
 
     // 1. Links principais de navegação 
     const navItems = [
         { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
         { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
-        { name: 'Cadastrar', path: '/register-lead', icon: FaUserPlus },
-        // NOVO: Link de Cadastro de Usuário (APENAS ADMIN)
+        { name: 'Cadastrar Lead', path: '/register-lead', icon: FaUserPlus },
+        // NOVO/CORRIGIDO: Link de Cadastro de Usuário (APENAS ADMIN)
         ...(isAdmin ? [{ name: 'Cadastrar Usuário', path: '/user-register', icon: FaUserPlus }] : []),
     ];
     
@@ -75,9 +74,9 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                         ECONOMIZA SUL
                     </div>
                 ) : (
-                    // 🚨 Vazio ou um ícone simples quando minimizado
+                    // Vazio ou um ícone simples quando minimizado
                     <div className="text-xl font-bold text-indigo-100 p-2">
-                        {/* Podemos deixar vazio ou usar um ícone simples, aqui deixaremos vazio para um look mais clean */}
+                        {/* Deixado vazio para um look mais clean quando minimizado */}
                     </div>
                 )}
 
@@ -141,9 +140,6 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
                     {isExpanded && <span className="whitespace-nowrap">Sair</span>}
                 </button>
             </div>
-            
-            {/* O botão de expansão/minimização foi movido para o cabeçalho */}
-            
         </div>
     );
 };

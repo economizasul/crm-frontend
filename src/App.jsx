@@ -1,12 +1,11 @@
-// src/App.jsx - CÓDIGO FINAL COM ROTAS ANINHADAS PARA O LAYOUT FIXO
+// src/App.jsx
 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
 
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
-// A importação de Register.jsx é mantida, mas a rota é movida para a área protegida
-import Register from './Register.jsx'; 
+import Register from './Register.jsx'; // Agora usado apenas na rota protegida
 // NOVO: Importa o componente de Troca de Senha
 import ChangePassword from './ChangePassword.jsx';
 
@@ -38,7 +37,6 @@ const RedirectAfterLogin = () => {
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Usa navigate em vez de window.location.href para ser mais "React-friendly"
             // Se precisar de um refresh completo, mantenha window.location.href
             window.location.href = '/dashboard'; 
         }
@@ -53,14 +51,14 @@ function App() {
             <Routes>
                 {/* Rotas Públicas */}
                 <Route path="/login" element={<><Login /><RedirectAfterLogin /></>} />
-                {/* 🚨 Rota de Registro Público REMOVIDA conforme solicitado */}
+                {/* CRÍTICO: Rota de Registro Público REMOVIDA. O formulário Register agora é para o Admin. */}
+                {/* Se o link no Login.jsx for mantido, ele levará a uma página não encontrada. */}
                 {/* <Route path="/register" element={<Register />} /> */}
                 
                 {/* Rota raiz / redireciona para o Dashboard */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
                 {/* 🚨 ROTA DE LAYOUT PROTEGIDA: Dashboard é o componente Pai */}
-                {/* O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
                     {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
@@ -80,10 +78,8 @@ function App() {
                     {/* NOVO: Rota para Troca de Senha do Usuário (Admin e User) */}
                     <Route path="/change-password" element={<ChangePassword />} /> 
                     
-                    {/* Adicione aqui rotas de rodapé do Sidebar (/reports, /settings) se existirem */}
-                    {/* Exemplo: */}
-                    {/* <Route path="/reports" element={<div>Página de Relatórios</div>} /> */}
-                    <Route path="/settings" element={<div>Página de Configurações Gerais</div>} />
+                    <Route path="/reports" element={<div>Página de Relatórios</div>} />
+                    <Route path="/settings" element={<div>Página de Configurações</div>} />
 
                 </Route>
                 
