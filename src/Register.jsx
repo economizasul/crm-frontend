@@ -17,7 +17,7 @@ function UserManagement() {
     const [isActive, setIsActive] = useState(true); 
     
     // Estados para Busca e Modo de Formulário
-    const [searchQuery, setSearchQuery] = useState(''); // CORRIGIDO: Campo genérico para Nome OU Email
+    const [searchQuery, setSearchQuery] = useState(''); // Campo genérico para Nome OU Email
     const [isEditMode, setIsEditMode] = useState(false);
     const [userId, setUserId] = useState(null); 
     
@@ -28,8 +28,22 @@ function UserManagement() {
     const navigate = useNavigate();
 
     // ----------------------------------------------------
-    // LÓGICA DE BUSCA POR NOME OU EMAIL
+    // LÓGICA DE BUSCA INTELIGENTE POR EMAIL OU NOME
     // ----------------------------------------------------
+    const performSearch = async (type, value, token) => {
+        const encodedValue = encodeURIComponent(value);
+        let searchUrl = `${API_BASE_URL}/api/v1/users/search?${type}=${encodedValue}`;
+        
+        const response = await fetch(searchUrl, {
+            method: 'GET',
+            headers: { 
+                'Authorization': `Bearer ${token}` 
+            },
+        });
+        
+        return response;
+    };
+
     const handleSearch = async (e) => {
         e.preventDefault();
         setMessage('');
@@ -42,88 +56,89 @@ function UserManagement() {
             return;
         }
         
-        // Verifica se a busca está vazia
         if (!searchQuery.trim()) {
             setMessage('Por favor, insira um nome ou e-mail para buscar.');
             setLoading(false);
             return;
         }
 
-        try {
-            // CRÍTICO: Endpoint de busca agora usa 'query'. O backend deve buscar por Nome OU Email.
-            const encodedQuery = encodeURIComponent(searchQuery);
-            const response = await fetch(`${API_BASE_URL}/api/v1/users/search?query=${encodedQuery}`, {
-                method: 'GET',
-                headers: { 
-                    'Authorization': `Bearer ${token}` 
-                },
-            });
+        const isEmailSearch = searchQuery.includes('@');
+        let response;
+        let success = false;
+        let finalUser = null;
 
+        try {
+            // Tenta a busca principal (Email ou Nome)
+            if (isEmailSearch) {
+                response = await performSearch('email', searchQuery, token);
+            } else {
+                response = await performSearch('name', searchQuery, token);
+            }
+            
+            // Se a busca principal falhar com 404, tenta a busca secundária (fallback)
+            if (!response.ok && response.status === 404) {
+                 // Tenta o fallback: se falhou por email, tenta por nome (e vice-versa)
+                if (isEmailSearch) {
+                    response = await performSearch('name', searchQuery, token);
+                } else {
+                    response = await performSearch('email', searchQuery, token);
+                }
+            }
+
+            // Processa a resposta
             if (response.ok) {
                 const userData = await response.json();
-                
-                // Trata o caso em que a resposta pode ser um array de resultados, pegando o primeiro
-                const userToEdit = Array.isArray(userData) ? userData[0] : userData;
-
-                if (!userToEdit || !userToEdit._id) {
-                     setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
-                     resetFormState(); 
-                     // Preenche os campos para o novo cadastro
-                     if (searchQuery.includes('@')) {
-                        setEmail(searchQuery);
-                     } else {
-                        setName(searchQuery);
-                     }
-                     setIsEditMode(false);
-                     setLoading(false);
-                     return;
-                }
-
-                // Se o Admin tentar carregar a própria conta, avisa sobre inativação
-                if (userToEdit._id === user._id) {
-                    setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
-                } else {
-                    // Usa o nome ou o email como fallback, para usuários antigos sem nome
-                    setMessage(`Usuário ${userToEdit.name || userToEdit.email} carregado com sucesso para edição.`);
-                }
-                
-                // Popula o formulário para edição. Usa fallback para campos ausentes.
-                setUserId(userToEdit._id);
-                setName(userToEdit.name || ''); 
-                setEmail(userToEdit.email || '');
-                setPhone(userToEdit.phone || '');
-                setRole(userToEdit.role || 'user');
-                setIsActive(userToEdit.isActive !== undefined ? userToEdit.isActive : true); 
-                setPassword(''); 
-                
-                setIsEditMode(true);
-                
-            } else if (response.status === 404) {
-                setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
-                // Limpa e prepara para novo cadastro, preenchendo o email/nome com a query
-                resetFormState(); 
-                if (searchQuery.includes('@')) {
-                    setEmail(searchQuery);
-                 } else {
-                    setName(searchQuery);
-                 }
-                setIsEditMode(false);
-            } else {
+                finalUser = Array.isArray(userData) ? userData[0] : userData;
+                success = !!finalUser;
+            } else if (response.status !== 404) {
                 const errorData = await response.json();
-                setMessage(`Falha na busca: ${errorData.error || response.statusText}`);
-                resetFormState();
+                setMessage(`Falha na busca: ${errorData.error || response.statusText}.`);
             }
+
         } catch (error) {
             console.error('Erro de Conexão:', error);
             setMessage('Erro de conexão com o servidor. Tente novamente.');
-            resetFormState();
         } finally {
             setLoading(false);
+        }
+
+        // --------------------------------
+        // Lógica de Preenchimento do Formulário
+        // --------------------------------
+        if (success && finalUser) {
+            // Se o Admin tentar carregar a própria conta, avisa sobre inativação
+            if (finalUser._id === user._id) {
+                setMessage('Você carregou seus próprios dados. Você não pode inativar sua própria conta.');
+            } else {
+                setMessage(`Usuário ${finalUser.name || finalUser.email} carregado com sucesso para edição.`);
+            }
+            
+            // Popula o formulário para edição. Usa fallback para campos ausentes.
+            setUserId(finalUser._id);
+            setName(finalUser.name || ''); 
+            setEmail(finalUser.email || '');
+            setPhone(finalUser.phone || '');
+            setRole(finalUser.role || 'user');
+            setIsActive(finalUser.isActive !== undefined ? finalUser.isActive : true); 
+            setPassword(''); 
+            
+            setIsEditMode(true);
+        } else {
+            // Não encontrado
+            setMessage('Usuário não encontrado. Você pode criar um novo com esta informação.');
+            resetFormState(); 
+            // Preenche o formulário para novo cadastro com a query
+            if (isEmailSearch) {
+                setEmail(searchQuery);
+             } else {
+                setName(searchQuery);
+             }
+            setIsEditMode(false);
         }
     };
     
     // ----------------------------------------------------
-    // LÓGICA DE CRIAÇÃO/EDIÇÃO
+    // LÓGICA DE CRIAÇÃO/EDIÇÃO (MANTIDA)
     // ----------------------------------------------------
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -195,7 +210,7 @@ function UserManagement() {
         }
     };
     
-    // Reseta o estado do formulário (limpa os campos e volta para o modo de busca)
+    // Reseta o estado do formulário
     const resetFormState = (clearSearch = false) => {
         setName('');
         setEmail('');
@@ -232,7 +247,7 @@ function UserManagement() {
                 )}
                 
                 {/* --------------------------- */}
-                {/* CAMPO DE BUSCA (ATUALIZADO) */}
+                {/* CAMPO DE BUSCA (Busca por Nome OU E-mail) */}
                 {/* --------------------------- */}
                 <form className="mb-6 border-b pb-4" onSubmit={handleSearch}>
                     <label htmlFor="searchQuery" className="block text-sm font-medium text-gray-700 mb-2">
@@ -244,7 +259,7 @@ function UserManagement() {
                             <input
                                 id="searchQuery"
                                 name="searchQuery"
-                                type="text" // Tipo mudado para text para aceitar Nome ou Email
+                                type="text"
                                 required
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -265,7 +280,7 @@ function UserManagement() {
                 {/* --------------------------- */}
                 {/* FORMULÁRIO DE CADASTRO/EDIÇÃO (Aparece se estiver em Edição ou se houver uma Query para Novo Cadastro) */}
                 {/* --------------------------- */}
-                {(isEditMode || (searchQuery && !loading)) && (
+                {(isEditMode || (searchQuery && !loading && !message.includes('não encontrado') && !message.includes('Falha na busca'))) && (
                     <>
                         <h3 className="text-xl font-semibold text-gray-800 mb-4">
                             {isEditMode ? `Editando Usuário: ${name || email}` : 'Novo Cadastro'}
@@ -349,7 +364,7 @@ function UserManagement() {
                                         onChange={(e) => setRole(e.target.value)}
                                         className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                     >
-                                        <option value="user">Usuário</option>
+                                        <option value="user">Usuário Comum</option>
                                         <option value="admin">Administrador</option>
                                     </select>
                                 </div>
