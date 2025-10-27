@@ -5,9 +5,8 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
-// A importação de Register.jsx é mantida, mas a rota é movida
+// A importação de Register.jsx é mantida, mas a rota é movida para a área protegida
 import Register from './Register.jsx'; 
-
 // NOVO: Importa o componente de Troca de Senha
 import ChangePassword from './ChangePassword.jsx';
 
@@ -39,27 +38,29 @@ const RedirectAfterLogin = () => {
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Usa navigate em
-            return <Navigate to="/dashboard" replace />;
+            // Usa navigate em vez de window.location.href para ser mais "React-friendly"
+            // Se precisar de um refresh completo, mantenha window.location.href
+            window.location.href = '/dashboard'; 
         }
-    }, [isAuthenticated, location.pathname]);
+    }, [isAuthenticated, location]);
 
-    // O componente original tinha esta lógica, mantive para não quebrar o fluxo.
-    return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+    return null;
 };
 
 function App() {
     return (
-        <AuthProvider>
+        <AuthProvider> 
             <Routes>
                 {/* Rotas Públicas */}
-                <Route path="/login" element={<Login />} />
-                {/* Rota pública de Registro foi REMOVIDA */}
+                <Route path="/login" element={<><Login /><RedirectAfterLogin /></>} />
+                {/* 🚨 Rota de Registro Público REMOVIDA conforme solicitado */}
+                {/* <Route path="/register" element={<Register />} /> */}
                 
-                {/* Redirecionamento de / para /dashboard se logado */}
-                <Route path="/" element={<RedirectAfterLogin />} />
+                {/* Rota raiz / redireciona para o Dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
-                {/* Rotas Protegidas (Exigem login) - O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
+                {/* 🚨 ROTA DE LAYOUT PROTEGIDA: Dashboard é o componente Pai */}
+                {/* O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
                     {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
@@ -79,7 +80,9 @@ function App() {
                     {/* NOVO: Rota para Troca de Senha do Usuário (Admin e User) */}
                     <Route path="/change-password" element={<ChangePassword />} /> 
                     
-                    {/* Exemplo de Rota de Configurações (Pode ser ajustada para uma tela real de settings) */}
+                    {/* Adicione aqui rotas de rodapé do Sidebar (/reports, /settings) se existirem */}
+                    {/* Exemplo: */}
+                    {/* <Route path="/reports" element={<div>Página de Relatórios</div>} /> */}
                     <Route path="/settings" element={<div>Página de Configurações Gerais</div>} />
 
                 </Route>

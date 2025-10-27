@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 'Link' foi removido pois não é mais necessário
-// Importação de ícones: Adicionado 'Phone' e 'Users'
-import { User, Mail, Lock, LogIn, Loader2, Phone, Users } from 'lucide-react'; 
+import { useNavigate } from 'react-router-dom'; // Removido 'Link'
+import { User, Mail, Lock, LogIn, Loader2, Phone, Users } from 'lucide-react'; // Adicionados Phone e Users
 import { useAuth } from './AuthContext.jsx'; // Necessário para obter o token do Admin
 
 // Usa a variável de ambiente VITE_API_URL
@@ -33,8 +32,9 @@ function Register() {
         }
         
         // Verifica se o admin está logado (possui token) antes de tentar o cadastro
+        // Esta validação pode ser reforçada no backend
         if (!user || !user.token) {
-            setMessage('Erro de autenticação: Admin não logado.');
+            setMessage('Erro de autenticação: Admin não logado. Faça login novamente.');
             setLoading(false);
             return;
         }
@@ -73,8 +73,9 @@ function Register() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-            <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-2xl transition duration-300 hover:shadow-3xl">
+        // Alterado o layout para ter um visual mais 'limpo' de página de gestão.
+        <div className="flex items-start justify-center min-h-full bg-gray-50 p-4 sm:p-6 lg:p-8">
+            <div className="w-full max-w-lg bg-white p-8 rounded-2xl shadow-xl">
                 <div className="text-center mb-6">
                     {/* Alterado título para refletir a nova funcionalidade */}
                     <h2 className="mt-2 text-3xl font-extrabold text-indigo-900">
@@ -85,7 +86,7 @@ function Register() {
                     </p>
                 </div>
                 
-                {/* Mensagens de Erro/Sucesso (No topo para melhor visibilidade) */}
+                {/* Mensagens de Erro/Sucesso */}
                 {message && message !== 'Tentando criar novo usuário...' && (
                     <div className={`p-3 mb-4 rounded-lg text-sm text-center ${message.includes('sucesso') ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
                         {message}
@@ -164,7 +165,7 @@ function Register() {
                             required
                             value={role}
                             onChange={(e) => setRole(e.target.value)}
-                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
                             <option value="user">Usuário Comum</option>
                             <option value="admin">Administrador</option>
@@ -185,8 +186,6 @@ function Register() {
                         {loading ? 'Criando...' : 'Criar Novo Usuário'}
                     </button>
                 </form>
-                
-                {/* O LINK DE LOGIN FOI REMOVIDO CONFORME SOLICITADO */}
             </div>
         </div>
     );

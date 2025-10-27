@@ -47,7 +47,7 @@ function ChangePassword() {
             });
 
             if (response.ok) {
-                setMessage('Senha alterada com sucesso! Você será desconectado em breve.');
+                setMessage('Senha alterada com sucesso! Você pode continuar usando o sistema.');
                 setCurrentPassword('');
                 setNewPassword('');
                 setConfirmNewPassword('');
