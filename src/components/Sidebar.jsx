@@ -18,7 +18,6 @@ const LinkClass = ({ isActive, isExpanded }) =>
 // Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
 const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => { 
     const navigate = useNavigate();
-    // CORRIGIDO: Obtém o objeto 'user' e a função 'logout'
     const { logout, user } = useAuth(); 
 
     // Função que fecha o menu (principalmente para mobile)
@@ -36,15 +35,16 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         }
     };
 
-    // CRÍTICO: Variável de permissão. true se o usuário e o role forem 'admin'.
-    const isAdmin = user && user.role === 'admin';
+    // CRÍTICO: VERIFICAÇÃO COM toLowerCase()
+    // Garante que a verificação funcione para 'admin', 'Admin', 'ADMIN', etc.
+    const isAdmin = user && user.role && user.role.toLowerCase() === 'admin';
 
     // 1. Links principais de navegação 
     const navItems = [
         { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, 
         { name: 'Buscar Lead', path: '/leads', icon: FaSearch }, 
         { name: 'Cadastrar Lead', path: '/register-lead', icon: FaUserPlus },
-        // CRÍTICO: Renderização Condicional
+        // RENDERIZAÇÃO CONDICIONAL: Aparece apenas se isAdmin for true
         ...(isAdmin ? [{ name: 'Cadastrar Usuário', path: '/user-register', icon: FaUserPlus }] : []),
     ];
     
