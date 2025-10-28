@@ -9,15 +9,35 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban e suas cores
-export const STAGES = {
-    'Novo': 'bg-gray-200 text-gray-800',
-    'Para Contatar': 'bg-blue-200 text-blue-800',
-    'Em Negociação': 'bg-yellow-200 text-yellow-800',
-    'Proposta Enviada': 'bg-purple-200 text-purple-800',
-    'Ganho': 'bg-green-200 text-green-800',
-    'Perdido': 'bg-red-200 text-red-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
+const statusColor = (status) => {
+    switch (status) {
+        // Estágios ALINHADOS com o KanbanBoard.jsx
+        case 'Novo':
+            return 'bg-gray-100 text-gray-800'; // Cor para Novo (similar ao Para Contatar)
+        case 'Primeiro Contato':
+            return 'bg-blue-100 text-blue-800'; // Cor para Primeiro Contato
+        case 'Retorno Agendado':
+            return 'bg-indigo-100 text-indigo-800'; // Cor para Retorno Agendado
+        case 'Em Negociação':
+            return 'bg-yellow-100 text-yellow-800'; // Cor para Em Negociação
+        case 'Proposta Enviada':
+            return 'bg-purple-100 text-purple-800'; // Cor para Proposta Enviada
+        case 'Ganho':
+            return 'bg-green-100 text-green-800'; // Cor para Ganho
+        case 'Perdido':
+            return 'bg-red-100 text-red-800'; // Cor para Perdido
+        
+        // Se houver leads antigos com os status abaixo, eles ainda serão formatados:
+        case 'Fechado': 
+            return 'bg-green-100 text-green-800';
+        case 'Em Conversação': 
+            return 'bg-yellow-100 text-yellow-800';
+        case 'Para Contatar': 
+            return 'bg-indigo-100 text-indigo-800';
+
+        default: 
+            return 'bg-gray-100 text-gray-800';
+    }
 };
 
 // Componente simples de Toast para feedback
@@ -395,41 +415,97 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // Drag and Drop (ID SEGURO)
+    // Drag and Drop (ID SEGURO) - CORREÇÃO MAIS ROBUSTA APLICADA AQUI
     const onDragEnd = useCallback(async (result) => {
         const { source, destination, draggableId } = result;
         if (!destination || source.droppableId === destination.droppableId) return;
 
-        const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
-        if (!leadId) return;
+        const leadIdString = draggableId;
+        if (leadIdString.startsWith('temp-')) return; // Ignora IDs temporários
 
         const newStatus = destination.droppableId;
-        const updatedLeads = leads.map(lead => 
-            (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
+
+        // 1. Encontra o lead original
+        const lead = leads.find(l => (String(l.id ?? l._id) === leadIdString));
+        if (!lead) return;
+
+        // 2. Atualiza o estado local (otimista)
+        const updatedLeads = leads.map(l =>
+            (String(l.id ?? l._id) === leadIdString) ? { ...l, status: newStatus } : l
         );
         setLeads(updatedLeads);
 
         try {
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, { status: newStatus }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            // 3. Monta os dados para o PUT, ENVIANDO TUDO NO NÍVEL RAIZ
+            // Esta estrutura garante que todos os campos obrigatórios sejam enviados para a API
+            const dataToUpdate = {
+                // STATUS: O único campo que realmente mudou
+                status: newStatus,
+
+                // CAMPOS OBRIGATÓRIOS (com fallback para garantir validação do backend)
+                name: lead.name || 'Sem Nome',
+                phone: lead.phone || 'Sem Telefone',
+                origin: lead.origin || 'Desconhecido',
+                
+                // Outros campos importantes para não serem perdidos:
+                email: lead.email || '',
+                address: lead.address || '',
+                uc: lead.uc || '',
+                qsa: lead.qsa || '',
+                avg_consumption: lead.avg_consumption || 0,
+                estimated_savings: lead.estimated_savings || 0,
+                
+                // As notas precisam ser enviadas como JSON string
+                notes: JSON.stringify(lead.notes || [])
+            };
+
+            // Usa o ID do Lead (string) correto na URL para o PUT
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdString}`, 
+                dataToUpdate,
+                {
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                }
+            );
             setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
         } catch (error) {
-            console.error('Erro ao atualizar status:', error);
+            console.error('PUT falhou:', error.response?.data || error);
+            // Reverte o estado em caso de falha da API
             setLeads(leads);
-            setToast({ message: 'Falha ao mover lead.', type: 'error' });
+            setToast({ 
+                message: `Erro: ${error.response?.data?.error || 'Falha na API'}`, 
+                type: 'error' 
+            });
         }
     }, [leads, token]);
 
+
     // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
+        // Normaliza os IDs para string, garantindo que 'null' ou 'undefined' virem strings vazias.
+        const userId = String(user?.id || '');
+        
+        // CORREÇÃO: Verifica "Admin" (Maiúsculo) OU "admin" (Minúsculo).
+        const isAdmin = user?.role && (user.role === 'Admin' || user.role === 'admin'); 
+
         const filtered = leads.filter(lead => {
+            
+            // 1. Filtro de Busca
             const matchesSearch = searchTerm.trim() === '' || 
                 Object.values(lead).some(value => 
                     String(value).toLowerCase().includes(searchTerm.toLowerCase().trim())
                 );
+                
+            // 2. Filtro de Estágio
             const matchesStage = filterByStage === 'Todos' || lead.status === filterByStage;
-            const matchesOwner = user?.role === 'Admin' || lead.owner_id === user?.id;
+
+            // 3. Filtro de Dono (Owner)
+            const leadOwnerId = String(lead.owner_id || ''); 
+            
+            const matchesOwner = isAdmin || (leadOwnerId === userId);
+            
             return matchesSearch && matchesStage && matchesOwner;
         });
 
