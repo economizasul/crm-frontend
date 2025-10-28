@@ -399,20 +399,36 @@ const KanbanBoard = () => {
     // Drag and Drop (ID SEGURO)
     const onDragEnd = useCallback(async (result) => {
     const { source, destination, draggableId } = result;
+    
+    console.log('Drag result:', { source, destination, draggableId }); // DEBUG
+
     if (!destination || source.droppableId === destination.droppableId) return;
 
-    const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
-    if (!leadId) return;
+    // Extrai ID com fallback
+    let leadId = parseInt(draggableId);
+    if (isNaN(leadId)) {
+        const parts = draggableId.split('-');
+        leadId = parts.length > 1 ? parseInt(parts[1]) : null;
+    }
+
+    if (!leadId || leadId <= 0) {
+        console.error('ID do lead inválido:', draggableId);
+        setToast({ message: 'Erro: ID do lead inválido.', type: 'error' });
+        return;
+    }
 
     const newStatus = destination.droppableId;
+    console.log('Movendo lead:', { leadId, newStatus }); // DEBUG
 
+    // Atualização otimista
     const updatedLeads = leads.map(lead => 
         (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
     );
     setLeads(updatedLeads);
 
     try {
-        await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, 
+        const response = await axios.put(
+            `${API_BASE_URL}/api/v1/leads/${leadId}`,
             { lead: { status: newStatus } },
             {
                 headers: { 
@@ -421,12 +437,15 @@ const KanbanBoard = () => {
                 },
             }
         );
+
+        console.log('PUT sucesso:', response.data); // DEBUG
         setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
+
     } catch (error) {
-        console.error('Erro ao mover lead:', error.response?.data || error);
+        console.error('PUT falhou:', error.response?.data || error); // DEBUG
         setLeads(leads);
         setToast({ 
-            message: `Erro: ${error.response?.data?.message || 'Falha ao mover lead.'}`, 
+            message: `Erro: ${error.response?.data?.message || 'Falha na API'}`, 
             type: 'error' 
         });
     }
