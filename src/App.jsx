@@ -14,7 +14,7 @@ import Dashboard from './Dashboard.jsx';
 import KanbanBoard from './KanbanBoard.jsx'; 
 import LeadSearch from './LeadSearch.jsx'; 
 import LeadForm from './LeadForm.jsx';
-import ReportsDashboard from './src/components/reports/ReportsDashboard.jsx'; 
+import ReportsDashboard from './components/reports/ReportsDashboard.jsx';
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ children }) => {
