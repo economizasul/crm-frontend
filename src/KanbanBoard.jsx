@@ -5,7 +5,19 @@ import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; 
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
+// Defina os estágios do Kanban (alinhado com statusColor)
+const STAGES = {
+    'Novo': 'bg-gray-100 text-gray-800',
+    'Primeiro Contato': 'bg-blue-100 text-blue-800',
+    'Retorno Agendado': 'bg-indigo-100 text-indigo-800',
+    'Em Negociação': 'bg-yellow-100 text-yellow-800',
+    'Proposta Enviada': 'bg-purple-100 text-purple-800',
+    'Ganho': 'bg-green-100 text-green-800',
+    'Perdido': 'bg-red-100 text-red-800',
+    // Adicione outros se necessário, como 'Fechado', etc.
+};
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
