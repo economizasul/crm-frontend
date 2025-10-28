@@ -1,4 +1,4 @@
-// src/Dashboard.jsx - LAYOUT FINAL: Sidebar compacto + Kanban colado
+// src/Dashboard.jsx - SIDEBAR: 80px (fechado) → 160px (aberto)
 
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
@@ -12,9 +12,9 @@ const Dashboard = () => {
     const toggleSidebarExpansion = () => setIsSidebarExpanded(prev => !prev);
     const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
 
-    // LARGURA DO SIDEBAR REDUZIDA
-    const sidebarWidthClass = isSidebarExpanded ? 'md:w-20' : 'md:w-12'; // 80px / 48px
-    const mainMarginClass = isSidebarExpanded ? 'md:ml-20' : 'md:ml-12'; // 80px / 48px
+    // LARGURA DO SIDEBAR
+    const sidebarWidthClass = isSidebarExpanded ? 'md:w-40' : 'md:w-20'; // 160px / 80px
+    const mainMarginClass = isSidebarExpanded ? 'md:ml-40' : 'md:ml-20'; // ACOMPANHA
 
     return (
         <div className="flex h-screen bg-gray-100">
