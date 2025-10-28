@@ -13,8 +13,8 @@ const Dashboard = () => {
     const toggleMobileSidebar = () => setIsMobileSidebarOpen(prev => !prev);
 
     // LARGURA DO SIDEBAR
-    const sidebarWidthClass = isSidebarExpanded ? 'md:w-40' : 'md:w-20'; // 160px / 80px
-    const mainMarginClass = isSidebarExpanded ? 'md:ml-40' : 'md:ml-20'; // ACOMPANHA
+    const sidebarWidthClass = isSidebarExpanded ? 'md:w-50' : 'md:w-30'; // 160px / 80px
+    const mainMarginClass = isSidebarExpanded ? 'md:ml-50' : 'md:ml-30'; // ACOMPANHA
 
     return (
         <div className="flex h-screen bg-gray-100">
