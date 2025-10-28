@@ -1,7 +1,7 @@
 // src/components/ReportsDashboard.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../AuthContext';
 import { FaCalendarAlt, FaUser, FaChartBar, FaClock, FaCheckCircle, FaTimesCircle, FaFileAlt, FaFilter } from 'react-icons/fa';
 import { format } from 'date-fns';
 
@@ -47,7 +47,7 @@ const ReportsDashboard = () => {
     });
   }, [leads, dateFrom, dateTo, selectedSeller]);
 
-  // === RELATÓRIOS ===
+  // == RELATÓRIOS ==
   const newLeadsCount = filteredLeads.filter(l => l.status === 'Novo').length;
 
   const avgResponseTime = useMemo(() => {
