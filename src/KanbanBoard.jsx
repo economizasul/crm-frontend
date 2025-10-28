@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL CORRIGIDO: lead.id undefined, drag/drop seguro, admin funciona
+// src/KanbanBoard.jsx - CÓDIGO FINAL: colunas 50% menores + tudo corrigido
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
@@ -39,12 +39,10 @@ const Toast = ({ message, type, onClose }) => {
 };
 
 // =============================
-// Card de Lead (CORRIGIDO: ID SEGURO)
+// Card de Lead (ID SEGURO)
 // =============================
 const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
     const statusClass = STAGES[lead.status] || 'bg-gray-100 text-gray-700';
-
-    // GARANTE QUE O ID SEMPRE EXISTA (fallback seguro)
     const leadId = lead.id ?? lead._id ?? `temp-${index}`;
 
     return (
@@ -72,7 +70,7 @@ const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
 LeadCard.displayName = 'LeadCard';
 
 // ================================
-// Coluna Kanban (Droppable)
+// Coluna Kanban (LARGURA REDUZIDA ~50%)
 // ================================
 const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
     const statusClass = STAGES[stageName] || 'bg-gray-100 text-gray-700';
@@ -83,10 +81,10 @@ const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
                 <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className="flex-1 min-w-[300px] max-w-[400px] bg-gray-50 border border-gray-200 rounded-xl flex flex-col mx-2 p-3 shadow-inner"
+                    className="flex-1 min-w-[180px] max-w-[240px] bg-gray-50 border border-gray-200 rounded-xl flex flex-col mx-1 p-2 shadow-inner"
                 >
                     {/* Título da Coluna */}
-                    <div className={`sticky top-0 p-2 mb-3 rounded-lg text-center font-bold text-sm ${statusClass} shadow-md`}>
+                    <div className={`sticky top-0 p-2 mb-2 rounded-lg text-center font-bold text-xs ${statusClass} shadow-md`}>
                         {stageName} ({leads.length})
                     </div>
                     
@@ -349,9 +347,7 @@ const KanbanBoard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [toast, setToast] = useState(null);
 
-    // ===================================
-    // 1. Fetch Leads (CORRIGIDO: ID SEGURO)
-    // ===================================
+    // Fetch Leads (ID SEGURO)
     const fetchLeads = useCallback(async () => {
         setIsLoading(true);
         setApiError(null);
@@ -379,7 +375,7 @@ const KanbanBoard = () => {
                 
                 return {
                     ...lead,
-                    id: lead.id ?? lead._id ?? null, // ← ID SEGURO
+                    id: lead.id ?? lead._id ?? null,
                     notes: notesArray,
                     owner_name: lead.owner_name || 'Desconhecido'
                 };
@@ -399,21 +395,15 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // ===================================
-    // 2. Drag and Drop (CORRIGIDO: ID SEGURO)
-    // ===================================
+    // Drag and Drop (ID SEGURO)
     const onDragEnd = useCallback(async (result) => {
         const { source, destination, draggableId } = result;
+        if (!destination || source.droppableId === destination.droppableId) return;
 
-        if (!destination) return;
-        if (source.droppableId === destination.droppableId) return;
-
-        // Extrai ID com fallback
         const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
         if (!leadId) return;
 
         const newStatus = destination.droppableId;
-
         const updatedLeads = leads.map(lead => 
             (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
         );
@@ -431,19 +421,15 @@ const KanbanBoard = () => {
         }
     }, [leads, token]);
 
-    // ===================================
-    // 3. Filtragem e Agrupamento
-    // ===================================
+    // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
         const filtered = leads.filter(lead => {
             const matchesSearch = searchTerm.trim() === '' || 
                 Object.values(lead).some(value => 
                     String(value).toLowerCase().includes(searchTerm.toLowerCase().trim())
                 );
-
             const matchesStage = filterByStage === 'Todos' || lead.status === filterByStage;
             const matchesOwner = user?.role === 'Admin' || lead.owner_id === user?.id;
-
             return matchesSearch && matchesStage && matchesOwner;
         });
 
@@ -453,13 +439,10 @@ const KanbanBoard = () => {
         }, {});
     }, [leads, searchTerm, filterByStage, user]);
 
-    // ===================================
-    // 4. Manipulação do Modal
-    // ===================================
+    // Modal
     const openLeadModal = useCallback((lead) => {
         const leadNotes = Array.isArray(lead.notes) ? lead.notes : [];
-        const leadCopy = { ...lead, notes: leadNotes };
-        setSelectedLead(leadCopy);
+        setSelectedLead({ ...lead, notes: leadNotes });
         setIsModalOpen(true);
     }, []);
 
@@ -468,33 +451,19 @@ const KanbanBoard = () => {
         setSelectedLead(null);
     }, []);
 
-    const handleSearchChange = useCallback((e) => {
-        setSearchTerm(e.target.value);
-    }, []);
+    const handleSearchChange = useCallback((e) => setSearchTerm(e.target.value), []);
+    const handleFilterChange = useCallback((e) => setFilterByStage(e.target.value), []);
 
-    const handleFilterChange = useCallback((e) => {
-        setFilterByStage(e.target.value);
-    }, []);
-
-    // ===================================
-    // 5. Renderização
-    // ===================================
-    if (isLoading) {
-        return <div className="p-8 text-center text-lg text-indigo-600">Carregando dados do Kanban...</div>;
-    }
-
-    if (apiError) {
-        return <div className="p-8 text-center text-red-600 font-bold">{apiError}</div>;
-    }
+    // Renderização
+    if (isLoading) return <div className="p-8 text-center text-lg text-indigo-600">Carregando dados do Kanban...</div>;
+    if (apiError) return <div className="p-8 text-center text-red-600 font-bold">{apiError}</div>;
 
     return (
         <div className="flex-1 flex flex-col p-6 bg-gray-50 h-full overflow-hidden">
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 bg-white p-4 rounded-xl shadow-lg">
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-4 md:mb-0">
-                    Kanban CRM
-                </h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-4 md:mb-0">Kanban CRM</h1>
                 
                 <div className="flex flex-col md:flex-row items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
                     <button
@@ -530,7 +499,7 @@ const KanbanBoard = () => {
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex-grow flex overflow-x-auto overflow-y-hidden pb-4 space-x-4">
+                <div className="flex-grow flex overflow-x-auto overflow-y-hidden pb-4 space-x-2">
                     {Object.keys(STAGES).map(stage => (
                         <KanbanColumn
                             key={stage}
