@@ -67,7 +67,7 @@ const Dashboard = () => {
                     {isMobileSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
                 </button>
                 
-                {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc.) */}
+                {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc) */}
                 <div className="pt-16 md:pt-4 p-4"> 
                     <Outlet />
                 </div>
