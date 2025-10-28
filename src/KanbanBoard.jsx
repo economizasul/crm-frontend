@@ -39,9 +39,9 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// ===================================
+// ================================
 // Card de Lead
-// ===================================
+// ================================
 const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
     const statusClass = STAGES[lead.status] || 'bg-gray-100 text-gray-700';
 
@@ -70,9 +70,9 @@ const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
 });
 LeadCard.displayName = 'LeadCard';
 
-// ===================================
+// ================================
 // Coluna Kanban (Droppable)
-// ===================================
+// ================================
 const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
     const statusClass = STAGES[stageName] || 'bg-gray-100 text-gray-700';
 
@@ -110,9 +110,9 @@ const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
 KanbanColumn.displayName = 'KanbanColumn';
 
 
-// ===================================
+// ================================
 // Modal de Edição de Lead
-// ===================================
+// ================================
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, stages }) => {
     // Inicializa o estado do formulário com base no lead selecionado
@@ -363,9 +363,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
 };
 
 
-// ===================================
+// =================================
 // Componente Principal KanbanBoard
-// ===================================
+// =================================
 const KanbanBoard = () => {
     const { token, user } = useAuth();
     const navigate = useNavigate();
