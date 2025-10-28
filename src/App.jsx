@@ -13,7 +13,8 @@ import ChangePassword from './ChangePassword.jsx';
 import Dashboard from './Dashboard.jsx'; 
 import KanbanBoard from './KanbanBoard.jsx'; 
 import LeadSearch from './LeadSearch.jsx'; 
-import LeadForm from './LeadForm.jsx'; 
+import LeadForm from './LeadForm.jsx';
+import ReportsDashboard from './components/ReportsDashboard.jsx'; 
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ children }) => {
@@ -74,7 +75,7 @@ function App() {
                     {/* Outras Rotas (Mantidas do snippet) */}
                     <Route path="/user-register" element={<Register />} /> 
                     <Route path="/change-password" element={<ChangePassword />} /> 
-                    <Route path="/reports" element={<div>Página de Relatórios</div>} />
+                    <Route path="/reports" element={<ReportsDashboard />} />
                     <Route path="/settings" element={<div>Página de Configurações</div>} />
 
                 </Route>
