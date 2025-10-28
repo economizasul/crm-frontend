@@ -23,7 +23,7 @@ const statusColor = (status) => {
         case 'Proposta Enviada':
             return 'bg-purple-100 text-purple-800'; // Cor para Proposta Enviada
         case 'Ganho':
-            return 'bg-green-100 text-green-800'; // Cor para Ganho (similar ao Fechado)
+            return 'bg-green-100 text-green-800'; // Cor para Ganho
         case 'Perdido':
             return 'bg-red-100 text-red-800'; // Cor para Perdido
         

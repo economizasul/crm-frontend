@@ -31,14 +31,30 @@ const formatNoteDate = (timestamp) => {
     }
 };
 
-// Função para mapear status para cor (mantida)
+// Função para mapear status para cor (CORRIGIDA: ALINHADA COM O KANBAN)
 const statusColor = (status) => {
     switch (status) {
+        // Estágios ALINHADOS com o KanbanBoard.jsx
+        case 'Novo':
+            return 'bg-gray-100 text-gray-800'; // Novo
+        case 'Primeiro Contato': 
+            return 'bg-blue-100 text-blue-800'; // Primeiro Contato
+        case 'Retorno Agendado': 
+            return 'bg-indigo-100 text-indigo-800'; // Retorno Agendado
+        case 'Em Negociação': 
+            return 'bg-yellow-100 text-yellow-800'; // Em Negociação
+        case 'Proposta Enviada': 
+            return 'bg-purple-100 text-purple-800'; // Proposta Enviada
+        case 'Ganho': 
+            return 'bg-green-100 text-green-800'; // Ganho
+        case 'Perdido': 
+            return 'bg-red-100 text-red-800'; // Perdido
+        
+        // Mantidos os status antigos como fallback de cor (caso ainda existam leads com esse nome no DB)
         case 'Fechado': return 'bg-green-100 text-green-800';
-        case 'Proposta Enviada': return 'bg-blue-100 text-blue-800';
         case 'Em Conversação': return 'bg-yellow-100 text-yellow-800';
         case 'Para Contatar': return 'bg-indigo-100 text-indigo-800';
-        case 'Perdido': return 'bg-red-100 text-red-800';
+
         default: return 'bg-gray-100 text-gray-800';
     }
 };
