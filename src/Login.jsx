@@ -50,7 +50,7 @@ const Login = () => {
 
     // 🚨 Estilo de degradê LARANJA (Três tons: Branco/Laranja Claro/Laranja Escuro)
     const orangeGradientStyle = {
-        background: 'radial-gradient(circle, #fab478ff 0%, #F98828 30%, #935018 100%)',
+        background: 'radial-gradient(circle, #f0a96aff 0%, #F98828 30%, #935018 100%)',
     };
     
     // 🚨 Estilo de degradê VERDE INVERSO: Claro na esquerda, Escuro na direita
