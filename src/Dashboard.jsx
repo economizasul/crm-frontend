@@ -1,56 +1,48 @@
-// src/Dashboard.jsx - CÓDIGO FINAL COM SIDEBAR MINIMIZADO/EXPANSÍVEL E LAYOUT CORRIGIDO
+// src/Dashboard.jsx - CÓDIGO DE DEBUG E ISOLAMENTO DE SIDEBAR
 
 import React, { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa'; 
 import { Outlet } from 'react-router-dom'; 
 
+// 🚨 MANTÉM A IMPORTAÇÃO, MAS NÃO A UTILIZA
 import Sidebar from './components/Sidebar'; 
 
 const Dashboard = () => {
-    // 1. Estado para EXPANSÃO (Desktop: ícones/ícones+texto). Por padrão, MINIMIZADO (false).
-    const [isSidebarExpanded, setIsSidebarExpanded] = useState(false); 
+    // 1. Estado para EXPANSÃO (Desktop) - ⛔ COMENTADO PARA DEBUG
+    // const [isSidebarExpanded, setIsSidebarExpanded] = useState(false); 
     
-    // 2. Estado para MOBILE (Drawer: aberto/fechado).
+    // 2. Estado para MOBILE (Drawer)
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-    // Função para alternar o estado de expansão (desktop)
-    const toggleSidebarExpansion = () => {
-        setIsSidebarExpanded(prev => !prev);
-    };
+    // Função para alternar o estado de expansão (desktop) - ⛔ COMENTADO PARA DEBUG
+    // const toggleSidebarExpansion = () => {
+    //     setIsSidebarExpanded(prev => !prev);
+    // };
 
     // Função para alternar a visibilidade do Sidebar em mobile (drawer)
     const toggleMobileSidebar = () => {
         setIsMobileSidebarOpen(prev => !prev);
     };
 
-    // Determina as classes de largura e margem
-    const sidebarWidthClass = isSidebarExpanded ? 'md:w-64' : 'md:w-20'; // Desktop: 64 ou 20
-    const mainMarginClass = isSidebarExpanded ? 'md:ml-64' : 'md:ml-20'; // Desktop: ml-64 ou ml-20
+    // Determina as classes de largura e margem (FORÇANDO SEM SIDEBAR FIXO)
+    // O Main Content agora começa no zero (ml-0), forçando a exibição do conteúdo
+    const sidebarWidthClass = 'md:w-0'; 
+    const mainMarginClass = 'md:ml-0'; 
 
     return (
-        <div className="flex h-screen bg-gray-100"> 
+        <div className="flex h-screen bg-gray-50">
             
-            {/* Sidebar Container (Fixo na tela, mas ocupando espaço com margem no main) */}
-            <div 
-                className={`
-                    fixed inset-y-0 left-0 
-                    ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                    ${sidebarWidthClass} // Largura dinâmica em desktop
-                    md:translate-x-0 // Sempre visível em desktop
-                    bg-gray-800 text-white shadow-xl 
-                    flex flex-col z-40 
-                    transition-all duration-300 ease-in-out
-                `}
-            >
-                {/* Passe os estados e toggles para o Sidebar */}
-                <Sidebar 
-                    isExpanded={isSidebarExpanded} 
-                    toggleExpansion={toggleSidebarExpansion} 
-                    toggleMobileSidebar={toggleMobileSidebar} 
-                /> 
-            </div>
+            {/* ⛔ SIDEBAR COMENTADO: Desativado para debug.
+            <Sidebar
+                isSidebarExpanded={isSidebarExpanded}
+                toggleSidebarExpansion={toggleSidebarExpansion}
+                isMobileSidebarOpen={isMobileSidebarOpen}
+                toggleMobileSidebar={toggleMobileSidebar}
+                sidebarWidthClass={sidebarWidthClass}
+            />
+            */}
 
-            {/* Overlay para fechar o sidebar em telas menores */}
+            {/* Overlay em Mobile (quando o sidebar está aberto) */}
             {isMobileSidebarOpen && (
                 <div 
                     className="fixed inset-0 bg-black opacity-50 z-30 md:hidden" 
@@ -60,11 +52,11 @@ const Dashboard = () => {
             
             {/* Main Content (Conteúdo principal) */}
             <main 
-                // 🚨 CRÍTICO: Ajusta a margem esquerda para compensar a largura do sidebar
+                // 🚨 CRÍTICO: Removida a margem dinâmica (ml-64 ou ml-20) e forçada para ml-0
                 className={`
                     flex-1 overflow-y-auto 
                     transition-all duration-300 ease-in-out
-                    ${mainMarginClass} // Margem dinâmica em desktop (ml-64 ou ml-20)
+                    ${mainMarginClass} // Força ml-0 em desktop
                 `}
             > 
                 {/* Botão de Toggle do Sidebar (Menu Hamburguer) - Apenas em mobile */}
@@ -76,7 +68,7 @@ const Dashboard = () => {
                 </button>
                 
                 {/* Outlet renderiza o componente da rota aninhada (KanbanBoard, LeadSearch, etc.) */}
-                <div className="pt-16 md:pt-4 p-4"> {/* pt-16 para mobile, pt-4 para desktop */}
+                <div className="pt-16 md:pt-4 p-4"> 
                     <Outlet />
                 </div>
                 
