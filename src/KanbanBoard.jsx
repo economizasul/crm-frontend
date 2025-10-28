@@ -9,16 +9,35 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban e suas cores
-export const STAGES = {
-    'Novo': 'bg-gray-200 text-gray-800',
-    'Primeiro Contato': 'bg-blue-200 text-blue-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
-    'Em Negociação': 'bg-yellow-200 text-yellow-800',
-    'Proposta Enviada': 'bg-purple-200 text-purple-800',
-    'Ganho': 'bg-green-200 text-green-800',
-    'Perdido': 'bg-red-200 text-red-800',
-    
+const statusColor = (status) => {
+    switch (status) {
+        // Estágios ALINHADOS com o KanbanBoard.jsx
+        case 'Novo':
+            return 'bg-gray-100 text-gray-800'; // Cor para Novo (similar ao Para Contatar)
+        case 'Primeiro Contato':
+            return 'bg-blue-100 text-blue-800'; // Cor para Primeiro Contato
+        case 'Retorno Agendado':
+            return 'bg-indigo-100 text-indigo-800'; // Cor para Retorno Agendado
+        case 'Em Negociação':
+            return 'bg-yellow-100 text-yellow-800'; // Cor para Em Negociação
+        case 'Proposta Enviada':
+            return 'bg-purple-100 text-purple-800'; // Cor para Proposta Enviada
+        case 'Ganho':
+            return 'bg-green-100 text-green-800'; // Cor para Ganho (similar ao Fechado)
+        case 'Perdido':
+            return 'bg-red-100 text-red-800'; // Cor para Perdido
+        
+        // Se houver leads antigos com os status abaixo, eles ainda serão formatados:
+        case 'Fechado': 
+            return 'bg-green-100 text-green-800';
+        case 'Em Conversação': 
+            return 'bg-yellow-100 text-yellow-800';
+        case 'Para Contatar': 
+            return 'bg-indigo-100 text-indigo-800';
+
+        default: 
+            return 'bg-gray-100 text-gray-800';
+    }
 };
 
 // Componente simples de Toast para feedback
