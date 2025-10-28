@@ -1,306 +1,479 @@
-// src/KanbanBoard.jsx - KANBAN FINAL: Colunas compactas + drag/drop funcional
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM BARRA DE PESQUISA, FILTRO, MODAL E DRAG/DROP
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
-import { useAuth } from './AuthContext.jsx';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { useAuth } from './AuthContext.jsx'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// ESTÁGIOS DO KANBAN (usado em todo o app)
+// Estágios do Kanban e suas cores
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Para Contatar': 'bg-blue-200 text-blue-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
+    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
 };
 
-// Toast
+// Componente simples de Toast para feedback
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
-        const timer = setTimeout(onClose, 3000);
+        const timer = setTimeout(() => {
+            onClose();
+        }, 3000); 
         return () => clearTimeout(timer);
     }, [onClose]);
 
+    const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+    
     return (
-        <div className={`p-3 rounded-lg text-white font-medium shadow-lg fixed top-4 right-4 z-50 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+        <div className={`p-3 rounded-lg text-white font-medium shadow-lg fixed top-4 right-4 z-50 ${bgColor}`}>
             {message}
         </div>
     );
 };
 
-// Lead Card
-const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
-    const statusClass = STAGES[lead.status] || 'bg-gray-100 text-gray-700';
-    const leadId = lead.id ?? lead._id ?? `temp-${index}`;
-
+// Componente Card de Lead
+const LeadCard = ({ lead, onClick }) => {
     return (
-        <Draggable draggableId={String(leadId)} index={index}>
-            {(provided) => (
-                <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    onClick={() => openLeadModal(lead)}
-                    className="p-3 mb-3 bg-white border border-gray-200 rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
-                >
-                    <div className="text-sm font-semibold text-gray-900 truncate">
-                        {lead.name || 'Sem Nome'}
-                    </div>
-                    <p className="text-xs text-gray-500">{lead.phone || 'Sem Telefone'}</p>
-                    <div className={`mt-2 inline-block px-2 py-0.5 text-xs font-medium rounded-full ${statusClass}`}>
-                        {lead.status || 'Sem Status'}
-                    </div>
-                </div>
-            )}
-        </Draggable>
-    );
-});
-
-// Coluna Kanban
-const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
-    const statusClass = STAGES[stageName] || 'bg-gray-100 text-gray-700';
-
-    return (
-        <Droppable droppableId={stageName}>
-            {(provided) => (
-                <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="flex-1 min-w-[180px] max-w-[240px] bg-gray-50 border border-gray-200 rounded-xl flex flex-col mx-1 p-2 shadow-inner"
-                >
-                    <div className={`sticky top-0 p-2 mb-2 rounded-lg text-center font-bold text-xs ${statusClass} shadow-md`}>
-                        {stageName} ({leads.length})
-                    </div>
-                    <div className="flex-grow overflow-y-auto">
-                        {leads.map((lead, index) => (
-                            <LeadCard
-                                key={lead.id ?? lead._id ?? `temp-${index}`}
-                                lead={lead}
-                                index={index}
-                                openLeadModal={openLeadModal}
-                            />
-                        ))}
-                        {provided.placeholder}
-                    </div>
-                </div>
-            )}
-        </Droppable>
-    );
-});
-
-// Modal de Edição
-const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads }) => {
-    const [formData, setFormData] = useState({});
-    const [newNote, setNewNote] = useState('');
-    const [saving, setSaving] = useState(false);
-    const [noteError, setNoteError] = useState('');
-    const [toast, setToast] = useState(null);
-
-    useEffect(() => {
-        if (selectedLead) {
-            const notes = Array.isArray(selectedLead.notes)
-                ? selectedLead.notes
-                : selectedLead.notes ? [{ text: selectedLead.notes, timestamp: Date.now() }] : [];
-            setFormData({ ...selectedLead, notes });
-        }
-    }, [selectedLead]);
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleAddNote = () => {
-        if (newNote.trim().length < 5) {
-            setNoteError('A nota deve ter pelo menos 5 caracteres.');
-            return;
-        }
-        const note = { text: newNote.trim(), timestamp: Date.now(), user: formData.owner_name || 'Usuário' };
-        setFormData(prev => ({ ...prev, notes: [...prev.notes, note] }));
-        setNewNote('');
-        setNoteError('');
-    };
-
-    const saveLeadChanges = async () => {
-        setSaving(true);
-        try {
-            const data = {
-                ...formData,
-                notes: JSON.stringify(formData.notes),
-                id: undefined, owner_name: undefined, created_at: undefined, updated_at: undefined
-            };
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${formData.id ?? formData._id}`, data, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setToast({ message: 'Lead salvo!', type: 'success' });
-            fetchLeads();
-            onClose();
-        } catch (error) {
-            setToast({ message: 'Erro ao salvar.', type: 'error' });
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    if (!isModalOpen || !selectedLead) return null;
-
-    return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
-                <div className="p-5 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                    <h2 className="text-2xl font-bold text-indigo-700">{selectedLead.name}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><FaTimes size={20} /></button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-grow">
-                    {/* Formulário aqui (igual ao anterior) */}
-                    {/* ... (mantido) ... */}
-                </div>
-            </div>
+        <div 
+            onClick={() => onClick(lead)}
+            className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm mb-3 cursor-pointer hover:shadow-md transition duration-150 ease-in-out"
+        >
+            <h3 className="font-semibold text-gray-800">{lead.name}</h3>
+            <p className="text-sm text-gray-600">{lead.phone}</p>
+            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${STAGES[lead.status] || STAGES.Novo} mt-1 inline-block`}>
+                {lead.status}
+            </span>
         </div>
     );
 };
 
-// KanbanBoard Principal
+// Função auxiliar de formatação de data
+const formatNoteDate = (timestamp) => {
+    if (!timestamp) return 'Sem Data';
+    try {
+        const date = new Date(timestamp);
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+        }).format(date);
+    } catch (e) {
+        return 'Data Inválida';
+    }
+};
+
+
 const KanbanBoard = () => {
-    const { token, user } = useAuth();
-    const navigate = useNavigate();
     const [leads, setLeads] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterByStage, setFilterByStage] = useState('Todos');
     const [selectedLead, setSelectedLead] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [newNoteText, setNewNoteText] = useState(''); 
+    const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
+    
+    // 🚨 NOVO ESTADO: Termo de Pesquisa
+    const [searchTerm, setSearchTerm] = useState(''); 
+    // 🚨 NOVO ESTADO: Resultado da Pesquisa
+    const [searchResult, setSearchResult] = useState(null);
 
+    const navigate = useNavigate();
+    const { token, logout } = useAuth();
+    
+    // Estado usado para o formulário do modal
+    const [leadData, setLeadData] = useState({
+        name: '', phone: '', document: '', address: '', status: '', origin: '', email: '', 
+        uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], 
+        lat: null, lng: null
+    });
+
+    // Função para buscar os leads
     const fetchLeads = useCallback(async () => {
+        if (!token) return;
+
         setIsLoading(true);
+        setApiError(null);
+
         try {
-            const res = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
+            const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const formatted = res.data.map(lead => ({
-                ...lead,
-                id: lead.id ?? lead._id,
-                notes: Array.isArray(lead.notes) ? lead.notes : lead.notes ? [{ text: lead.notes, timestamp: Date.now() }] : [],
-                owner_name: lead.owner_name || 'Desconhecido',
-                origin: lead.origin || 'Web'
-            }));
-            setLeads(formatted);
-        } catch (err) {
-            setApiError('Erro ao carregar leads.');
-        } finally {
+            setLeads(response.data);
+            setIsLoading(false);
+        } catch (error) {
+            console.error("Erro ao buscar leads:", error);
+            if (error.response && error.response.status === 401) {
+                logout();
+                navigate('/login');
+            }
+            setApiError('Falha ao carregar leads. Tente novamente.');
             setIsLoading(false);
         }
-    }, [token]);
+    }, [token, navigate, logout]);
 
-    useEffect(() => { fetchLeads(); }, [fetchLeads]);
-
-    const onDragEnd = useCallback(async (result) => {
-        const { source, destination, draggableId } = result;
-        if (!destination || source.droppableId === destination.droppableId) return;
-
-        const leadId = draggableId;
-        if (leadId.startsWith('temp-')) return;
-
-        const lead = leads.find(l => String(l.id ?? l._id) === leadId);
-        if (!lead) return;
-
-        const updated = leads.map(l => String(l.id ?? l._id) === leadId ? { ...l, status: destination.droppableId } : l);
-        setLeads(updated);
-
-        try {
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, {
-                lead: {
-                    name: lead.name || 'Sem Nome',
-                    phone: lead.phone || 'Sem Telefone',
-                    status: destination.droppableId,
-                    origin: lead.origin || 'Web'
-                }
-            }, {
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-            });
-            setToast({ message: 'Lead movido!', type: 'success' });
-        } catch (err) {
-            setLeads(leads);
-            setToast({ message: 'Erro ao mover lead.', type: 'error' });
+    useEffect(() => {
+        fetchLeads();
+    }, [fetchLeads]);
+    
+    // 🚨 Lógica de filtragem
+    const handleSearch = (term) => {
+        setSearchTerm(term);
+        
+        if (term.trim() === '') {
+            setSearchResult(null);
+            return;
         }
-    }, [leads, token]);
 
-    const groupedLeads = useMemo(() => {
-        const filtered = leads.filter(lead => {
-            const matchesSearch = !searchTerm.trim() || Object.values(lead).some(v => String(v).toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesStage = filterByStage === 'Todos' || lead.status === filterByStage;
-            const matchesOwner = user?.role?.toLowerCase() === 'admin' || lead.owner_id == user?.id;
-            return matchesSearch && matchesStage && matchesOwner;
-        });
-        return Object.keys(STAGES).reduce((acc, stage) => {
-            acc[stage] = filtered.filter(l => l.status === stage);
-            return acc;
-        }, {});
-    }, [leads, searchTerm, filterByStage, user]);
+        const lowerCaseTerm = term.toLowerCase();
+        
+        const foundLead = leads.find(lead => 
+            (lead.name && lead.name.toLowerCase().includes(lowerCaseTerm)) ||
+            (lead.phone && lead.phone.includes(lowerCaseTerm)) ||
+            (lead.document && lead.document.includes(lowerCaseTerm))
+        );
 
+        if (foundLead) {
+            setSearchResult(foundLead);
+        } else {
+            setSearchResult('not_found');
+        }
+    };
+    
+    // Lógica para abrir o modal de edição (inalterada)
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
+        const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
+        setLeadData({
+            name: lead.name || '', phone: lead.phone || '', document: lead.document || '', 
+            address: lead.address || '', status: lead.status || 'Novo', origin: lead.origin || '', 
+            email: lead.email || '', uc: lead.uc || '', 
+            avgConsumption: lead.avgConsumption || '', estimatedSavings: lead.estimatedSavings || '', 
+            qsa: lead.qsa || '', notes: currentNotes, lat: lead.lat || null, lng: lead.lng || null,
+        });
+        setNewNoteText('');
         setIsModalOpen(true);
     }, []);
 
+    // Lógica para fechar o modal (inalterada)
     const closeLeadModal = useCallback(() => {
         setIsModalOpen(false);
         setSelectedLead(null);
-    }, []);
+        fetchLeads(); 
+    }, [fetchLeads]);
+    
+    // Handler de input do modal (inalterada)
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setLeadData(prev => ({ ...prev, [name]: value }));
+    };
 
-    if (isLoading) return <div className="p-8 text-center text-indigo-600">Carregando...</div>;
-    if (apiError) return <div className="p-8 text-center text-red-600 font-bold">{apiError}</div>;
+    // Adiciona nota ao estado local do modal (inalterada)
+    const addNewNote = () => {
+        if (newNoteText.trim() === '') return;
 
-    return (
-        <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 bg-white p-4 rounded-xl shadow">
-                <h1 className="text-2xl font-bold text-gray-900 mb-3 md:mb-0">Kanban CRM</h1>
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <button onClick={() => navigate('/register-lead')} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
-                        <FaPlus /> <span>Novo Lead</span>
-                    </button>
-                    <select value={filterByStage} onChange={e => setFilterByStage(e.target.value)} className="px-3 py-2 border rounded-lg">
-                        <option value="Todos">Todos</option>
-                        {Object.keys(STAGES).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="relative">
-                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar..."
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border rounded-lg w-full md:w-64"
-                        />
+        const newNote = {
+            text: newNoteText.trim(),
+            timestamp: Date.now(),
+        };
+
+        setLeadData(prev => ({
+            ...prev,
+            notes: [...(prev.notes || []), newNote]
+        }));
+        
+        setNewNoteText('');
+    };
+
+    // Salva as alterações do lead via modal (inalterada)
+    const saveLeadChanges = async () => {
+        if (!selectedLead) return;
+        setSaving(true);
+
+        try {
+            const dataToSend = {
+                ...leadData,
+                notes: JSON.stringify(leadData.notes || []), 
+                avgConsumption: parseFloat(leadData.avgConsumption) || null,
+                estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
+            };
+
+            delete dataToSend._id; 
+
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSend, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
+            closeLeadModal();
+        } catch (error) {
+            console.error("Erro ao salvar lead:", error.response?.data || error);
+            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead.', type: 'error' });
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    // Lógica de Drag and Drop (inalterada)
+    const handleDrop = async (leadId, newStatus) => {
+        const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
+        const leadToUpdate = leads.find(l => l._id === idToFind);
+        
+        if (!leadToUpdate || leadToUpdate.status === newStatus) return;
+
+        const oldStatus = leadToUpdate.status;
+        setLeads(prevLeads => prevLeads.map(l => 
+            l._id === idToFind ? { ...l, status: newStatus } : l
+        ));
+
+        try {
+            const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
+
+            const dataToSend = {
+                ...leadToUpdate,
+                status: newStatus,
+                notes: notesToSave, 
+                avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
+                estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
+            };
+
+            delete dataToSend._id; 
+            
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            
+            setToast({ message: `Status de ${leadToUpdate.name} atualizado para ${newStatus}!`, type: 'success' });
+            
+        } catch (error) {
+            console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
+            
+            setLeads(prevLeads => prevLeads.map(l => 
+                l._id === idToFind ? { ...l, status: oldStatus } : l
+            ));
+            
+            setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
+            fetchLeads(); 
+        }
+    };
+    
+    // Renderiza as colunas do Kanban
+    const renderColumns = () => {
+        // Se houver resultado de pesquisa, renderiza apenas a coluna do lead encontrado
+        if (searchResult && searchResult !== 'not_found') {
+            const status = searchResult.status;
+            
+            return (
+                <div 
+                    key={status} 
+                    className="flex-shrink-0 w-64 bg-white p-4 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
+                >
+                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                        {status} (1) 
+                        <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
+                    </h2>
+                    
+                    <div
+                        draggable
+                        onDragStart={(e) => {
+                            e.dataTransfer.setData("leadId", searchResult._id.toString());
+                        }}
+                    >
+                        <LeadCard lead={searchResult} onClick={openLeadModal} />
                     </div>
                 </div>
+            );
+        }
+        
+        // Renderização normal do Kanban
+        const columns = Object.keys(STAGES).map(status => {
+            // Filtra os leads para a coluna atual
+            const statusLeads = leads.filter(lead => lead.status === status);
+            return (
+                <div 
+                    key={status} 
+                    // Largura otimizada
+                    className="flex-shrink-0 w-52 bg-white p-4 rounded-lg shadow-lg"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const leadId = e.dataTransfer.getData("leadId");
+                        handleDrop(leadId, status);
+                    }}
+                >
+                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                        {status} ({statusLeads.length})
+                    </h2>
+                    
+                    {statusLeads.map(lead => (
+                        <div 
+                            key={lead._id}
+                            draggable
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData("leadId", lead._id.toString());
+                            }}
+                        >
+                            <LeadCard lead={lead} onClick={openLeadModal} />
+                        </div>
+                    ))}
+                    
+                    {statusLeads.length === 0 && (
+                        <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
+                    )}
+                </div>
+            );
+        });
+        return columns;
+    };
+
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-full text-indigo-600 text-lg">Carregando Leads...</div>;
+    }
+
+    if (apiError) {
+        return <div className="p-8 text-center text-red-600">{apiError}</div>;
+    }
+
+    return (
+        <div className="p-6">
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
+            <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
+            
+            {/* 🚨 NOVA BARRA DE PESQUISA */}
+            <div className="mb-6 flex items-center space-x-4">
+                <div className="relative flex-1 max-w-lg">
+                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por Nome, Telefone ou Documento..."
+                        value={searchTerm}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
+                    />
+                </div>
+                {/* 🚨 Feedbacks da Pesquisa */}
+                {searchResult === 'not_found' && searchTerm.trim() !== '' && (
+                    <span className="text-red-500 font-medium">Lead não encontrado.</span>
+                )}
+                {searchResult && searchResult !== 'not_found' && (
+                    <button onClick={() => setSearchResult(null)} className="text-sm px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">
+                        Limpar Pesquisa <FaTimes className="inline ml-1" />
+                    </button>
+                )}
+            </div>
+            
+            {/* Container do Kanban: Permite scroll horizontal e ajusta a altura com base na tela */}
+            {/* Se houver resultado de pesquisa, o Kanban é filtrado */}
+            <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-200px)]"> 
+                {renderColumns()}
             </div>
 
-            <DragDropContext onDragEnd={onDragEnd}>
-                <div className="flex-grow flex overflow-x-auto gap-2 pb-4">
-                    {Object.keys(STAGES).map(stage => (
-                        <KanbanColumn key={stage} stageName={stage} leads={groupedLeads[stage] || []} openLeadModal={openLeadModal} />
-                    ))}
-                </div>
-            </DragDropContext>
+            {/* Modal de Edição do Lead (inalterado) */}
+            {isModalOpen && selectedLead && (
+                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
+                        
+                        <div className="flex justify-between items-start border-b pb-4 mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">Editar Lead: {selectedLead.name}</h2>
+                            <button onClick={closeLeadModal} className="text-gray-500 hover:text-gray-800">
+                                <FaTimes size={20} />
+                            </button>
+                        </div>
 
-            <LeadEditModal
-                selectedLead={selectedLead}
-                isModalOpen={isModalOpen}
-                onClose={closeLeadModal}
-                token={token}
-                fetchLeads={fetchLeads}
-            />
+                        <div className="space-y-6">
+                            
+                            {/* Informações do Lead */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
+                                    <input type="email" name="email" value={leadData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border border-gray-300 rounded" />
+                                    <input type="text" name="phone" value={leadData.phone} onChange={handleChange} placeholder="Telefone" className="w-full p-2 border border-gray-300 rounded" required />
+                                    <input type="text" name="document" value={leadData.document} onChange={handleChange} placeholder="CPF/CNPJ" className="w-full p-2 border border-gray-300 rounded" />
+                                    <input type="text" name="address" value={leadData.address} onChange={handleChange} placeholder="Endereço" className="col-span-2 p-2 border border-gray-300 rounded" />
+                                    
+                                    <input type="text" name="origin" value={leadData.origin} onChange={handleChange} placeholder="Origem" className="w-full p-2 border border-gray-300 rounded" />
+                                    <select name="status" value={leadData.status} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white" required>
+                                        {Object.keys(STAGES).map(status => (
+                                            <option key={status} value={status}>{status}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            {/* Informações Técnicas */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <input type="text" name="uc" value={leadData.uc} onChange={handleChange} placeholder="Número da UC" className="w-full p-2 border border-gray-300 rounded" />
+                                    <input type="number" name="avgConsumption" value={leadData.avgConsumption} onChange={handleChange} placeholder="Consumo Médio (kWh)" className="w-full p-2 border border-gray-300 rounded" />
+                                    <input type="number" name="estimatedSavings" value={leadData.estimatedSavings} onChange={handleChange} placeholder="Economia Estimada" className="w-full p-2 border border-gray-300 rounded" />
+                                    <div className="col-span-2">
+                                        <textarea name="qsa" value={leadData.qsa} onChange={handleChange} placeholder="QSA" className="w-full p-2 border border-gray-300 rounded" rows="2" />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Notas e Histórico */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
+                                
+                                <div className="flex space-x-2 mb-4">
+                                    <textarea 
+                                        value={newNoteText} 
+                                        onChange={(e) => setNewNoteText(e.target.value)} 
+                                        placeholder="Adicionar nova nota..." 
+                                        className="flex-1 p-2 border border-gray-300 rounded resize-none" 
+                                        rows="2"
+                                    />
+                                    <button 
+                                        onClick={addNewNote}
+                                        className="self-start px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
+                                    >
+                                        <FaPlus size={16} />
+                                    </button>
+                                </div>
+                                
+                                <div className="border p-4 rounded-lg bg-gray-50 h-40 overflow-y-auto">
+                                    {leadData.notes && leadData.notes.length > 0 ? (
+                                        [...leadData.notes].reverse().map((note, index) => (
+                                                <div key={index} className="mb-3 p-2 border-l-4 border-indigo-400 bg-white shadow-sm rounded">
+                                                    <p className="text-xs text-gray-500 font-medium">
+                                                        {formatNoteDate(note.timestamp)}
+                                                    </p>
+                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                        </div>
+
+                        {/* Botões do Modal */}
+                        <div className="mt-6 flex justify-end space-x-2">
+                            <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
+                            <button 
+                                onClick={saveLeadChanges} 
+                                disabled={saving} 
+                                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                            >
+                                <FaSave size={16} />
+                                <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
