@@ -396,48 +396,72 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // Drag and Drop (ID SEGURO)
+    // Drag and Drop (ID SEGURO) - CORREÇÃO MAIS ROBUSTA APLICADA AQUI
     const onDragEnd = useCallback(async (result) => {
-    const { source, destination, draggableId } = result;
-    if (!destination || source.droppableId === destination.droppableId) return;
+        const { source, destination, draggableId } = result;
+        if (!destination || source.droppableId === destination.droppableId) return;
 
-    const leadId = draggableId;
-    if (leadId.startsWith('temp-')) return;
+        const leadIdString = draggableId;
+        if (leadIdString.startsWith('temp-')) return; // Ignora IDs temporários
 
-    const newStatus = destination.droppableId;
-    const lead = leads.find(l => String(l.id ?? l._id) === leadId);
-    if (!lead) return;
+        const newStatus = destination.droppableId;
 
-    const updatedLeads = leads.map(l =>
-        String(l.id ?? l._id) === leadId ? { ...l, status: newStatus } : l
-    );
-    setLeads(updatedLeads);
+        // 1. Encontra o lead original
+        const lead = leads.find(l => (String(l.id ?? l._id) === leadIdString));
+        if (!lead) return;
 
-    try {
-        await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, {
-            lead: {
+        // 2. Atualiza o estado local (otimista)
+        const updatedLeads = leads.map(l =>
+            (String(l.id ?? l._id) === leadIdString) ? { ...l, status: newStatus } : l
+        );
+        setLeads(updatedLeads);
+
+        try {
+            // 3. Monta os dados para o PUT, ENVIANDO TUDO NO NÍVEL RAIZ
+            // Esta estrutura garante que todos os campos obrigatórios sejam enviados para a API
+            const dataToUpdate = {
+                // STATUS: O único campo que realmente mudou
+                status: newStatus,
+
+                // CAMPOS OBRIGATÓRIOS (com fallback para garantir validação do backend)
                 name: lead.name || 'Sem Nome',
                 phone: lead.phone || 'Sem Telefone',
-                status: newStatus,
-                origin: lead.origin || 'Web'
-            }
-        }, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
+                origin: lead.origin || 'Desconhecido',
+                
+                // Outros campos importantes para não serem perdidos:
+                email: lead.email || '',
+                address: lead.address || '',
+                uc: lead.uc || '',
+                qsa: lead.qsa || '',
+                avg_consumption: lead.avg_consumption || 0,
+                estimated_savings: lead.estimated_savings || 0,
+                
+                // As notas precisam ser enviadas como JSON string
+                notes: JSON.stringify(lead.notes || [])
+            };
 
-        setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
-    } catch (error) {
-        console.error('PUT falhou:', error.response?.data || error);
-        setLeads(leads);
-        setToast({
-            message: `Erro: ${error.response?.data?.error || 'Falha na API'}`,
-            type: 'error'
-        });
-    }
-}, [leads, token]);
+            // Usa o ID do Lead (string) correto na URL para o PUT
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdString}`, 
+                dataToUpdate,
+                {
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                }
+            );
+            setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
+        } catch (error) {
+            console.error('PUT falhou:', error.response?.data || error);
+            // Reverte o estado em caso de falha da API
+            setLeads(leads);
+            setToast({ 
+                message: `Erro: ${error.response?.data?.error || 'Falha na API'}`, 
+                type: 'error' 
+            });
+        }
+    }, [leads, token]);
+
 
     // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
