@@ -12,12 +12,13 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onren
 // Estágios do Kanban e suas cores
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
-    'Para Contatar': 'bg-blue-200 text-blue-800',
+    'Primeiro Contato': 'bg-blue-200 text-blue-800',
+    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
+    
 };
 
 // Componente simples de Toast para feedback
