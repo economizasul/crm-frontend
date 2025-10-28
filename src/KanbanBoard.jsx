@@ -271,7 +271,7 @@ const KanbanBoard = () => {
             return (
                 <div 
                     key={status} 
-                    className="flex-shrink-0 w-64 bg-white p-4 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
+                    className="flex-shrink-0 w-52 bg-white p-3 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
                 >
                     <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
                         {status} (1) 
@@ -298,7 +298,7 @@ const KanbanBoard = () => {
                 <div 
                     key={status} 
                     // Largura otimizada
-                    className="flex-shrink-0 w-52 bg-white p-4 rounded-lg shadow-lg"
+                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg"
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                         e.preventDefault();
