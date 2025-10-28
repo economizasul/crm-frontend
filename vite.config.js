@@ -18,11 +18,9 @@ export default defineConfig({
     rollupOptions: {
       external: [], 
     },
-    // Adição: Gera sourcemaps para debug build
     sourcemap: true,
   },
-  // Adição: Força PostCSS se não detectado
   css: {
-    postcss: './postcss.config.js',  // Assume que existe
+    postcss: './postcss.config.cjs',  // ← MUDOU AQUI!
   }
 });
