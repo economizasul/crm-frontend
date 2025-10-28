@@ -12,7 +12,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onren
 // ESTÁGIOS DO KANBAN (usado em todo o app)
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
-    'Primeiro Contato': 'bg-blue-200 text-blue-800',
+    'Para Contatar': 'bg-blue-200 text-blue-800',
     'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
