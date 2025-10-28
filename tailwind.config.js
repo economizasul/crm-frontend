@@ -2,7 +2,6 @@
 export default {
   content: [
     "./index.html",
-    // Sintaxe mais segura para ler TODA a pasta src/
     "./src/**/*.{js,ts,jsx,tsx}", 
   ],
   theme: {
