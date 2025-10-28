@@ -1,9 +1,9 @@
-// postcss.config.js - Conteúdo CORRIGIDO FINAL
+// postcss.config.js - Configuração FINAL e CORRETA para Tailwind V4
 
 export default {
   plugins: {
-    // ✅ Revertido: Agora usa o nome do pacote estável (tailwindcss)
-    tailwindcss: {}, 
+    // CRÍTICO: Use o nome do plugin V4 instalado para resolver o erro de build
+    '@tailwindcss/postcss': {}, 
     autoprefixer: {},
   },
 };
