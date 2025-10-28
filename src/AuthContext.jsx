@@ -11,7 +11,7 @@ const USER_KEY = 'user';
 
 export const AuthProvider = ({ children }) => {
     
-    // ... restante da lógica de inicialização (mantida da última sugestão) ...
+    // ... restante da lógica de inicialização (mantida da última sugestão)
     const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY));
     const [user, setUser] = useState(() => {
         try {

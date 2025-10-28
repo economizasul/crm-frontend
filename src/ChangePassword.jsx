@@ -13,7 +13,7 @@ function ChangePassword() {
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // Obtém o usuário logado para extrair o token de autorização.
+    // Obtém o usuário logado para extrair o token de autorização
     const { user } = useAuth(); 
 
     const handleChangePassword = async (e) => {

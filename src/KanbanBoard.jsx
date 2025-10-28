@@ -39,9 +39,9 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// ================================
+// =============================
 // Card de Lead
-// ================================
+// =============================
 const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
     const statusClass = STAGES[lead.status] || 'bg-gray-100 text-gray-700';
 

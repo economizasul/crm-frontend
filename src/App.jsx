@@ -10,10 +10,10 @@ import Register from './Register.jsx';
 import ChangePassword from './ChangePassword.jsx';
 
 // Componentes de Layout e Conteúdo
-import Dashboard from './Dashboard.jsx'; // O componente de layout (Sidebar + Outlet)
-import KanbanBoard from './KanbanBoard.jsx'; // O conteúdo do Dashboard
-import LeadSearch from './LeadSearch.jsx'; // Tela de Busca/Lista
-import LeadForm from './LeadForm.jsx'; // Cadastro ou Edição de Lead
+import Dashboard from './Dashboard.jsx'; 
+import KanbanBoard from './KanbanBoard.jsx'; 
+import LeadSearch from './LeadSearch.jsx'; 
+import LeadForm from './LeadForm.jsx'; 
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ children }) => {

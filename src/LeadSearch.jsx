@@ -15,7 +15,7 @@ import { STAGES } from './KanbanBoard.jsx';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 // --- FUNÇÕES AUXILIARES ---
-// Função de formatação de data (mantida)
+// Função de formatação de data
 const formatNoteDate = (timestamp) => {
     if (timestamp === 0 || !timestamp) return 'Sem Data';
     try {

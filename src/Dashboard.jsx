@@ -42,7 +42,7 @@ const Dashboard = () => {
                     transition-all duration-300 ease-in-out
                 `}
             >
-                {/* 🚨 Passe os estados e toggles para o Sidebar */}
+                {/* Passe os estados e toggles para o Sidebar */}
                 <Sidebar 
                     isExpanded={isSidebarExpanded} 
                     toggleExpansion={toggleSidebarExpansion} 

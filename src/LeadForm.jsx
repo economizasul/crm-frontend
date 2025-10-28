@@ -26,7 +26,7 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Definição estática das fases do Kanban para o select (Mantida)
+// Definição estática das fases do Kanban para o select
 const STAGES = [
     'Novo',
     'Para Contatar',
