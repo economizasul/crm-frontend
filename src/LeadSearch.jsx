@@ -53,7 +53,7 @@ const statusColor = (status) => {
         // Mantidos os status antigos como fallback de cor (caso ainda existam leads com esse nome no DB)
         case 'Fechado': return 'bg-green-100 text-green-800';
         case 'Em Conversação': return 'bg-yellow-100 text-yellow-800';
-        case 'Para Contatar': return 'bg-indigo-100 text-indigo-800';
+        case 'Primeiro Contato': return 'bg-indigo-100 text-indigo-800';
 
         default: return 'bg-gray-100 text-gray-800';
     }
