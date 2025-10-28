@@ -32,7 +32,12 @@ const Login = () => {
                 password,
             });
 
-            login(response.data.token, response.data); 
+            login(response.data.token, {
+                id: response.data.id,
+                email: response.data.email,
+                role: response.data.role,
+                // adicione outros campos se existirem
+            }); 
             navigate('/dashboard', { replace: true });
 
         } catch (err) {
