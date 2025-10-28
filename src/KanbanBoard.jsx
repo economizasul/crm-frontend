@@ -467,7 +467,9 @@ const KanbanBoard = () => {
     const groupedLeads = useMemo(() => {
         // Normaliza os IDs para string, garantindo que 'null' ou 'undefined' virem strings vazias.
         const userId = String(user?.id || '');
-        const isAdmin = user?.role === 'Admin';
+        
+        // CORREÇÃO: Verifica "Admin" (Maiúsculo) OU "admin" (Minúsculo).
+        const isAdmin = user?.role && (user.role === 'Admin' || user.role === 'admin'); 
 
         const filtered = leads.filter(lead => {
             
@@ -480,7 +482,7 @@ const KanbanBoard = () => {
             // 2. Filtro de Estágio
             const matchesStage = filterByStage === 'Todos' || lead.status === filterByStage;
 
-            // 3. Filtro de Dono
+            // 3. Filtro de Dono (Owner)
             const leadOwnerId = String(lead.owner_id || ''); 
             
             const matchesOwner = isAdmin || (leadOwnerId === userId);
