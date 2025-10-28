@@ -5,23 +5,19 @@ import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban e suas cores (usando tons mais escuros para melhor contraste, como no código antigo funcional)
+// Estágios do Kanban e suas cores
 export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
-    'Primeiro Contato': 'bg-blue-200 text-blue-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
+    'Para Contatar': 'bg-blue-200 text-blue-800',
     'Em Negociação': 'bg-yellow-200 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
-    // Compatibilidade com status antigos
-    'Fechado': 'bg-green-200 text-green-800',
-    'Em Conversação': 'bg-yellow-200 text-yellow-800',
-    'Para Contatar': 'bg-indigo-200 text-indigo-800',
+    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
 };
 
 // Componente simples de Toast para feedback
@@ -74,7 +70,7 @@ const LeadCard = React.memo(({ lead, index, openLeadModal }) => {
 LeadCard.displayName = 'LeadCard';
 
 // ================================
-// Coluna Kanban (LARGURA REDUZIDA ~50%, mantendo flexibilidade e espaçamento do antigo)
+// Coluna Kanban (LARGURA REDUZIDA ~50%)
 // ================================
 const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
     const statusClass = STAGES[stageName] || 'bg-gray-100 text-gray-700';
@@ -112,7 +108,7 @@ const KanbanColumn = React.memo(({ stageName, leads, openLeadModal }) => {
 KanbanColumn.displayName = 'KanbanColumn';
 
 // ================================
-// Modal de Edição de Lead (mantendo correções como formatação de notas e campos obrigatórios)
+// Modal de Edição de Lead
 // ================================
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, stages }) => {
     const [formData, setFormData] = useState({});
@@ -176,21 +172,25 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
     const saveLeadChanges = async () => {
         setSaving(true);
         setToast(null);
+
         const dataToSave = {
             ...formData,
             notes: JSON.stringify(formData.notes),
-            id: undefined,
+            id: undefined, 
             owner_name: undefined,
             created_at: undefined,
             updated_at: undefined,
         };
+
         try {
             await axios.put(`${API_BASE_URL}/api/v1/leads/${formData.id ?? formData._id}`, dataToSave, {
                 headers: { Authorization: `Bearer ${token}` },
             });
+
             setToast({ message: 'Lead salvo com sucesso!', type: 'success' });
             fetchLeads();
             onClose();
+
         } catch (error) {
             console.error('Erro ao salvar lead:', error);
             setToast({ message: 'Falha ao salvar o lead. Tente novamente.', type: 'error' });
@@ -212,6 +212,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                         <FaTimes size={20} />
                     </button>
                 </div>
+
                 <div className="p-6 overflow-y-auto flex-grow">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
@@ -219,10 +220,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                             
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Status Atual</label>
-                                <span className={`mt-1 inline-block px-3 py-1 text-sm font-medium rounded-full ${stages[selectedLead.status]}`}>
+                                <span className={`mt-1 inline-block px-3 py-1 text-sm font-medium rounded-full ${STAGES[selectedLead.status]}`}>
                                     {selectedLead.status}
                                 </span>
                             </div>
+
                             {['name', 'email', 'phone', 'address', 'uc'].map(field => (
                                 <div key={field}>
                                     <label htmlFor={field} className="block text-sm font-medium text-gray-700 capitalize">
@@ -238,6 +240,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                                     />
                                 </div>
                             ))}
+
                             {['avg_consumption', 'estimated_savings'].map(field => (
                                 <div key={field}>
                                     <label htmlFor={field} className="block text-sm font-medium text-gray-700 capitalize">
@@ -253,6 +256,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                                     />
                                 </div>
                             ))}
+
                             <div>
                                 <label htmlFor="qsa" className="block text-sm font-medium text-gray-700">QSA</label>
                                 <textarea
@@ -264,6 +268,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                                 ></textarea>
                             </div>
                         </div>
+
                         <div className="space-y-6">
                             <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">Notas do Lead</h3>
                             
@@ -278,14 +283,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                                     placeholder="Digite a nova nota aqui..."
                                 ></textarea>
                                 {noteError && <p className="text-red-500 text-xs mt-1">{noteError}</p>}
-                                <button
-                                    onClick={handleAddNote}
+                                <button 
+                                    onClick={handleAddNote} 
                                     className="mt-2 w-full py-2 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition disabled:opacity-50"
                                     disabled={!newNote.trim()}
                                 >
                                     Adicionar Nota
                                 </button>
                             </div>
+
                             <div>
                                 <h4 className="text-lg font-medium text-gray-800 mb-2 border-b">Histórico ({formData.notes?.length || 0})</h4>
                                 <div className="max-h-64 overflow-y-auto p-2 space-y-3 bg-white border rounded-lg">
@@ -296,7 +302,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                                                     <span className="font-semibold">{note.user || 'Sistema'}</span>
                                                     <span>{formatNoteDate(note.timestamp)}</span>
                                                 </div>
-                                                <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p>
+                                                <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
                                             </div>
                                         ))
                                     ) : (
@@ -307,9 +313,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
                             
                             <div className="mt-6 flex justify-end space-x-2">
                                 <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
-                                <button
-                                    onClick={saveLeadChanges}
-                                    disabled={saving}
+                                <button 
+                                    onClick={saveLeadChanges} 
+                                    disabled={saving} 
                                     className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
                                 >
                                     <FaSave size={16} />
@@ -330,16 +336,18 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, token, fetchLeads, 
 const KanbanBoard = () => {
     const { token, user } = useAuth();
     const navigate = useNavigate();
+
     const [leads, setLeads] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [apiError, setApiError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterByStage, setFilterByStage] = useState('Todos');
+
     const [selectedLead, setSelectedLead] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [toast, setToast] = useState(null);
 
-    // Fetch Leads (ID SEGURO, mantendo formatação de notas)
+    // Fetch Leads (ID SEGURO)
     const fetchLeads = useCallback(async () => {
         setIsLoading(true);
         setApiError(null);
@@ -372,6 +380,7 @@ const KanbanBoard = () => {
                     owner_name: lead.owner_name || 'Desconhecido'
                 };
             });
+
             setLeads(formattedLeads);
         } catch (error) {
             console.error('Erro ao buscar leads:', error);
@@ -386,97 +395,41 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
 
-    // Drag and Drop (ID SEGURO, com envio completo de campos obrigatórios)
+    // Drag and Drop (ID SEGURO)
     const onDragEnd = useCallback(async (result) => {
         const { source, destination, draggableId } = result;
         if (!destination || source.droppableId === destination.droppableId) return;
 
-        // Normaliza o ID do draggable (string para compatibilidade)
-        const leadIdString = draggableId.startsWith('temp-') ? draggableId.split('-')[1] : draggableId;
-        const leadId = parseInt(leadIdString) || null;
+        const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
         if (!leadId) return;
 
         const newStatus = destination.droppableId;
-
-        // Atualiza o estado local otimisticamente
-        const updatedLeads = leads.map(lead =>
-            (String(lead.id ?? lead._id) === leadIdString) ? { ...lead, status: newStatus } : lead
+        const updatedLeads = leads.map(lead => 
+            (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
         );
         setLeads(updatedLeads);
 
         try {
-            // Encontra o lead original para enviar dados completos
-            const lead = leads.find(l => String(l.id ?? l._id) === leadIdString);
-
-            // Prepara dados para o PUT, enviando TUDO NO NÍVEL RAIZ
-            // Esta estrutura garante que todos os campos obrigatórios sejam enviados para a API
-            const dataToUpdate = {
-                // STATUS: O único campo que realmente mudou
-                status: newStatus,
-
-                // CAMPOS OBRIGATÓRIOS (com fallback para garantir validação do backend)
-                name: lead.name || 'Sem Nome',
-                phone: lead.phone || 'Sem Telefone',
-                origin: lead.origin || 'Desconhecido',
-                
-                // Outros campos importantes para não serem perdidos:
-                email: lead.email || '',
-                address: lead.address || '',
-                uc: lead.uc || '',
-                qsa: lead.qsa || '',
-                avg_consumption: lead.avg_consumption || 0,
-                estimated_savings: lead.estimated_savings || 0,
-                
-                // As notas precisam ser enviadas como JSON string
-                notes: JSON.stringify(lead.notes || [])
-            };
-
-            // Usa o ID do Lead (string) correto na URL para o PUT
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdString}`, 
-                dataToUpdate,
-                {
-                    headers: { 
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                }
-            );
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, { status: newStatus }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
         } catch (error) {
-            console.error('PUT falhou:', error.response?.data || error);
-            // Reverte o estado em caso de falha da API
+            console.error('Erro ao atualizar status:', error);
             setLeads(leads);
-            setToast({ 
-                message: `Erro: ${error.response?.data?.error || 'Falha na API'}`, 
-                type: 'error' 
-            });
+            setToast({ message: 'Falha ao mover lead.', type: 'error' });
         }
     }, [leads, token]);
 
-    // Filtragem e Agrupamento (mantendo correção de case-insensitive para role)
+    // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
-        // Normaliza os IDs para string, garantindo que 'null' ou 'undefined' virem strings vazias.
-        const userId = String(user?.id || '');
-        
-        // CORREÇÃO: Verifica "Admin" (Maiúsculo) OU "admin" (Minúsculo).
-        const isAdmin = user?.role && (user.role.toLowerCase() === 'admin'); 
-
         const filtered = leads.filter(lead => {
-            
-            // 1. Filtro de Busca
             const matchesSearch = searchTerm.trim() === '' || 
                 Object.values(lead).some(value => 
                     String(value).toLowerCase().includes(searchTerm.toLowerCase().trim())
                 );
-                
-            // 2. Filtro de Estágio
             const matchesStage = filterByStage === 'Todos' || lead.status === filterByStage;
-
-            // 3. Filtro de Dono (Owner)
-            const leadOwnerId = String(lead.owner_id || ''); 
-            
-            const matchesOwner = isAdmin || (leadOwnerId === userId);
-            
+            const matchesOwner = user?.role === 'Admin' || lead.owner_id === user?.id;
             return matchesSearch && matchesStage && matchesOwner;
         });
 
