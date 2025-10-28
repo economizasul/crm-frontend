@@ -398,55 +398,46 @@ const KanbanBoard = () => {
 
     // Drag and Drop (ID SEGURO)
     const onDragEnd = useCallback(async (result) => {
-        const { source, destination, draggableId } = result; // draggableId é a string do ID
-        if (!destination || source.droppableId === destination.droppableId) return;
+    const { source, destination, draggableId } = result;
+    if (!destination || source.droppableId === destination.droppableId) return;
 
-        // Garante que o ID usado na busca e na API seja a string original.
-        const leadIdString = draggableId;
-        if (leadIdString.startsWith('temp-')) return; // Ignora IDs temporários
+    const leadId = draggableId;
+    if (leadId.startsWith('temp-')) return;
 
-        const newStatus = destination.droppableId;
+    const newStatus = destination.droppableId;
+    const lead = leads.find(l => String(l.id ?? l._id) === leadId);
+    if (!lead) return;
 
-        // 1. Encontra o lead original, comparando os IDs como strings
-        const lead = leads.find(l => (String(l.id ?? l._id) === leadIdString));
-        if (!lead) return;
+    const updatedLeads = leads.map(l =>
+        String(l.id ?? l._id) === leadId ? { ...l, status: newStatus } : l
+    );
+    setLeads(updatedLeads);
 
-        // 2. Atualiza o estado local (otimista)
-        const updatedLeads = leads.map(l =>
-            (String(l.id ?? l._id) === leadIdString) ? { ...l, status: newStatus } : l
-        );
-        setLeads(updatedLeads);
+    try {
+        await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, {
+            lead: {
+                name: lead.name || 'Sem Nome',
+                phone: lead.phone || 'Sem Telefone',
+                status: newStatus,
+                origin: lead.origin || 'Web'
+            }
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-        try {
-            // 3. Usa o ID do Lead (string) correto na URL para o PUT
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdString}`,
-                {
-                    // É recomendado enviar apenas o status (e campos obrigatórios)
-                    lead: {
-                        status: newStatus,
-                        name: lead.name || 'Sem Nome',
-                        phone: lead.phone || 'Sem Telefone',
-                        origin: lead.origin || 'Desconhecido'
-                    }
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                }
-            );
-            setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
-        } catch (error) {
-            console.error('PUT falhou:', error.response?.data || error);
-            // Reverte o estado em caso de falha da API
-            setLeads(leads);
-            setToast({
-                message: `Erro: ${error.response?.data?.error || 'Falha na API'}`,
-                type: 'error'
-            });
-        }
-    }, [leads, token]);
+        setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
+    } catch (error) {
+        console.error('PUT falhou:', error.response?.data || error);
+        setLeads(leads);
+        setToast({
+            message: `Erro: ${error.response?.data?.error || 'Falha na API'}`,
+            type: 'error'
+        });
+    }
+}, [leads, token]);
 
     // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
