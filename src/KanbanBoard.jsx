@@ -398,29 +398,39 @@ const KanbanBoard = () => {
 
     // Drag and Drop (ID SEGURO)
     const onDragEnd = useCallback(async (result) => {
-        const { source, destination, draggableId } = result;
-        if (!destination || source.droppableId === destination.droppableId) return;
+    const { source, destination, draggableId } = result;
+    if (!destination || source.droppableId === destination.droppableId) return;
 
-        const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
-        if (!leadId) return;
+    const leadId = parseInt(draggableId) || parseInt(draggableId.split('-')[1]) || null;
+    if (!leadId) return;
 
-        const newStatus = destination.droppableId;
-        const updatedLeads = leads.map(lead => 
-            (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
+    const newStatus = destination.droppableId;
+
+    const updatedLeads = leads.map(lead => 
+        (lead.id === leadId || lead._id === leadId) ? { ...lead, status: newStatus } : lead
+    );
+    setLeads(updatedLeads);
+
+    try {
+        await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, 
+            { lead: { status: newStatus } },
+            {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+            }
         );
-        setLeads(updatedLeads);
-
-        try {
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadId}`, { status: newStatus }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
-        } catch (error) {
-            console.error('Erro ao atualizar status:', error);
-            setLeads(leads);
-            setToast({ message: 'Falha ao mover lead.', type: 'error' });
-        }
-    }, [leads, token]);
+        setToast({ message: `Lead movido para ${newStatus}!`, type: 'success' });
+    } catch (error) {
+        console.error('Erro ao mover lead:', error.response?.data || error);
+        setLeads(leads);
+        setToast({ 
+            message: `Erro: ${error.response?.data?.message || 'Falha ao mover lead.'}`, 
+            type: 'error' 
+        });
+    }
+}, [leads, token]);
 
     // Filtragem e Agrupamento
     const groupedLeads = useMemo(() => {
