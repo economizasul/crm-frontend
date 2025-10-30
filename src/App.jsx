@@ -6,7 +6,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
 import Register from './Register.jsx'; 
-// NOVO: Importa o componente de Troca de Senha (Assumindo que você o criou)
 import ChangePassword from './ChangePassword.jsx';
 
 // Componentes de Layout e Conteúdo
@@ -15,6 +14,9 @@ import KanbanBoard from './KanbanBoard.jsx';
 import LeadSearch from './LeadSearch.jsx'; 
 import LeadForm from './LeadForm.jsx';
 import ReportsDashboard from './components/reports/ReportsDashboard.jsx';
+
+// CORREÇÃO: IMPORTAR Configuracoes
+import Configuracoes from './pages/Configuracoes.jsx'; // Ajuste o caminho se necessário
 
 // Componente para proteger rotas
 const ProtectedRoute = ({ children }) => {
@@ -37,15 +39,12 @@ const RedirectAfterLogin = () => {
 
     React.useEffect(() => {
         if (isAuthenticated && location.pathname === '/login') {
-            // Se o usuário está autenticado e na tela de login, redireciona para o dashboard
-            // Usa navigate em um useEffect, mas aqui a lógica de redirecionamento está implícita no fluxo da rota.
+            // Redireciona se já logado
         }
     }, [isAuthenticated, location]); 
 
-    // Se estiver logado, redireciona para o dashboard, senão renderiza o Login.jsx
     return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />;
 };
-
 
 function App() {
     return (
@@ -56,32 +55,21 @@ function App() {
                 <Route path="/login" element={<RedirectAfterLogin />} />
                 <Route path="/register" element={<Register />} /> 
                 
-                {/* Rotas Protegidas (Layout Principal) - O elemento ProtectedRoute aplica o guarda. O elemento Dashboard fornece o layout (Sidebar + Outlet) */}
+                {/* Rotas Protegidas */}
                 <Route element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
-                    
-                    {/* Rotas Filhas: Renderizadas dentro do <Outlet /> do Dashboard */}
-                    
-                    {/* 1. Dashboard Principal (Kanban Board) */}
                     <Route path="/dashboard" element={<KanbanBoard />} />
-                    
-                    {/* 2. Busca/Lista de Leads */}
                     <Route path="/leads" element={<LeadSearch />} /> 
-                    
-                    {/* 3. Cadastro/Edição de Leads */}
                     <Route path="/register-lead" element={<LeadForm />} />
-                    {/* 💡 CORREÇÃO CRÍTICA: Rota para Edição com ID dinâmico */}
                     <Route path="/register-lead/:id" element={<LeadForm />} /> 
-                    
-                    {/* Outras Rotas (Mantidas do snippet) */}
                     <Route path="/user-register" element={<Register />} /> 
                     <Route path="/change-password" element={<ChangePassword />} /> 
                     <Route path="/reports" element={<ReportsDashboard />} />
-                    <Route path="/settings" element={<div>Página de Configurações</div>} />
+                    
+                    {/* CORREÇÃO: APENAS UMA ROTA /settings */}
                     <Route path="/settings" element={<Configuracoes />} />
-
                 </Route>
                 
-                {/* Rota curinga (404) - Se nenhuma rota aninhada ou pública for encontrada */}
+                {/* 404 */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </AuthProvider>
