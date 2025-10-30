@@ -1,17 +1,18 @@
 // src/AuthContext.jsx
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-// CRÍTICO: Certifique-se de que a importação é feita desta forma, conforme o pacote.
 import { jwtDecode } from 'jwt-decode'; 
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user'; 
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+
 export const AuthProvider = ({ children }) => {
     
-    // ... restante da lógica de inicialização (mantida da última sugestão)
     const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY));
     const [user, setUser] = useState(() => {
         try {
@@ -32,11 +33,9 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                // Verifica se o token não expirou
                 if (decoded.exp * 1000 > Date.now()) {
                     valid = true;
                 } else {
-                    // Token expirado
                     console.log("Token expirado.");
                     logout(); 
                 }
@@ -69,12 +68,26 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem(USER_KEY);
     };
     
-    // Função para atualizar apenas o usuário (ex: após mudar a senha)
+    // Função para atualizar apenas o usuário
     const updateUser = (newUserData) => {
         setUser(newUserData);
         localStorage.setItem(USER_KEY, JSON.stringify(newUserData));
     }
 
+    // NOVO: Atualiza o usuário do backend
+    const refreshUser = async () => {
+        if (!token) return;
+        try {
+            const res = await axios.get(`${API_BASE_URL}/api/v1/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const updatedUser = res.data;
+            setUser(updatedUser);
+            localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+        } catch (err) {
+            console.error('Erro ao atualizar usuário:', err);
+        }
+    };
 
     return (
         <AuthContext.Provider value={{ 
@@ -84,7 +97,8 @@ export const AuthProvider = ({ children }) => {
             token, 
             login, 
             logout,
-            updateUser
+            updateUser,
+            refreshUser // Exposto
         }}>
             {children}
         </AuthContext.Provider>
