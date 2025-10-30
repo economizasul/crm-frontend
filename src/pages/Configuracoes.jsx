@@ -7,7 +7,7 @@ import { useAuth } from '../AuthContext';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 export default function Configuracoes() {
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth(); // Adicionado refreshUser
     const [vendedores, setVendedores] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -35,27 +35,48 @@ export default function Configuracoes() {
     };
 
     const handleChange = async (id, campo, valor) => {
+        // 1. Atualiza localmente primeiro (UI responde na hora)
         const updated = vendedores.map(v =>
             v.id === id
                 ? {
                       ...v,
                       [campo]: valor,
+                      // Lógica mútua exclusiva apenas entre relatórios
                       relatorios_proprios_only: campo === 'relatorios_todos' && valor ? false : v.relatorios_proprios_only,
                       relatorios_todos: campo === 'relatorios_proprios_only' && valor ? false : v.relatorios_todos
                   }
                 : v
         );
 
+        setVendedores(updated); // UI atualiza imediatamente
+
+        // 2. Envia apenas os campos necessários
+        const vendedorAtualizado = updated.find(v => v.id === id);
+        const payload = {
+            relatorios_proprios_only: vendedorAtualizado.relatorios_proprios_only,
+            relatorios_todos: vendedorAtualizado.relatorios_todos,
+            transferencia_leads: vendedorAtualizado.transferencia_leads,
+            acesso_configuracoes: vendedorAtualizado.acesso_configuracoes
+        };
+
         try {
             const token = localStorage.getItem('token');
             await axios.put(
                 `${API_BASE_URL}/api/v1/configuracoes/vendedor/${id}`,
-                updated.find(v => v.id === id),
+                payload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-            setVendedores(updated);
+
+            alert('Permissão atualizada com sucesso!');
+
+            // 3. Atualiza o usuário logado (se for ele mesmo)
+            if (user?.id === id && refreshUser) {
+                await refreshUser();
+            }
         } catch (err) {
-            alert('Erro ao salvar');
+            console.error('Erro ao salvar permissão:', err.response?.data || err);
+            alert('Erro ao salvar permissão');
+            carregarVendedores(); // Reverte em caso de erro
         }
     };
 
@@ -68,9 +89,6 @@ export default function Configuracoes() {
     return (
         <div className="p-6 max-w-5xl mx-auto">
             <h1 className="text-2xl font-bold mb-6">Configurações de Permissões</h1>
-
-            {/* REMOVIDO O DEBUG VISUAL */}
-            {/* <div className="mb-4 p-2 bg-yellow-100 text-xs rounded"> ... </div> */}
 
             <div className="bg-white shadow rounded-lg overflow-hidden">
                 <table className="min-w-full">
