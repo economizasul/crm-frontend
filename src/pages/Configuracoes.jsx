@@ -1,6 +1,10 @@
+// src/pages/Configuracoes.jsx
+
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import axios from 'axios';
 import { useAuth } from '../AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 export default function Configuracoes() {
     const { user } = useAuth();
@@ -15,7 +19,10 @@ export default function Configuracoes() {
 
     const carregarVendedores = async () => {
         try {
-            const res = await api.get('/configuracoes/vendedores');
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_BASE_URL}/api/v1/configuracoes/vendedores`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setVendedores(res.data);
         } catch (err) {
             alert('Erro ao carregar vendedores');
@@ -37,7 +44,12 @@ export default function Configuracoes() {
         );
 
         try {
-            await api.put(`/configuracoes/vendedor/${id}`, updated.find(v => v.id === id));
+            const token = localStorage.getItem('token');
+            await axios.put(
+                `${API_BASE_URL}/api/v1/configuracoes/vendedor/${id}`,
+                updated.find(v => v.id === id),
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
             setVendedores(updated);
         } catch (err) {
             alert('Erro ao salvar');
