@@ -1,13 +1,12 @@
 // src/Login.jsx 
 
 import React, { useState } from 'react';
-// Removida a importação 'Link' pois não será mais usada
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx';
 import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa'; 
 
-// 🚨 IMPORTAÇÃO DA LOGO
+// LOGO
 import EconomizaSulLogo from './ECONOMIZASUL.png'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -32,12 +31,19 @@ const Login = () => {
                 password,
             });
 
-            login(response.data.token, {
+            // CORREÇÃO: PASSA TODOS OS CAMPOS DO JWT
+            const userData = {
                 id: response.data.id,
+                name: response.data.name,
                 email: response.data.email,
                 role: response.data.role,
-                // adicione outros campos se existirem
-            }); 
+                relatorios_proprios_only: response.data.relatorios_proprios_only ?? true,
+                relatorios_todos: response.data.relatorios_todos ?? false,
+                transferencia_leads: response.data.transferencia_leads ?? false,
+                acesso_configuracoes: response.data.acesso_configuracoes ?? false
+            };
+
+            login(response.data.token, userData); 
             navigate('/dashboard', { replace: true });
 
         } catch (err) {
@@ -48,64 +54,30 @@ const Login = () => {
         }
     };
 
-    // 🚨 Estilo de degradê LARANJA (Três tons: Branco/Laranja Claro/Laranja Escuro)
     const orangeGradientStyle = {
         background: 'radial-gradient(circle, #f0a96aff 0%, #F98828 30%, #935018 100%)',
     };
     
-    // 🚨 Estilo de degradê VERDE INVERSO: Claro na esquerda, Escuro na direita
     const greenGradientStyle = {
         background: 'linear-gradient(to right, #009F00 0%, #035903 100%)',
     };
 
     return (
-        // Container Principal (Tela Cheia) - Fundo cinza suave (bg-gray-100)
         <div className="min-h-screen flex bg-gray-100"> 
-            
-            {/* 1. Coluna de Imagem/Branding (Desktop - 70%) */}
-            <div 
-                // 🚨 w-7/10 (70%) para desktops. Não há classe padrão, usaremos w-7/10 customizada em tailwind.config.js
-                // Usando w-[70%] como fallback para o Tailwind JIT
-                className="hidden md:flex flex-col justify-center items-center w-full md:w-[70%] p-12 shadow-2xl"
-                style={orangeGradientStyle} 
-            >
-                <img 
-                    src={EconomizaSulLogo} 
-                    alt="Logo Economiza Sul" 
-                    className="h-96 w-auto p-4" 
-                />
+            <div className="hidden md:flex flex-col justify-center items-center w-full md:w-[70%] p-12 shadow-2xl" style={orangeGradientStyle}>
+                <img src={EconomizaSulLogo} alt="Logo Economiza Sul" className="h-96 w-auto p-4" />
             </div>
             
-            {/* 2. Coluna do Formulário (Mobile W-full, Desktop W-3/10) */}
-            <div 
-                // 🚨 w-3/10 (30%) para desktops.
-                // md:rounded-l-3xl removido para deixar o canto quadrado
-                className="flex flex-col justify-center items-center w-full md:w-[30%] p-8 md:p-12 shadow-2xl"
-                style={greenGradientStyle} 
-            > 
-                {/* CONTEÚDO DO FORMULÁRIO: Fundo BRANCO e Estreito */}
+            <div className="flex flex-col justify-center items-center w-full md:w-[30%] p-8 md:p-12 shadow-2xl" style={greenGradientStyle}> 
                 <div className="w-full max-w-xs bg-white p-8 rounded-xl shadow-2xl"> 
-                    
-                    {/* Cabeçalho */}
                     <div className="text-center mb-8">
-                        {/* LOGO PARA MOBILE */}
                         <div className="md:hidden mb-4">
-                            <img 
-                                src={EconomizaSulLogo} 
-                                alt="Logo Economiza Sul" 
-                                className="h-10 w-auto mx-auto" 
-                            />
+                            <img src={EconomizaSulLogo} alt="Logo Economiza Sul" className="h-10 w-auto mx-auto" />
                         </div>
-
-                        <h2 className="text-3xl font-bold text-gray-800">
-                            Fazer Login
-                        </h2>
+                        <h2 className="text-3xl font-bold text-gray-800">Fazer Login</h2>
                     </div>
 
-                    {/* Formulário */}
                     <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                        
-                        {/* Campo Email */}
                         <div>
                             <label htmlFor="email" className="sr-only">Email</label>
                             <div className="relative">
@@ -124,7 +96,6 @@ const Login = () => {
                             </div>
                         </div>
 
-                        {/* Campo Senha */}
                         <div>
                             <label htmlFor="password" className="sr-only">Senha</label>
                             <div className="relative">
@@ -143,14 +114,12 @@ const Login = () => {
                             </div>
                         </div>
 
-                        {/* Exibir Erro */}
                         {error && (
                             <div className="text-red-600 text-sm text-center p-3 bg-red-100 border border-red-300 rounded-lg" role="alert">
                                 {error}
                             </div>
                         )}
 
-                        {/* Botão de Login (Cor VERDE) */}
                         <div>
                             <button
                                 type="submit"
@@ -174,20 +143,6 @@ const Login = () => {
                             </button>
                         </div>
                     </form>
-
-                    {/* O bloco de Link para Cadastro foi removido conforme solicitado:
-                        
-                        <div className="mt-6 text-center">
-                            <p className="text-sm text-gray-600">
-                                Não tem uma conta?{' '}
-                                <Link to="/register" 
-                                    className="font-medium text-green-600 hover:text-green-500"
-                                >
-                                    Crie uma aqui
-                                </Link>
-                            </p>
-                        </div>
-                    */}
                 </div>
             </div>
         </div>
