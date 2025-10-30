@@ -23,17 +23,21 @@ export default function Configuracoes() {
     const carregarVendedores = async () => {
         try {
             const token = localStorage.getItem('token');
+            console.log('Token usado:', token ? 'Sim' : 'Não'); // DEBUG
+            
             const res = await axios.get(`${API_BASE_URL}/api/v1/configuracoes/vendedores`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            
+            console.log('Resposta do backend:', res.data); // DEBUG
             setVendedores(res.data);
         } catch (err) {
-            console.error('Erro ao carregar vendedores:', err);
-            alert('Erro ao carregar vendedores');
+            console.error('Erro completo:', err.response?.data || err.message); // DEBUG
+            alert('Erro ao carregar vendedores: ' + (err.response?.data?.error || err.message));
         } finally {
             setLoading(false);
-        }
-    };
+    }
+};
 
     const handleChange = async (id, campo, valor) => {
         const vendedorAtual = vendedores.find(v => v.id === id);
