@@ -77,6 +77,7 @@ function App() {
                     <Route path="/change-password" element={<ChangePassword />} /> 
                     <Route path="/reports" element={<ReportsDashboard />} />
                     <Route path="/settings" element={<div>Página de Configurações</div>} />
+                    <Route path="/settings" element={<Configuracoes />} />
 
                 </Route>
                 

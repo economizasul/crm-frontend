@@ -53,6 +53,9 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         { name: 'Relatórios', path: '/reports', icon: FaChartBar },
         { name: 'Configurações', path: '/settings', icon: FaCogs },
         { name: 'Trocar Senha', path: '/change-password', icon: FaLock },
+        { name: 'Relatórios', path: '/reports', icon: FaChartBar },
+        ...(user?.acesso_configuracoes ? [{ name: 'Configurações', path: '/settings', icon: FaCogs }] : []),
+    { name: 'Trocar Senha', path: '/change-password', icon: FaLock },
     ];
 
     return (
