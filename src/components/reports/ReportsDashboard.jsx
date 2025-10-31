@@ -4,20 +4,17 @@ import {
     XAxis, YAxis, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts'; 
 
-// Ordem correta dos estágios para o Funil e a Tabela de Performance
 const STATUS_ORDER = ['Novo', 'Primeiro Contato', 'Retorno Agendado', 'Em Negociação', 'Proposta Enviada', 'Ganho', 'Perdido'];
-
-// Cores para o Funil, do topo para a base (opcional, pode ser ajustado)
-const FUNNEL_COLORS = ['#A3D4FF', '#74BDE9', '#4CA3D5', '#3A8FB9', '#2C6E91', '#1A4D67', '#FF6B6B']; // Última cor (Perdido) em vermelho
+const FUNNEL_COLORS = ['#A3D4FF', '#74BDE9', '#4CA3D5', '#3A8FB9', '#2C6E91', '#1A4D67', '#FF6B6B'];
 
 const ReportsDashboard = ({ data }) => {
     
     // =============================================================
-    // 1. Processamento de Dados (Movido para dentro do componente)
+    // 1. Processamento de Dados (CORRIGIDO com || [])
     // =============================================================
 
-    // 1.1. Processa Dados do Funil (para FunnelChart Simulado)
-    const rawFunnelData = data.funnelData;
+    // 1.1. Processa Dados do Funil 
+    const rawFunnelData = data.funnelData || []; // CORREÇÃO: Garante que é um array vazio se for undefined
     const processedFunnel = [];
     let totalLeads = 0;
     let previousCount = 0;
@@ -41,19 +38,18 @@ const ReportsDashboard = ({ data }) => {
             conversionRate: conversionRate.toFixed(1)
         });
 
-        // Atualiza a contagem para o próximo estágio (exclui 'Perdido' da base de cálculo do próximo)
         if (status !== 'Perdido') {
             previousCount = count;
         }
     }
     
-    // Inverte a ordem para que o BarChart vertical simule o Funil (de cima para baixo)
     const reversedFunnel = processedFunnel.filter(d => d.count > 0).reverse();
 
     // 1.2. Processa Dados de Perda (para PieChart)
-    const lossReasonsData = data.lossReasons.map(item => ({
+    // CORREÇÃO: Garante que data.lossReasons é um array antes de mapear
+    const lossReasonsData = (data.lossReasons || []).map(item => ({ 
         name: item.reason,
-        value: parseInt(item.count) // Garante que seja um número inteiro
+        value: parseInt(item.count)
     }));
 
     // 1.3. Função auxiliar para formatar tempo (minutos)
@@ -77,7 +73,6 @@ const ReportsDashboard = ({ data }) => {
                         <p className="text-sm font-semibold text-blue-800">Novos Leads</p>
                         <p className="text-3xl font-bold text-blue-900">{data.newLeads}</p>
                     </div>
-                    {/* Ícone aqui */}
                 </div>
 
                 {/* Card: Taxa de Conversão Geral */}
@@ -86,7 +81,6 @@ const ReportsDashboard = ({ data }) => {
                         <p className="text-sm font-semibold text-green-800">Taxa de Conversão Geral</p>
                         <p className="text-3xl font-bold text-green-900">{data.conversionRate}</p>
                     </div>
-                    {/* Ícone aqui */}
                 </div>
                 
                 {/* Card: Tempo Médio de Resposta */}
@@ -95,7 +89,6 @@ const ReportsDashboard = ({ data }) => {
                         <p className="text-sm font-semibold text-yellow-800">Tempo Médio de Resposta</p>
                         <p className="text-3xl font-bold text-yellow-900">{formatTime(data.avgResponseTime)}</p>
                     </div>
-                    {/* Ícone aqui */}
                 </div>
                 
                 {/* Card: Valor Total em Negociação */}
@@ -104,7 +97,6 @@ const ReportsDashboard = ({ data }) => {
                         <p className="text-sm font-semibold text-purple-800">Valor em Negociação</p>
                         <p className="text-3xl font-bold text-purple-900">R$ {data.totalValueInNegotiation.toLocaleString('pt-BR')}</p>
                     </div>
-                    {/* Ícone aqui */}
                 </div>
             </div>
 
@@ -116,7 +108,6 @@ const ReportsDashboard = ({ data }) => {
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Funil de Vendas (Pipeline)</h2>
                     
                     <div className="h-96 flex items-center justify-center">
-                        {/* NOVO FUNNEL CHART SIMULADO USANDO BAR CHART VERTICAL */}
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart 
                                 layout="vertical" 
@@ -131,7 +122,6 @@ const ReportsDashboard = ({ data }) => {
                                     axisLine={false} 
                                     tickLine={false} 
                                     width={120} 
-                                    // Customiza o rótulo para incluir a contagem
                                     tick={({ x, y, payload }) => (
                                         <g transform={`translate(${x},${y})`}>
                                             <text x={0} y={0} dy={5} textAnchor="end" fill="#666" fontSize={10}>
@@ -154,7 +144,6 @@ const ReportsDashboard = ({ data }) => {
                                     {reversedFunnel.map((entry, index) => (
                                         <Cell 
                                             key={`cell-${index}`} 
-                                            // Calcula o índice original para pegar a cor correta
                                             fill={FUNNEL_COLORS[STATUS_ORDER.indexOf(entry.status)]} 
                                         />
                                     ))}
@@ -178,7 +167,8 @@ const ReportsDashboard = ({ data }) => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {data.sellerPerformance.map((seller, index) => (
+                            {/* CORREÇÃO: Garante que data.sellerPerformance é um array antes de mapear */}
+                            {(data.sellerPerformance || []).map((seller, index) => ( 
                                 <tr key={index}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{seller.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{seller.activeLeads}</td>
@@ -200,14 +190,13 @@ const ReportsDashboard = ({ data }) => {
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Análise de Conversão por Origem</h2>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={data.originAnalysis}>
+                            {/* CORREÇÃO: Garante que data.originAnalysis é um array antes de mapear */}
+                            <BarChart data={data.originAnalysis || []}> 
                                 <XAxis dataKey="origin" stroke="#888888" interval={0} angle={-25} textAnchor="end" height={60} />
                                 <YAxis yAxisId="left" orientation="left" stroke="#82ca9d" />
                                 <YAxis yAxisId="right" orientation="right" stroke="#8884d8" domain={[0, 100]} unit="%" />
                                 <Tooltip formatter={(value, name, props) => name === 'conversionRate' ? [`${value}%`, 'Taxa de Conversão'] : [value, name === 'totalLeads' ? 'Total Leads' : 'Leads Ganhos']} />
                                 <Bar yAxisId="left" dataKey="totalLeads" fill="#8884d8" name="Total de Leads" />
-                                {/* Mantive a Taxa de Conversão como comentário, caso queira visualizá-la no mesmo BarChart */}
-                                {/* <Bar yAxisId="right" dataKey="conversionRate" fill="#82ca9d" name="Taxa de Conversão" /> */}
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -230,7 +219,6 @@ const ReportsDashboard = ({ data }) => {
                                     labelLine={false}
                                     label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                                 >
-                                    {/* Cores customizadas para o gráfico de pizza */}
                                     {lossReasonsData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={['#FF6B6B', '#FFAA6B', '#FFD86B', '#A2FF6B', '#6BFFCE'][index % 5]} />
                                     ))}
