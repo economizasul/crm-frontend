@@ -1,138 +1,249 @@
-// src/components/reports/ReportsDashboard.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../AuthContext';
-import { FaCalendarAlt, FaUser, FaChartBar, FaClock, FaCheckCircle, FaTimesCircle, FaFileExcel, FaFilter } from 'react-icons/fa';
-import { format, differenceInMinutes } from 'date-fns';
+import React from 'react';
+import { 
+    PieChart, Pie, BarChart, Bar, 
+    XAxis, YAxis, Tooltip, ResponsiveContainer, Cell 
+} from 'recharts'; 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
+// Ordem correta dos estágios para o Funil e a Tabela de Performance
+const STATUS_ORDER = ['Novo', 'Primeiro Contato', 'Retorno Agendado', 'Em Negociação', 'Proposta Enviada', 'Ganho', 'Perdido'];
 
-const ReportsDashboard = () => {
-  const { token } = useAuth();
-  const [leads, setLeads] = useState([]);
-  const [sellers, setSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
+// Cores para o Funil, do topo para a base (opcional, pode ser ajustado)
+const FUNNEL_COLORS = ['#A3D4FF', '#74BDE9', '#4CA3D5', '#3A8FB9', '#2C6E91', '#1A4D67', '#FF6B6B']; // Última cor (Perdido) em vermelho
 
-  // Filtros
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [selectedSeller, setSelectedSeller] = useState('all');
+const ReportsDashboard = ({ data }) => {
+    
+    // =============================================================
+    // 1. Processamento de Dados (Movido para dentro do componente)
+    // =============================================================
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [leadsRes, sellersRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/v1/leads`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${API_BASE_URL}/api/v1/reports/sellers`, { headers: { Authorization: `Bearer ${token}` } })
-        ]);
-        setLeads(leadsRes.data);
-        setSellers([{ id: 'all', name: 'Todos os Vendedores' }, ...sellersRes.data]);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+    // 1.1. Processa Dados do Funil (para FunnelChart Simulado)
+    const rawFunnelData = data.funnelData;
+    const processedFunnel = [];
+    let totalLeads = 0;
+    let previousCount = 0;
+
+    for (const status of STATUS_ORDER) {
+        const item = rawFunnelData.find(d => d.status === status);
+        const count = item ? item.count : 0;
+        
+        if (status === 'Novo') {
+            totalLeads = count;
+        }
+
+        let conversionRate = 0;
+        if (previousCount > 0) {
+            conversionRate = (count / previousCount) * 100;
+        }
+        
+        processedFunnel.push({
+            status,
+            count,
+            conversionRate: conversionRate.toFixed(1)
+        });
+
+        // Atualiza a contagem para o próximo estágio (exclui 'Perdido' da base de cálculo do próximo)
+        if (status !== 'Perdido') {
+            previousCount = count;
+        }
+    }
+    
+    // Inverte a ordem para que o BarChart vertical simule o Funil (de cima para baixo)
+    const reversedFunnel = processedFunnel.filter(d => d.count > 0).reverse();
+
+    // 1.2. Processa Dados de Perda (para PieChart)
+    const lossReasonsData = data.lossReasons.map(item => ({
+        name: item.reason,
+        value: parseInt(item.count) // Garante que seja um número inteiro
+    }));
+
+    // 1.3. Função auxiliar para formatar tempo (minutos)
+    const formatTime = (minutes) => {
+        if (!minutes || minutes < 0) return 'N/A';
+        if (minutes < 60) return `${Math.round(minutes)} min`;
+        const hours = Math.floor(minutes / 60);
+        const mins = Math.round(minutes % 60);
+        return `${hours}h ${mins} min`;
     };
-    if (token) fetchData();
-  }, [token]);
 
-  const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      const created = new Date(lead.created_at);
-      const inDateRange = (!dateFrom || created >= new Date(dateFrom)) && (!dateTo || created <= new Date(dateTo + 'T23:59:59'));
-      const bySeller = selectedSeller === 'all' || lead.seller_id === selectedSeller;
-      return inDateRange && bySeller;
-    });
-  }, [leads, dateFrom, dateTo, selectedSeller]);
 
-  // === MÉTRICAS ===
-  const newLeads = filteredLeads.filter(l => l.status === 'Novo').length;
+    return (
+        <div className="space-y-8">
+            {/* ============================== 1. CARDS DE MÉTRICAS ============================== */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                
+                {/* Card: Novos Leads */}
+                <div className="bg-blue-100 p-6 rounded-lg shadow-md flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-blue-800">Novos Leads</p>
+                        <p className="text-3xl font-bold text-blue-900">{data.newLeads}</p>
+                    </div>
+                    {/* Ícone aqui */}
+                </div>
 
-  const avgResponseTime = useMemo(() => {
-    const withNotes = filteredLeads.filter(l => l.notes && l.notes.length > 1);
-    const times = withNotes.map(lead => {
-      const sorted = [...lead.notes].sort((a, b) => a.timestamp - b.timestamp);
-      return differenceInMinutes(new Date(sorted[1].timestamp), new Date(sorted[0].timestamp));
-    });
-    return times.length > 0 ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : 0;
-  }, [filteredLeads]);
+                {/* Card: Taxa de Conversão Geral */}
+                <div className="bg-green-100 p-6 rounded-lg shadow-md flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-green-800">Taxa de Conversão Geral</p>
+                        <p className="text-3xl font-bold text-green-900">{data.conversionRate}</p>
+                    </div>
+                    {/* Ícone aqui */}
+                </div>
+                
+                {/* Card: Tempo Médio de Resposta */}
+                <div className="bg-yellow-100 p-6 rounded-lg shadow-md flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-yellow-800">Tempo Médio de Resposta</p>
+                        <p className="text-3xl font-bold text-yellow-900">{formatTime(data.avgResponseTime)}</p>
+                    </div>
+                    {/* Ícone aqui */}
+                </div>
+                
+                {/* Card: Valor Total em Negociação */}
+                <div className="bg-purple-100 p-6 rounded-lg shadow-md flex justify-between items-center">
+                    <div>
+                        <p className="text-sm font-semibold text-purple-800">Valor em Negociação</p>
+                        <p className="text-3xl font-bold text-purple-900">R$ {data.totalValueInNegotiation.toLocaleString('pt-BR')}</p>
+                    </div>
+                    {/* Ícone aqui */}
+                </div>
+            </div>
 
-  const won = filteredLeads.filter(l => l.status === 'Ganho').length;
-  const lost = filteredLeads.filter(l => l.status === 'Perdido').length;
-  const conversionRate = won + lost > 0 ? ((won / (won + lost)) * 100).toFixed(1) : 0;
+            {/* ============================== 2. FUNIL DE VENDAS E PERFORMANCE ============================== */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* COLUNA ESQUERDA: FUNIL DE VENDAS (AGORA FUNCIONAL) */}
+                <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Funil de Vendas (Pipeline)</h2>
+                    
+                    <div className="h-96 flex items-center justify-center">
+                        {/* NOVO FUNNEL CHART SIMULADO USANDO BAR CHART VERTICAL */}
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart 
+                                layout="vertical" 
+                                data={reversedFunnel} 
+                                margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+                                barCategoryGap="0%" 
+                                stackOffset="sign"
+                            >
+                                <YAxis 
+                                    dataKey="status" 
+                                    type="category" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    width={120} 
+                                    // Customiza o rótulo para incluir a contagem
+                                    tick={({ x, y, payload }) => (
+                                        <g transform={`translate(${x},${y})`}>
+                                            <text x={0} y={0} dy={5} textAnchor="end" fill="#666" fontSize={10}>
+                                                {payload.value} ({payload.payload.count})
+                                            </text>
+                                        </g>
+                                    )}
+                                />
+                                <XAxis 
+                                    type="number" 
+                                    hide={true} 
+                                    domain={[0, totalLeads]} 
+                                />
+                                <Tooltip 
+                                    formatter={(value, name, props) => [`Leads: ${value}`, props.payload.status]} 
+                                    labelFormatter={(label) => `Estágio: ${label}`}
+                                />
+                                
+                                <Bar dataKey="count" isAnimationActive={false}>
+                                    {reversedFunnel.map((entry, index) => (
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            // Calcula o índice original para pegar a cor correta
+                                            fill={FUNNEL_COLORS[STATUS_ORDER.indexOf(entry.status)]} 
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
 
-  const exportToExcel = () => {
-    const csv = [
-      ['Nome', 'Status', 'Vendedor', 'Criado em', 'Última Nota'],
-      ...filteredLeads.map(l => [
-        l.name,
-        l.status,
-        l.seller_name || 'Sem Vendedor',
-        format(new Date(l.created_at), 'dd/MM/yyyy HH:mm'),
-        l.notes?.length > 0 ? l.notes[l.notes.length - 1].text : ''
-      ])
-    ].map(row => row.join(',')).join('\n');
+                {/* COLUNAS DIREITAS: TABELA DE PERFORMANCE */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-md overflow-x-auto">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Performance Individual dos Vendedores</h2>
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendedor</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads Ativos</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendas Ganhas</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taxa Conv.</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo Fecham.</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.sellerPerformance.map((seller, index) => (
+                                <tr key={index}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{seller.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{seller.activeLeads}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{seller.wonLeads}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 font-bold">{seller.conversionRate}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{seller.avgTimeToClose} dias</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            {/* ============================== 3. ANÁLISE ESTRATÉGICA ============================== */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* COLUNA ESQUERDA: ANÁLISE DE FUNIL POR ORIGEM */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Análise de Conversão por Origem</h2>
+                    <div className="h-80">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.originAnalysis}>
+                                <XAxis dataKey="origin" stroke="#888888" interval={0} angle={-25} textAnchor="end" height={60} />
+                                <YAxis yAxisId="left" orientation="left" stroke="#82ca9d" />
+                                <YAxis yAxisId="right" orientation="right" stroke="#8884d8" domain={[0, 100]} unit="%" />
+                                <Tooltip formatter={(value, name, props) => name === 'conversionRate' ? [`${value}%`, 'Taxa de Conversão'] : [value, name === 'totalLeads' ? 'Total Leads' : 'Leads Ganhos']} />
+                                <Bar yAxisId="left" dataKey="totalLeads" fill="#8884d8" name="Total de Leads" />
+                                {/* Mantive a Taxa de Conversão como comentário, caso queira visualizá-la no mesmo BarChart */}
+                                {/* <Bar yAxisId="right" dataKey="conversionRate" fill="#82ca9d" name="Taxa de Conversão" /> */}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio_leads_${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-  };
+                {/* COLUNA DIREITA: PRINCIPAIS RAZÕES DE PERDA */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-700">Principais Razões de Perda</h2>
+                    <div className="h-80 flex justify-center items-center">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={lossReasonsData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={80}
+                                    fill="#8884d8"
+                                    labelLine={false}
+                                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                                >
+                                    {/* Cores customizadas para o gráfico de pizza */}
+                                    {lossReasonsData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={['#FF6B6B', '#FFAA6B', '#FFD86B', '#A2FF6B', '#6BFFCE'][index % 5]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(value, name, props) => [value, props.payload.name]} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
 
-  if (loading) return <div className="p-8 text-center">Carregando...</div>;
-
-  return (
-    <div className="p-6 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-          <FaChartBar /> Relatórios
-        </h1>
-        <button onClick={exportToExcel} className="bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700">
-          <FaFileExcel /> Exportar Excel
-        </button>
-      </div>
-
-      {/* Filtros */}
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <FaFilter /> Filtros
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="p-2 border rounded" />
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="p-2 border rounded" />
-          <select value={selectedSeller} onChange={e => setSelectedSeller(e.target.value)} className="p-2 border rounded">
-            {sellers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
         </div>
-      </div>
-
-      {/* Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-blue-100 p-6 rounded-lg text-center">
-          <FaCalendarAlt className="text-3xl text-blue-600 mx-auto mb-2" />
-          <h3 className="font-semibold">Novos Leads</h3>
-          <p className="text-2xl font-bold text-blue-700">{newLeads}</p>
-        </div>
-        <div className="bg-yellow-100 p-6 rounded-lg text-center">
-          <FaClock className="text-3xl text-yellow-600 mx-auto mb-2" />
-          <h3 className="font-semibold">Tempo Médio Resposta</h3>
-          <p className="text-2xl font-bold text-yellow-700">{avgResponseTime} min</p>
-        </div>
-        <div className="bg-green-100 p-6 rounded-lg text-center">
-          <FaCheckCircle className="text-3xl text-green-600 mx-auto mb-2" />
-          <h3 className="font-semibold">Taxa de Conversão</h3>
-          <p className="text-2xl font-bold text-green-700">{conversionRate}%</p>
-        </div>
-        <div className="bg-purple-100 p-6 rounded-lg text-center">
-          <FaUser className="text-3xl text-purple-600 mx-auto mb-2" />
-          <h3 className="font-semibold">Leads Ativos</h3>
-          <p className="text-2xl font-bold text-purple-700">{filteredLeads.length}</p>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ReportsDashboard;
