@@ -1,12 +1,10 @@
 // src/pages/ReportsPage.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+// IMPORTANTE: Mudar de 'axios' para a instância configurada 'api'
+import api from '../services/api'; 
 import { useAuth } from '../AuthContext';
 import ReportsDashboard from '../components/reports/ReportsDashboard'; 
-// Supondo que você use um DatePicker component para as datas (não incluído)
-// import DatePicker from 'react-datepicker';
-// import 'react-datepicker/dist/react-datepicker.css'; 
 
 const ReportsPage = () => {
     const { user } = useAuth();
@@ -15,9 +13,9 @@ const ReportsPage = () => {
     const [vendedores, setVendedores] = useState([]);
     const [vendedorId, setVendedorId] = useState(user?.relatorios_proprios_only ? user.id : '');
     
-    // CORREÇÃO CRÍTICA: Armazenar datas como strings YYYY-MM-DD
-    const [startDate, setStartDate] = useState(''); // Data Inicial (String)
-    const [endDate, setEndDate] = useState('');     // Data Final (String)
+    // Armazenar datas como strings YYYY-MM-DD
+    const [startDate, setStartDate] = useState(''); 
+    const [endDate, setEndDate] = useState('');     
     
     const [originFilter, setOriginFilter] = useState(''); 
     const [availableOrigins, setAvailableOrigins] = useState([]); 
@@ -27,17 +25,16 @@ const ReportsPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Função para buscar a lista de vendedores (Mantida)
+    // Função para buscar a lista de vendedores e origens (CORRIGIDA para usar 'api')
     useEffect(() => {
-        // Busca a lista de vendedores e as origens disponíveis (simples)
         const fetchFilters = async () => {
             try {
-                // Rota para vendedores (usando o users/sellers)
-                const sellersRes = await axios.get('/api/reports/sellers');
+                // Rota para vendedores
+                const sellersRes = await api.get('/reports/sellers'); // <<< CORREÇÃO: Usando 'api'
                 setVendedores(sellersRes.data);
                 
-                // 💡 NOVO: Você precisará de um endpoint para buscar as origens únicas dos Leads
-                // Por agora, vou usar um valor mock para que o filtro apareça:
+                // Simulação da busca de Origens
+                // 💡 Nota: Você deve ter um endpoint real para buscar as origens únicas dos leads.
                 setAvailableOrigins(['Google Ads', 'Indicação', 'Redes Sociais', 'Parceria']);
                 
             } catch (err) {
@@ -45,31 +42,49 @@ const ReportsPage = () => {
             }
         };
         fetchFilters();
-    }, []);
+        // Definir o vendedorId inicial com base no usuário logado após carregar.
+        if (!vendedorId && user?.relatorios_proprios_only) {
+            setVendedorId(user.id);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]); // Depende apenas do objeto user
 
-    // Função principal de busca de dados do Dashboard
+    // Função principal de busca de dados do Dashboard (CORRIGIDA para usar 'api')
     const fetchDashboardData = useCallback(async () => {
         setLoading(true);
         setError(null);
 
-        // CORREÇÃO: Usar as strings de data diretamente
         const params = {
             ownerId: vendedorId,
-            startDate: startDate || null, // Se for string vazia, envia null
-            endDate: endDate || null,     // Se for string vazia, envia null
+            startDate: startDate || null, 
+            endDate: endDate || null,     
             origin: originFilter
         };
 
         try {
-            const res = await axios.get('/api/reports/dashboard-data', { params });
+            const res = await api.get('/reports/dashboard-data', { params }); // <<< CORREÇÃO: Usando 'api'
             setDashboardData(res.data);
-        } catch (err) {
-            console.error("Erro ao buscar dados do Dashboard:", err);
             
-            // Sugestão de Debug: Se for 401, o erro é de autenticação
-            const errorMessage = err.response?.status === 401 
-                ? "Sessão expirada ou não autorizado. Faça login novamente." 
-                : "Não foi possível carregar os dados. Verifique a conexão do servidor.";
+            // Tratamento de dados vazios, caso o backend retorne 200 com array vazio
+            if (!res.data || Object.keys(res.data).length === 0 || res.data.newLeads === 0) {
+                 setError("Nenhum dado encontrado para os filtros selecionados.");
+            } else {
+                 setError(null);
+            }
+            
+        } catch (err) {
+            console.error("Erro ao buscar dados do Dashboard:", err.response || err);
+            
+            const status = err.response?.status;
+            let errorMessage = "Não foi possível carregar os dados. Verifique a conexão do servidor.";
+            
+            if (status === 401 || status === 403) {
+                 errorMessage = "Sessão expirada ou não autorizado. Faça login novamente.";
+            } else if (status === 404) {
+                 errorMessage = "A rota da API '/api/reports/dashboard-data' não foi encontrada. Verifique o servidor.";
+            } else if (status === 500) {
+                 errorMessage = "Erro interno do servidor (500). Verifique os logs do seu backend!";
+            }
                 
             setError(errorMessage);
             setDashboardData(null);
@@ -84,25 +99,26 @@ const ReportsPage = () => {
     }, [fetchDashboardData]);
     
     
-    // Função de Exportação (mantida)
+    // Função de Exportação (CORRIGIDA para usar 'api')
     const handleExport = async (format) => {
-        // Formatos: 'csv' ou 'pdf'
         const params = { 
             format,
             ownerId: vendedorId,
-            // CORREÇÃO: Usar strings de data diretamente
             startDate: startDate || null, 
             endDate: endDate || null,     
-            // Outros filtros, se necessário
         };
         
         try {
-            const response = await axios.get('/api/reports/export', { 
+            const response = await api.get('/reports/export', { // <<< CORREÇÃO: Usando 'api'
                 params,
-                responseType: 'blob' // Importante para baixar arquivos
+                responseType: 'blob' 
             });
 
-            // Cria um link para download do arquivo
+            // Se o backend retornar 204 (No Content), não há dados para baixar
+            if (response.status === 204) {
+                return alert("Nenhum dado encontrado para exportação com os filtros atuais.");
+            }
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -112,7 +128,7 @@ const ReportsPage = () => {
             link.remove();
         } catch (err) {
             console.error(`Erro ao exportar ${format}:`, err);
-            alert(`Erro ao exportar relatório em ${format}.`);
+            alert(`Erro ao exportar relatório em ${format}. Verifique o console para detalhes.`);
         }
     };
 
@@ -147,9 +163,7 @@ const ReportsPage = () => {
                     <label className="block text-sm font-medium text-gray-700">Início:</label>
                     <input 
                         type="date" 
-                        // CORREÇÃO: Usar a string diretamente do estado
                         value={startDate} 
-                        // CORREÇÃO: Armazenar a string diretamente
                         onChange={e => setStartDate(e.target.value)}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
@@ -158,15 +172,13 @@ const ReportsPage = () => {
                     <label className="block text-sm font-medium text-gray-700">Fim:</label>
                     <input 
                         type="date" 
-                        // CORREÇÃO: Usar a string diretamente do estado
                         value={endDate}
-                        // CORREÇÃO: Armazenar a string diretamente
                         onChange={e => setEndDate(e.target.value)}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                 </div>
 
-                {/* Filtro de Vendedor (Seu código original) */}
+                {/* Filtro de Vendedor */}
                 <div className="w-full sm:w-auto">
                     <label className="block text-sm font-medium text-gray-700">Vendedor:</label>
                     {user?.relatorios_proprios_only ? (
@@ -184,14 +196,13 @@ const ReportsPage = () => {
                         >
                             <option value="">Todos</option>
                             {vendedores.map(v => (
-                                // Assumindo que a rota /sellers retorna id e name
                                 <option key={v.id} value={v.id}>{v.name}</option>
                             ))}
                         </select>
                     )}
                 </div>
                 
-                {/* NOVO FILTRO: Origem do Lead */}
+                {/* Filtro: Origem do Lead */}
                 <div className="w-full sm:w-auto">
                     <label className="block text-sm font-medium text-gray-700">Origem do Lead:</label>
                     <select
@@ -209,23 +220,18 @@ const ReportsPage = () => {
 
             {/* Conteúdo do Dashboard */}
             <div className="mt-6">
-                {/* 1. Mensagens de estado */}
-                {loading && <p className="text-center text-blue-500">Carregando dados...</p>}
-                {error && <p className="text-center text-red-500 font-medium">{error}</p>}
                 
-                {/* 2. Dashboard - Se não estiver carregando E não houver erro E houver dados, renderiza o componente. */}
-                {!loading && !error && dashboardData && (
+                {/* Mensagens de estado */}
+                {loading && <p className="text-center text-blue-500">Carregando dados...</p>}
+                
+                {/* Exibe erro se houver, mesmo que a mensagem de carregamento tenha passado */}
+                {!loading && error && <p className="text-center text-red-500 font-medium">{error}</p>}
+                
+                {/* Dashboard - Renderiza se não estiver carregando E houver dados */}
+                {!loading && dashboardData && !error && (
                     <ReportsDashboard 
                         data={dashboardData}
-                        // Você pode passar a função de exportação aqui se quiser colocá-la dentro do dashboard
                     />
-                )}
-                
-                {/* DEBUG: Se o carregamento terminou, não houve erro, mas os dados estão nulos (API retornou 200 com array vazio) */}
-                {!loading && !error && !dashboardData && (
-                    <div className="text-center p-10 font-medium text-gray-500">
-                        Nenhum dado encontrado para os filtros selecionados.
-                    </div>
                 )}
             </div>
         </div>
