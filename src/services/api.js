@@ -7,7 +7,7 @@ import axios from 'axios';
 // =============================================================
 // Troque a URL abaixo APENAS SE o endereço do seu backend mudar.
 // O seu backend está em: https://crm-app-cnf7.onrender.com/api
-const BACKEND_URL = 'https://crm-app-cnf7.onrender.com/api'; 
+const BACKEND_URL = 'https://crm-app-cnf7.onrender.com/api/v1'; // Incluindo o prefixo da versão da API
 
 const api = axios.create({
     // Usa o URL completo do backend
@@ -17,7 +17,7 @@ const api = axios.create({
     },
 });
 
-// 2. Interceptor de Requisição: Adiciona o token JWT (Mantido)
+// 2. Interceptor de Requisição: Adiciona o token JWT
 api.interceptors.request.use((config) => {
     const userInfo = localStorage.getItem('userInfo');
     let token = null;
@@ -31,7 +31,7 @@ api.interceptors.request.use((config) => {
     }
 
     if (token) {
-        // ESSENCIAL: Adiciona o token ao cabeçalho de Autorização
+        // ESSENCIAL: Adiciona o token ao cabeçalho de Autorização (Bearer Token)
         config.headers.Authorization = `Bearer ${token}`;
     }
     
@@ -44,12 +44,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
-            console.error("ERRO 401: Sessão expirada ou não autorizado. Favor efetuar login novamente.");
-            // Você pode adicionar uma lógica para forçar o logout/redirecionamento aqui.
+        // Se for 401 (Unauthorized) e o user estava logado (userInfo existe)
+        if (error.response?.status === 401 && localStorage.getItem('userInfo')) {
+            console.error("Sessão expirada ou token inválido. Por favor, faça login novamente.");
+            // 🚨 Ação de deslogar deve ser gerenciada pelo seu AuthContext (ex: forçar logout)
         }
         return Promise.reject(error);
     }
 );
 
+// O export default é o que permite que outros arquivos usem 'import api from ...'
 export default api;
