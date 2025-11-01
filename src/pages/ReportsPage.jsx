@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
-// Importe o novo componente do dashboard (você o criará em seguida)
 import ReportsDashboard from '../components/reports/ReportsDashboard'; 
 // Supondo que você use um DatePicker component para as datas (não incluído)
 // import DatePicker from 'react-datepicker';
@@ -15,10 +14,13 @@ const ReportsPage = () => {
     // 1. ESTADO DOS FILTROS
     const [vendedores, setVendedores] = useState([]);
     const [vendedorId, setVendedorId] = useState(user?.relatorios_proprios_only ? user.id : '');
-    const [startDate, setStartDate] = useState(null); // Data Inicial
-    const [endDate, setEndDate] = useState(null);     // Data Final
-    const [originFilter, setOriginFilter] = useState(''); // NOVO FILTRO: Origem do Lead
-    const [availableOrigins, setAvailableOrigins] = useState([]); // Opções de Origem
+    
+    // CORREÇÃO CRÍTICA: Armazenar datas como strings YYYY-MM-DD
+    const [startDate, setStartDate] = useState(''); // Data Inicial (String)
+    const [endDate, setEndDate] = useState('');     // Data Final (String)
+    
+    const [originFilter, setOriginFilter] = useState(''); 
+    const [availableOrigins, setAvailableOrigins] = useState([]); 
 
     // 2. ESTADO DOS DADOS E CARREGAMENTO
     const [dashboardData, setDashboardData] = useState(null);
@@ -50,21 +52,26 @@ const ReportsPage = () => {
         setLoading(true);
         setError(null);
 
+        // CORREÇÃO: Usar as strings de data diretamente
         const params = {
             ownerId: vendedorId,
-            // Formate as datas para o padrão ISO que o backend espera (YYYY-MM-DD)
-            startDate: startDate ? startDate.toISOString().split('T')[0] : null, 
-            endDate: endDate ? endDate.toISOString().split('T')[0] : null,
+            startDate: startDate || null, // Se for string vazia, envia null
+            endDate: endDate || null,     // Se for string vazia, envia null
             origin: originFilter
         };
 
         try {
-            // Chamada para o NOVO ENDPOINT que criamos no ReportController
             const res = await axios.get('/api/reports/dashboard-data', { params });
             setDashboardData(res.data);
         } catch (err) {
             console.error("Erro ao buscar dados do Dashboard:", err);
-            setError("Não foi possível carregar os dados. Tente novamente.");
+            
+            // Sugestão de Debug: Se for 401, o erro é de autenticação
+            const errorMessage = err.response?.status === 401 
+                ? "Sessão expirada ou não autorizado. Faça login novamente." 
+                : "Não foi possível carregar os dados. Verifique a conexão do servidor.";
+                
+            setError(errorMessage);
             setDashboardData(null);
         } finally {
             setLoading(false);
@@ -77,14 +84,15 @@ const ReportsPage = () => {
     }, [fetchDashboardData]);
     
     
-    // Função de Exportação (passada para o Dashboard para ser usada nos botões)
+    // Função de Exportação (mantida)
     const handleExport = async (format) => {
         // Formatos: 'csv' ou 'pdf'
         const params = { 
             format,
             ownerId: vendedorId,
-            startDate: startDate ? startDate.toISOString().split('T')[0] : null,
-            endDate: endDate ? endDate.toISOString().split('T')[0] : null,
+            // CORREÇÃO: Usar strings de data diretamente
+            startDate: startDate || null, 
+            endDate: endDate || null,     
             // Outros filtros, se necessário
         };
         
@@ -134,13 +142,15 @@ const ReportsPage = () => {
 
             {/* FILTROS AVANÇADOS */}
             <div className="bg-white p-6 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-end">
-                {/* Filtros de Período (Usando inputs simples por falta do componente DatePicker) */}
+                {/* Filtros de Período */}
                 <div className="w-full sm:w-auto">
                     <label className="block text-sm font-medium text-gray-700">Início:</label>
                     <input 
                         type="date" 
-                        value={startDate ? startDate.toISOString().split('T')[0] : ''}
-                        onChange={e => setStartDate(e.target.value ? new Date(e.target.value) : null)}
+                        // CORREÇÃO: Usar a string diretamente do estado
+                        value={startDate} 
+                        // CORREÇÃO: Armazenar a string diretamente
+                        onChange={e => setStartDate(e.target.value)}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                 </div>
@@ -148,8 +158,10 @@ const ReportsPage = () => {
                     <label className="block text-sm font-medium text-gray-700">Fim:</label>
                     <input 
                         type="date" 
-                        value={endDate ? endDate.toISOString().split('T')[0] : ''}
-                        onChange={e => setEndDate(e.target.value ? new Date(e.target.value) : null)}
+                        // CORREÇÃO: Usar a string diretamente do estado
+                        value={endDate}
+                        // CORREÇÃO: Armazenar a string diretamente
+                        onChange={e => setEndDate(e.target.value)}
                         className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                 </div>
@@ -197,15 +209,23 @@ const ReportsPage = () => {
 
             {/* Conteúdo do Dashboard */}
             <div className="mt-6">
+                {/* 1. Mensagens de estado */}
                 {loading && <p className="text-center text-blue-500">Carregando dados...</p>}
-                {error && <p className="text-center text-red-500">{error}</p>}
+                {error && <p className="text-center text-red-500 font-medium">{error}</p>}
                 
-                {/* Passa os dados para o componente do Dashboard */}
-                {!loading && dashboardData && (
+                {/* 2. Dashboard - Se não estiver carregando E não houver erro E houver dados, renderiza o componente. */}
+                {!loading && !error && dashboardData && (
                     <ReportsDashboard 
                         data={dashboardData}
                         // Você pode passar a função de exportação aqui se quiser colocá-la dentro do dashboard
                     />
+                )}
+                
+                {/* DEBUG: Se o carregamento terminou, não houve erro, mas os dados estão nulos (API retornou 200 com array vazio) */}
+                {!loading && !error && !dashboardData && (
+                    <div className="text-center p-10 font-medium text-gray-500">
+                        Nenhum dado encontrado para os filtros selecionados.
+                    </div>
                 )}
             </div>
         </div>
