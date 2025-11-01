@@ -5,22 +5,25 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  
+
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), 
+      '@': path.resolve(__dirname, './src'),
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
 
-  base: '/',
+  // 🔹 Corrigido: base relativo para Static Site
+  base: './',
+
   build: {
     rollupOptions: {
-      external: [], 
+      external: [],
     },
     sourcemap: true,
   },
+
   css: {
-    postcss: './postcss.config.cjs',  // ← MUDOU AQUI!
+    postcss: './postcss.config.cjs',
   }
 });
