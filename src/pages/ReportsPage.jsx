@@ -1,7 +1,7 @@
 // src/pages/ReportsPage.jsx
 
 import React, { useState, useEffect, useCallback } from 'react';
-// IMPORTANTE: Mudar de 'axios' para a instância configurada 'api'
+// IMPORTANTE: Use a instância configurada 'api'
 import api from '../services/api'; 
 import { useAuth } from '../AuthContext';
 import ReportsDashboard from '../components/reports/ReportsDashboard'; 
@@ -9,9 +9,10 @@ import ReportsDashboard from '../components/reports/ReportsDashboard';
 const ReportsPage = () => {
     const { user } = useAuth();
     
-    // 1. ESTADO DOS FILTROS
+    // ... (ESTADOS MANTIDOS)
     const [vendedores, setVendedores] = useState([]);
-    const [vendedorId, setVendedorId] = useState(user?.relatorios_proprios_only ? user.id : '');
+    // Inicializa vendedorId com o ID do usuário se for relatórios próprios, senão com string vazia ("Todos")
+    const [vendedorId, setVendedorId] = useState(user?.relatorios_proprios_only ? user.id : ''); 
     
     // Armazenar datas como strings YYYY-MM-DD
     const [startDate, setStartDate] = useState(''); 
@@ -20,34 +21,30 @@ const ReportsPage = () => {
     const [originFilter, setOriginFilter] = useState(''); 
     const [availableOrigins, setAvailableOrigins] = useState([]); 
 
-    // 2. ESTADO DOS DADOS E CARREGAMENTO
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Função para buscar a lista de vendedores e origens (CORRIGIDA para usar 'api')
-    useEffect(() => {
-        const fetchFilters = async () => {
-            try {
-                // Rota para vendedores
-                const sellersRes = await api.get('/reports/sellers'); // <<< CORREÇÃO: Usando 'api'
-                setVendedores(sellersRes.data);
-                
-                // Simulação da busca de Origens
-                // 💡 Nota: Você deve ter um endpoint real para buscar as origens únicas dos leads.
-                setAvailableOrigins(['Google Ads', 'Indicação', 'Redes Sociais', 'Parceria']);
-                
-            } catch (err) {
-                console.error("Erro ao buscar filtros:", err);
-            }
-        };
-        fetchFilters();
-        // Definir o vendedorId inicial com base no usuário logado após carregar.
-        if (!vendedorId && user?.relatorios_proprios_only) {
-            setVendedorId(user.id);
+    const fetchFilters = useCallback(async () => {
+        try {
+            // Rota para vendedores
+            const sellersRes = await api.get('/reports/sellers'); 
+            setVendedores(sellersRes.data);
+            
+            // Simulação da busca de Origens (MANTIDO)
+            setAvailableOrigins(['Google Ads', 'Indicação', 'Redes Sociais', 'Parceria']);
+            
+        } catch (err) {
+            console.error("Erro ao buscar filtros:", err.response || err);
+            // Se o erro for 401 aqui, a tela fica travada, mas a api.js deve ter falhado
         }
+    }, []);
+
+    useEffect(() => {
+        fetchFilters();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]); // Depende apenas do objeto user
+    }, []); 
 
     // Função principal de busca de dados do Dashboard (CORRIGIDA para usar 'api')
     const fetchDashboardData = useCallback(async () => {
@@ -55,20 +52,22 @@ const ReportsPage = () => {
         setError(null);
 
         const params = {
-            ownerId: vendedorId,
+            // O ownerId pode ser string vazia, que é tratada no backend (ownerId || undefined)
+            ownerId: vendedorId, 
             startDate: startDate || null, 
             endDate: endDate || null,     
             origin: originFilter
         };
 
         try {
-            const res = await api.get('/reports/dashboard-data', { params }); // <<< CORREÇÃO: Usando 'api'
-            setDashboardData(res.data);
+            const res = await api.get('/reports/dashboard-data', { params });
             
-            // Tratamento de dados vazios, caso o backend retorne 200 com array vazio
-            if (!res.data || Object.keys(res.data).length === 0 || res.data.newLeads === 0) {
+            // Verificação simples se o retorno é válido (não é array vazio, etc.)
+            if (res.status === 204 || !res.data || Object.keys(res.data).length === 0 || res.data.newLeads === undefined) {
+                 setDashboardData(null);
                  setError("Nenhum dado encontrado para os filtros selecionados.");
             } else {
+                 setDashboardData(res.data);
                  setError(null);
             }
             
@@ -76,14 +75,15 @@ const ReportsPage = () => {
             console.error("Erro ao buscar dados do Dashboard:", err.response || err);
             
             const status = err.response?.status;
-            let errorMessage = "Não foi possível carregar os dados. Verifique a conexão do servidor.";
+            let errorMessage = "Erro na comunicação com o servidor. Verifique a rede.";
             
+            // O status 401 é a causa do seu problema!
             if (status === 401 || status === 403) {
                  errorMessage = "Sessão expirada ou não autorizado. Faça login novamente.";
-            } else if (status === 404) {
-                 errorMessage = "A rota da API '/api/reports/dashboard-data' não foi encontrada. Verifique o servidor.";
             } else if (status === 500) {
                  errorMessage = "Erro interno do servidor (500). Verifique os logs do seu backend!";
+            } else if (status === 404) {
+                 errorMessage = "A rota da API '/api/reports/dashboard-data' não foi encontrada. Verifique o servidor.";
             }
                 
             setError(errorMessage);
@@ -93,7 +93,7 @@ const ReportsPage = () => {
         }
     }, [vendedorId, startDate, endDate, originFilter]);
     
-    // 3. EFEITO PARA BUSCAR DADOS AO MUDAR OS FILTROS
+    // Efeito para buscar dados ao mudar os filtros
     useEffect(() => {
         fetchDashboardData();
     }, [fetchDashboardData]);
@@ -109,12 +109,11 @@ const ReportsPage = () => {
         };
         
         try {
-            const response = await api.get('/reports/export', { // <<< CORREÇÃO: Usando 'api'
+            const response = await api.get('/reports/export', { 
                 params,
                 responseType: 'blob' 
             });
 
-            // Se o backend retornar 204 (No Content), não há dados para baixar
             if (response.status === 204) {
                 return alert("Nenhum dado encontrado para exportação com os filtros atuais.");
             }
@@ -133,9 +132,10 @@ const ReportsPage = () => {
     };
 
 
-    // 4. ESTRUTURA JSX
+    // 4. ESTRUTURA JSX (Mantida)
     return (
         <div className="p-6 bg-gray-50 min-h-screen">
+            {/* ... (Header e Filtros mantidos) ... */}
             <header className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Dashboard de Performance</h1>
                 
@@ -224,7 +224,7 @@ const ReportsPage = () => {
                 {/* Mensagens de estado */}
                 {loading && <p className="text-center text-blue-500">Carregando dados...</p>}
                 
-                {/* Exibe erro se houver, mesmo que a mensagem de carregamento tenha passado */}
+                {/* Exibe erro se houver */}
                 {!loading && error && <p className="text-center text-red-500 font-medium">{error}</p>}
                 
                 {/* Dashboard - Renderiza se não estiver carregando E houver dados */}
