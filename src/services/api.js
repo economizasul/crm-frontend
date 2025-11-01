@@ -2,56 +2,71 @@
 
 import axios from 'axios';
 
-// =============================================================
-// CORREÇÃO CRÍTICA DE URL PARA DEPLOY EM AMBIENTES SEPARADOS (RENDER)
-// =============================================================
-// Troque a URL abaixo APENAS SE o endereço do seu backend mudar.
-// O seu backend está em: https://crm-app-cnf7.onrender.com/api
-const BACKEND_URL = 'https://crm-app-cnf7.onrender.com/api/v1'; // Incluindo o prefixo da versão da API
+/**
+ * =============================================================
+ * CONFIGURAÇÃO CENTRAL DA API (FRONTEND + BACKEND SEPARADOS)
+ * =============================================================
+ * Este arquivo define a instância Axios usada em todo o frontend.
+ * Ele já lida com:
+ *  - URL dinâmica (Render, local ou outro ambiente)
+ *  - Inclusão do prefixo da API (/api/v1)
+ *  - Token JWT automático
+ *  - Tratamento de erros de autenticação
+ */
+
+// 🌐 Usa variável de ambiente no Render, com fallback local:
+const BASE_URL =
+  import.meta.env.VITE_API_URL?.replace(/\/+$/, '') || 'http://localhost:5000';
+
+// 🔗 Garante que o prefixo /api/v1 esteja sempre presente
+const API_BASE_URL = `${BASE_URL}/api/v1`;
 
 const api = axios.create({
-    // Usa o URL completo do backend
-    baseURL: BACKEND_URL, 
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false, // altere para true se usar cookies de sessão
 });
 
-// 2. Interceptor de Requisição: Adiciona o token JWT
-api.interceptors.request.use((config) => {
+// =============================================================
+// 1️⃣ Interceptor de Requisição — adiciona token JWT automaticamente
+// =============================================================
+api.interceptors.request.use(
+  (config) => {
     const userInfo = localStorage.getItem('userInfo');
-    let token = null;
-    
-    try {
-        if (userInfo) {
-            token = JSON.parse(userInfo).token;
+
+    if (userInfo) {
+      try {
+        const token = JSON.parse(userInfo).token;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
         }
-    } catch (e) {
-        console.error("Erro ao parsear userInfo do localStorage:", e);
+      } catch (err) {
+        console.error('Erro ao parsear userInfo do localStorage:', err);
+      }
     }
 
-    if (token) {
-        // ESSENCIAL: Adiciona o token ao cabeçalho de Autorização (Bearer Token)
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    
     return config;
-}, (error) => {
-    return Promise.reject(error);
-});
-
-// 3. Interceptor de Resposta: Para lidar com 401/Sessão Expirada (Melhoria)
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        // Se for 401 (Unauthorized) e o user estava logado (userInfo existe)
-        if (error.response?.status === 401 && localStorage.getItem('userInfo')) {
-            console.error("Sessão expirada ou token inválido. Por favor, faça login novamente.");
-            // 🚨 Ação de deslogar deve ser gerenciada pelo seu AuthContext (ex: forçar logout)
-        }
-        return Promise.reject(error);
-    }
+  },
+  (error) => Promise.reject(error)
 );
 
-// O export default é o que permite que outros arquivos usem 'import api from ...'
+// =============================================================
+// 2️⃣ Interceptor de Resposta — trata erros 401 (sessão expirada)
+// =============================================================
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && localStorage.getItem('userInfo')) {
+      console.warn('Sessão expirada ou token inválido. Faça login novamente.');
+      // Aqui você pode forçar logout via AuthContext, se quiser
+    }
+    return Promise.reject(error);
+  }
+);
+
+// =============================================================
+// Exporta a instância pronta para uso em todo o projeto
+// =============================================================
 export default api;
