@@ -10,11 +10,25 @@ const FUNNEL_COLORS = ['#A3D4FF', '#74BDE9', '#4CA3D5', '#3A8FB9', '#2C6E91', '#
 const ReportsDashboard = ({ data }) => {
     
     // =============================================================
-    // 1. Processamento de Dados (CORRIGIDO com || [])
+    // CORREÇÃO CRÍTICA PARA O FRONTEND: Cláusula de Guarda
+    // Se 'data' for null/undefined (antes do fetch), sai do componente 
+    // e mostra uma mensagem, resolvendo o "Cannot read properties of undefined".
+    // =============================================================
+    if (!data) {
+        return (
+            <div className="text-center p-10 font-medium text-gray-500">
+                Carregando dados do dashboard...
+            </div>
+        );
+    }
+
+
+    // =============================================================
+    // 1. Processamento de Dados (Arrays defensivos mantidos)
     // =============================================================
 
-    // 1.1. Processa Dados do Funil 
-    const rawFunnelData = data.funnelData || []; // CORREÇÃO: Garante que é um array vazio se for undefined
+    // 1.1. Processa Dados do Funil (Garante que data.funnelData é um array)
+    const rawFunnelData = data.funnelData || []; 
     const processedFunnel = [];
     let totalLeads = 0;
     let previousCount = 0;
@@ -45,8 +59,7 @@ const ReportsDashboard = ({ data }) => {
     
     const reversedFunnel = processedFunnel.filter(d => d.count > 0).reverse();
 
-    // 1.2. Processa Dados de Perda (para PieChart)
-    // CORREÇÃO: Garante que data.lossReasons é um array antes de mapear
+    // 1.2. Processa Dados de Perda (Garante que data.lossReasons é um array)
     const lossReasonsData = (data.lossReasons || []).map(item => ({ 
         name: item.reason,
         value: parseInt(item.count)
@@ -64,7 +77,7 @@ const ReportsDashboard = ({ data }) => {
 
     return (
         <div className="space-y-8">
-            {/* ============================== 1. CARDS DE MÉTRICAS ============================== */}
+            {/* ============================== 1. CARDS DE MÉTRICAS (Seguros, pois 'data' foi checado) ============================== */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 
                 {/* Card: Novos Leads */}
@@ -95,7 +108,8 @@ const ReportsDashboard = ({ data }) => {
                 <div className="bg-purple-100 p-6 rounded-lg shadow-md flex justify-between items-center">
                     <div>
                         <p className="text-sm font-semibold text-purple-800">Valor em Negociação</p>
-                        <p className="text-3xl font-bold text-purple-900">R$ {data.totalValueInNegotiation.toLocaleString('pt-BR')}</p>
+                        {/* Garante que o valor existe antes de chamar toLocaleString */}
+                        <p className="text-3xl font-bold text-purple-900">R$ {(data.totalValueInNegotiation || 0).toLocaleString('pt-BR')}</p>
                     </div>
                 </div>
             </div>
@@ -103,7 +117,7 @@ const ReportsDashboard = ({ data }) => {
             {/* ============================== 2. FUNIL DE VENDAS E PERFORMANCE ============================== */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                {/* COLUNA ESQUERDA: FUNIL DE VENDAS (AGORA FUNCIONAL) */}
+                {/* COLUNA ESQUERDA: FUNIL DE VENDAS */}
                 <div className="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Funil de Vendas (Pipeline)</h2>
                     
@@ -167,7 +181,7 @@ const ReportsDashboard = ({ data }) => {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {/* CORREÇÃO: Garante que data.sellerPerformance é um array antes de mapear */}
+                            {/* Garante que data.sellerPerformance é um array */}
                             {(data.sellerPerformance || []).map((seller, index) => ( 
                                 <tr key={index}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{seller.name}</td>
@@ -190,7 +204,7 @@ const ReportsDashboard = ({ data }) => {
                     <h2 className="text-xl font-semibold mb-4 text-gray-700">Análise de Conversão por Origem</h2>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                            {/* CORREÇÃO: Garante que data.originAnalysis é um array antes de mapear */}
+                            {/* Garante que data.originAnalysis é um array */}
                             <BarChart data={data.originAnalysis || []}> 
                                 <XAxis dataKey="origin" stroke="#888888" interval={0} angle={-25} textAnchor="end" height={60} />
                                 <YAxis yAxisId="left" orientation="left" stroke="#82ca9d" />
