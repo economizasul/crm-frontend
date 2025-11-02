@@ -6,12 +6,8 @@ import axios from 'axios';
  * =============================================================
  * CONFIGURAÇÃO CENTRAL DA API (FRONTEND + BACKEND SEPARADOS)
  * =============================================================
- * Este arquivo define a instância Axios usada em todo o frontend.
- * Ele já lida com:
- *  - URL dinâmica (Render, local ou outro ambiente)
- *  - Inclusão do prefixo da API (/api/v1)
- *  - Token JWT automático (via localStorage)
- *  - Tratamento de erros de autenticação
+ * Corrigido para usar o token salvo pelo AuthContext ('token').
+ * Mantém compatibilidade total com o backend.
  */
 
 // 🌐 Usa variável de ambiente no Render, com fallback local:
@@ -21,13 +17,12 @@ const BASE_URL =
 // 🔗 Garante que o prefixo /api/v1 esteja sempre presente
 const API_BASE_URL = `${BASE_URL}/api/v1`;
 
-// 🔧 Cria a instância principal do Axios
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // use true se trabalhar com cookies de sessão
+  withCredentials: false, // altere para true se usar cookies de sessão
 });
 
 // =============================================================
@@ -36,14 +31,18 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     try {
-      // Aqui usamos o mesmo padrão do AuthContext (token + user separados)
+      // Corrigido: pega o token salvo diretamente
       const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+
+      if (token && token !== 'undefined' && token !== 'null') {
+        config.headers.Authorization = `Bearer ${token.replace(/['"]+/g, '')}`;
+      } else {
+        console.warn('⚠️ Nenhum token encontrado no localStorage.');
       }
     } catch (err) {
-      console.error('Erro ao adicionar token ao header:', err);
+      console.error('Erro ao recuperar token do localStorage:', err);
     }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -56,13 +55,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn('Sessão expirada ou token inválido. Faça login novamente.');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      // opcional: redirecionar para login (se preferir)
+      console.warn('🚫 Token inválido ou expirado.');
+      // Opcional: limpar token e redirecionar para login
+      // localStorage.removeItem('token');
+      // localStorage.removeItem('user');
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
+// =============================================================
+// Exporta a instância pronta para uso em todo o projeto
+// =============================================================
 export default api;
