@@ -6,8 +6,9 @@ import { useAuth } from '../AuthContext';
 import ReportsDashboard from '../components/reports/ReportsDashboard';
 
 const ReportsPage = () => {
-  const { user, token } = useAuth(); // ✅ pega token do AuthContext
+  const { user, token } = useAuth(); // ✅ token garantido
 
+  // 1. ESTADO DOS FILTROS
   const [vendedores, setVendedores] = useState([]);
   const [vendedorId, setVendedorId] = useState(
     user?.relatorios_proprios_only ? user.id : ''
@@ -17,15 +18,16 @@ const ReportsPage = () => {
   const [originFilter, setOriginFilter] = useState('');
   const [availableOrigins, setAvailableOrigins] = useState([]);
 
+  // 2. ESTADO DOS DADOS E CARREGAMENTO
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🔹 Função para buscar filtros
+  // Função para buscar lista de vendedores e origens
   const fetchFilters = useCallback(async () => {
     try {
       const sellersRes = await api.get('/reports/sellers', {
-        headers: { Authorization: token ? `Bearer ${token}` : undefined }
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
       });
       setVendedores(sellersRes.data);
       setAvailableOrigins(['Google Ads', 'Indicação', 'Redes Sociais', 'Parceria']);
@@ -38,7 +40,7 @@ const ReportsPage = () => {
     fetchFilters();
   }, [fetchFilters]);
 
-  // 🔹 Função para buscar dados do dashboard
+  // Função para buscar os dados do dashboard
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -57,7 +59,7 @@ const ReportsPage = () => {
 
       const response = await api.get('/reports/dashboard-data', {
         params: filteredParams,
-        headers: { Authorization: token ? `Bearer ${token}` : undefined }
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
       });
 
       if (response.status === 204) {
@@ -79,7 +81,7 @@ const ReportsPage = () => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  // 🔹 Função para exportar CSV/PDF
+  // Exportação CSV/PDF
   const handleExport = async (format) => {
     try {
       const params = {
@@ -97,7 +99,7 @@ const ReportsPage = () => {
       const response = await api.get('/reports/export', {
         params: filteredParams,
         responseType: 'blob',
-        headers: { Authorization: token ? `Bearer ${token}` : undefined }
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
       });
 
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -118,18 +120,20 @@ const ReportsPage = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-
     } catch (error) {
       console.error('Erro na exportação:', error.response?.data || error);
       alert('Erro ao gerar o arquivo de exportação. Verifique se há dados e tente novamente.');
     }
   };
 
+  // RENDER
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Relatórios e Dashboard</h1>
 
+      {/* FILTROS E EXPORTAÇÃO */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        {/* Filtro de Vendedor */}
         <div className="col-span-1">
           <label className="block text-sm font-medium text-gray-700">Vendedor:</label>
           {user?.relatorios_proprios_only ? (
@@ -153,6 +157,7 @@ const ReportsPage = () => {
           )}
         </div>
 
+        {/* Datas e Origem */}
         <div className="col-span-1">
           <label className="block text-sm font-medium text-gray-700">Data Inicial:</label>
           <input
@@ -187,6 +192,7 @@ const ReportsPage = () => {
           </select>
         </div>
 
+        {/* Exportação */}
         <div className="col-span-1 flex flex-col space-y-2">
           <button
             onClick={() => handleExport('csv')}
@@ -205,6 +211,7 @@ const ReportsPage = () => {
         </div>
       </div>
 
+      {/* DASHBOARD */}
       <div className="mt-6">
         {loading && (
           <p className="text-center text-blue-500 p-10 font-medium">
