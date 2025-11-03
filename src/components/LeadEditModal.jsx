@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// Importa FaMapMarkerAlt e FaWhatsapp
 import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
 import axios from 'axios';
 import { STAGES } from '../KanbanBoard.jsx'; 
@@ -38,8 +37,13 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
-
-            setLeadData({ ...selectedLead, notes: leadNotes });
+            // Mapeia snake_case do selectedLead para camelCase do state
+            setLeadData({ 
+                ...selectedLead, 
+                avgConsumption: selectedLead.avg_consumption,
+                estimatedSavings: selectedLead.estimated_savings,
+                notes: leadNotes 
+            });
             setNewNoteText('');
             setSelectedFile(null);
             setApiError(null);
@@ -115,6 +119,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
+    // 🚨 FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
@@ -131,22 +136,31 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
+        // 🚨 CORREÇÃO: Cria o objeto dataToSend explicitamente, 
+        // mapeando camelCase (frontend) para snake_case (backend/DB)
         const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
         
         const dataToSend = {
-            status: leadData.status,
+            // Campos Diretos
             name: leadData.name,
             phone: leadData.phone,
             document: leadData.document,
             address: leadData.address,
+            status: leadData.status,
             origin: leadData.origin,
             email: leadData.email,
+            uc: leadData.uc,
+            qsa: leadData.qsa,
+            owner_id: leadData.owner_id, 
+            lat: leadData.lat || null, 
+            lng: leadData.lng || null,
+            
+            // Conversão de camelCase para snake_case
             avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+            
+            // Notas (JSON String)
             notes: notesToSend, 
-            uc: leadData.uc,
-            qsa: leadData.qsa || null,
-            owner_id: leadData.owner_id, 
         };
         
         const leadIdentifier = leadData.id || leadData._id; 
@@ -174,7 +188,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // 🚨 NOVA FUNÇÃO: Gerar o link do WhatsApp
+    // Função existente: Gerar o link do WhatsApp
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
@@ -203,9 +217,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                 <div className="space-y-4">
                     
-                    {/* 🚨 NOVO: Container para os links */}
+                    {/* Container para os links */}
                     <div className="flex flex-wrap gap-3">
-                        {/* Link Google Maps (Mantido) */}
+                        {/* Link Google Maps */}
                         {leadData.address && (
                             <a 
                                 href={getGoogleMapsLink()} 
@@ -218,7 +232,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             </a>
                         )}
                         
-                        {/* 🚨 NOVO: Link WhatsApp */}
+                        {/* Link WhatsApp */}
                         {leadData.phone && (
                             <a 
                                 href={getWhatsAppLink()} 
@@ -231,7 +245,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             </a>
                         )}
                     </div>
-                    {/* FIM NOVO: Container para os links */}
+                    {/* FIM: Container para os links */}
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
