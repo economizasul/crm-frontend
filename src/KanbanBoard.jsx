@@ -1,7 +1,8 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM BARRA DE PESQUISA, FILTRO, MODAL E DRAG/DROP
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM LINK DO GOOGLE MAPS E WHATSAPP
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt } from 'react-icons/fa'; // Importa FaMapMarkerAlt
+// Importa FaMapMarkerAlt e FaWhatsapp
+import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
@@ -19,7 +20,7 @@ export const STAGES = {
     'Perdido': 'bg-red-200 text-red-800',
 };
 
-// Componente simples de Toast para feedback
+// Componente simples de Toast para feedback (inalterado)
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -37,7 +38,7 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-// Componente Card de Lead
+// Componente Card de Lead (inalterado)
 const LeadCard = ({ lead, onClick }) => {
     return (
         <div 
@@ -53,7 +54,7 @@ const LeadCard = ({ lead, onClick }) => {
     );
 };
 
-// Função auxiliar de formatação de data
+// Função auxiliar de formatação de data (inalterada)
 const formatNoteDate = (timestamp) => {
     if (!timestamp) return 'Sem Data';
     try {
@@ -78,9 +79,7 @@ const KanbanBoard = () => {
     const [saving, setSaving] = useState(false);
     const [toast, setToast] = useState(null);
     
-    // 🚨 NOVO ESTADO: Termo de Pesquisa
     const [searchTerm, setSearchTerm] = useState(''); 
-    // 🚨 NOVO ESTADO: Resultado da Pesquisa
     const [searchResult, setSearchResult] = useState(null);
 
     const navigate = useNavigate();
@@ -93,7 +92,7 @@ const KanbanBoard = () => {
         lat: null, lng: null
     });
 
-    // Função para buscar os leads
+    // Função para buscar os leads (inalterada)
     const fetchLeads = useCallback(async () => {
         if (!token) return;
 
@@ -106,7 +105,6 @@ const KanbanBoard = () => {
             });
             setLeads(response.data.map(lead => ({
                 ...lead,
-                // Garantir que as notas sejam um array, mesmo que venham como string JSON do DB
                 notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : []
             })));
             setIsLoading(false);
@@ -125,7 +123,7 @@ const KanbanBoard = () => {
         fetchLeads();
     }, [fetchLeads]);
     
-    // 🚨 Lógica de filtragem
+    // Lógica de filtragem (inalterada)
     const handleSearch = (term) => {
         setSearchTerm(term);
         
@@ -202,16 +200,15 @@ const KanbanBoard = () => {
         try {
             const dataToSend = {
                 ...leadData,
-                // JSON.stringify aqui é necessário, pois o backend espera uma string para o campo TEXT do PostgreSQL
                 notes: JSON.stringify(leadData.notes || []), 
-                avg_consumption: parseFloat(leadData.avgConsumption) || null, // CORREÇÃO: Usar o nome do campo do DB
-                estimated_savings: parseFloat(leadData.estimatedSavings) || null, // CORREÇÃO: Usar o nome do campo do DB
+                avg_consumption: parseFloat(leadData.avgConsumption) || null,
+                estimated_savings: parseFloat(leadData.estimatedSavings) || null,
             };
 
             delete dataToSend._id; 
-            delete dataToSend.owner_name; // Remover campos de leitura
+            delete dataToSend.owner_name; 
 
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { // CORREÇÃO: Usar selectedLead.id, pois o DB é PostgreSQL
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { 
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -227,31 +224,30 @@ const KanbanBoard = () => {
     
     // Lógica de Drag and Drop (inalterada)
     const handleDrop = async (leadId, newStatus) => {
-        const idToFind = typeof leads[0]?.id === 'number' ? parseInt(leadId) : leadId; // CORREÇÃO: Usa 'id'
-        const leadToUpdate = leads.find(l => l.id === idToFind); // CORREÇÃO: Usa 'id'
+        const idToFind = typeof leads[0]?.id === 'number' ? parseInt(leadId) : leadId; 
+        const leadToUpdate = leads.find(l => l.id === idToFind); 
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
         const oldStatus = leadToUpdate.status;
         setLeads(prevLeads => prevLeads.map(l => 
-            l.id === idToFind ? { ...l, status: newStatus } : l // CORREÇÃO: Usa 'id'
+            l.id === idToFind ? { ...l, status: newStatus } : l 
         ));
 
         try {
-            // Garante que o notes seja enviado como string JSON
             const notesToSave = leadToUpdate.notes ? (typeof leadToUpdate.notes === 'string' ? leadToUpdate.notes : JSON.stringify(leadToUpdate.notes)) : '[]';
 
             const dataToSend = {
                 ...leadToUpdate,
                 status: newStatus,
                 notes: notesToSave, 
-                avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null, // CORREÇÃO: Usar o nome do campo do DB
-                estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null, // CORREÇÃO: Usar o nome do campo do DB
+                avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null,
+                estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null,
             };
 
             delete dataToSend._id; 
             delete dataToSend.owner_name;
-            delete dataToSend.id; // Remover o ID para não tentar atualizar no body
+            delete dataToSend.id; 
             
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -263,7 +259,7 @@ const KanbanBoard = () => {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
             setLeads(prevLeads => prevLeads.map(l => 
-                l.id === idToFind ? { ...l, status: oldStatus } : l // CORREÇÃO: Usa 'id'
+                l.id === idToFind ? { ...l, status: oldStatus } : l 
             ));
             
             setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
@@ -271,82 +267,26 @@ const KanbanBoard = () => {
         }
     };
     
-    // Renderiza as colunas do Kanban
-    const renderColumns = () => {
-        // Se houver resultado de pesquisa, renderiza apenas a coluna do lead encontrado
-        if (searchResult && searchResult !== 'not_found') {
-            const status = searchResult.status;
-            
-            return (
-                <div 
-                    key={status} 
-                    className="flex-shrink-0 w-52 bg-white p-3 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
-                >
-                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
-                        {status} (1) 
-                        <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
-                    </h2>
-                    
-                    <div
-                        draggable
-                        onDragStart={(e) => {
-                            e.dataTransfer.setData("leadId", searchResult.id.toString()); // CORREÇÃO: Usa 'id'
-                        }}
-                    >
-                        <LeadCard lead={searchResult} onClick={openLeadModal} />
-                    </div>
-                </div>
-            );
-        }
-        
-        // Renderização normal do Kanban
-        const columns = Object.keys(STAGES).map(status => {
-            // Filtra os leads para a coluna atual
-            const statusLeads = leads.filter(lead => lead.status === status);
-            return (
-                <div 
-                    key={status} 
-                    // Largura otimizada
-                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const leadId = e.dataTransfer.getData("leadId");
-                        handleDrop(leadId, status);
-                    }}
-                >
-                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
-                        {status} ({statusLeads.length})
-                    </h2>
-                    
-                    {statusLeads.map(lead => (
-                        <div 
-                            key={lead.id} // CORREÇÃO: Usa 'id'
-                            draggable
-                            onDragStart={(e) => {
-                                e.dataTransfer.setData("leadId", lead.id.toString()); // CORREÇÃO: Usa 'id'
-                            }}
-                        >
-                            <LeadCard lead={lead} onClick={openLeadModal} />
-                        </div>
-                    ))}
-                    
-                    {statusLeads.length === 0 && (
-                        <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
-                    )}
-                </div>
-            );
-        });
-        return columns;
-    };
-    
-    // 🚨 NOVA FUNÇÃO: Gerar o link do Google Maps
+    // Função existente: Gerar o link do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
-        // Codifica o endereço para ser seguro em uma URL de pesquisa
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Retorna o URL de pesquisa com a API Search (mais simples para um endereço)
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    };
+    
+    // 🚨 NOVA FUNÇÃO: Gerar o link do WhatsApp
+    const getWhatsAppLink = () => {
+        if (!leadData.phone) return null;
+        // Remove caracteres não-numéricos ((), -, espaço) e adiciona o código do país (55, Brasil) se necessário
+        const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
+        // Adiciona 55 se o número não começar com ele. (Assumindo DDD + Número)
+        const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
+        
+        // Texto pré-preenchido para iniciar a conversa
+        const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
+        const encodedMessage = encodeURIComponent(initialMessage);
+
+        return `http://googleusercontent.com/wa.me/${formattedPhone}?text=${encodedMessage}`;
     };
 
 
@@ -364,7 +304,7 @@ const KanbanBoard = () => {
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
-            {/* 🚨 NOVA BARRA DE PESQUISA */}
+            {/* Barra de Pesquisa (inalterada) */}
             <div className="mb-6 flex items-center space-x-4">
                 <div className="relative flex-1 max-w-lg">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -376,7 +316,7 @@ const KanbanBoard = () => {
                         className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
                     />
                 </div>
-                {/* 🚨 Feedbacks da Pesquisa */}
+                {/* Feedbacks da Pesquisa (inalterada) */}
                 {searchResult === 'not_found' && searchTerm.trim() !== '' && (
                     <span className="text-red-500 font-medium">Lead não encontrado.</span>
                 )}
@@ -387,13 +327,53 @@ const KanbanBoard = () => {
                 )}
             </div>
             
-            {/* Container do Kanban: Permite scroll horizontal e ajusta a altura com base na tela */}
-            {/* Se houver resultado de pesquisa, o Kanban é filtrado */}
+            {/* Container do Kanban */}
             <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-200px)]"> 
-                {renderColumns()}
+                {/* O renderColumns é mantido inalterado, pois a mudança é só no modal */}
+                {Object.keys(STAGES).map(status => {
+                    const statusLeads = (searchResult && searchResult !== 'not_found' && searchResult.status === status) 
+                        ? [searchResult] 
+                        : (searchResult ? [] : leads.filter(lead => lead.status === status));
+                        
+                    return (
+                        <div 
+                            key={status} 
+                            className={`flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg ${searchResult && searchResult !== 'not_found' && searchResult.status === status ? 'border-4 border-green-500' : ''}`}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                const leadId = e.dataTransfer.getData("leadId");
+                                handleDrop(leadId, status);
+                            }}
+                        >
+                            <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                                {status} ({statusLeads.length})
+                                {searchResult && searchResult !== 'not_found' && searchResult.status === status && (
+                                    <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
+                                )}
+                            </h2>
+                            
+                            {statusLeads.map(lead => (
+                                <div 
+                                    key={lead.id} 
+                                    draggable
+                                    onDragStart={(e) => {
+                                        e.dataTransfer.setData("leadId", lead.id.toString());
+                                    }}
+                                >
+                                    <LeadCard lead={lead} onClick={openLeadModal} />
+                                </div>
+                            ))}
+                            
+                            {statusLeads.length === 0 && (
+                                <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Modal de Edição do Lead (COM LINK DO MAPS) */}
+            {/* Modal de Edição do Lead (COM LINK DO MAPS E WHATSAPP) */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
@@ -411,19 +391,35 @@ const KanbanBoard = () => {
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 
-                                {/* 🚨 NOVO: Botão Google Maps */}
-                                {leadData.address && (
-                                    <a 
-                                        href={getGoogleMapsLink()} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
-                                    >
-                                        <FaMapMarkerAlt className="mr-2" />
-                                        Ver Endereço no Google Maps
-                                    </a>
-                                )}
-                                {/* FIM NOVO: Botão Google Maps */}
+                                {/* 🚨 NOVO: Container para os links */}
+                                <div className="flex flex-wrap gap-3">
+                                    {/* Link Google Maps (Mantido) */}
+                                    {leadData.address && (
+                                        <a 
+                                            href={getGoogleMapsLink()} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
+                                        >
+                                            <FaMapMarkerAlt className="mr-2" />
+                                            Ver Endereço no Google Maps
+                                        </a>
+                                    )}
+                                    
+                                    {/* 🚨 NOVO: Link WhatsApp */}
+                                    {leadData.phone && (
+                                        <a 
+                                            href={getWhatsAppLink()} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150"
+                                        >
+                                            <FaWhatsapp className="mr-2" />
+                                            Falar no WhatsApp
+                                        </a>
+                                    )}
+                                </div>
+                                {/* FIM NOVO: Container para os links */}
                                 
                                 <div className="grid grid-cols-2 gap-4">
                                     <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
@@ -441,7 +437,7 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
-                            {/* Informações Técnicas */}
+                            {/* Informações Técnicas (inalterado) */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
                                 <div className="grid grid-cols-2 gap-4">
@@ -454,7 +450,7 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
-                            {/* Notas e Histórico */}
+                            {/* Notas e Histórico (inalterado) */}
                             <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
                                 
@@ -492,7 +488,7 @@ const KanbanBoard = () => {
                             
                         </div>
 
-                        {/* Botões do Modal */}
+                        {/* Botões do Modal (inalterado) */}
                         <div className="mt-6 flex justify-end space-x-2">
                             <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                             <button 

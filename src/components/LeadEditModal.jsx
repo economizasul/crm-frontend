@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt } from 'react-icons/fa'; // Importa FaMapMarkerAlt
+// Importa FaMapMarkerAlt e FaWhatsapp
+import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
 import axios from 'axios';
-import { STAGES } from '../KanbanBoard.jsx'; // Nota: A estrutura de STAGES deve ser exportada como objeto no KanbanBoard.jsx
+import { STAGES } from '../KanbanBoard.jsx'; 
 import { useAuth } from '../../AuthContext'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
@@ -28,13 +29,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const [saving, setSaving] = useState(false);
     const [apiError, setApiError] = useState(null);
 
-    // NOVO: Estados para transferência
     const [vendedores, setVendedores] = useState([]);
     const [novoDonoId, setNovoDonoId] = useState('');
 
     useEffect(() => {
         if (selectedLead) {
-            // Garante que o notes é um array de objetos, assumindo que no DB ele é TEXT/JSON
             const leadNotes = Array.isArray(selectedLead.notes)
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
@@ -46,14 +45,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             setApiError(null);
             setNovoDonoId(''); 
 
-            // Carregar lista de vendedores (exceto o próprio)
             const carregarVendedores = async () => {
                 try {
                     const res = await axios.get(`${API_BASE_URL}/api/v1/users`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
-                    // O KanbanBoard exporta STAGES como um OBJETO, mas o Modal tenta iterar um ARRAY
-                    // Corrigi a importação acima para pegar o objeto STAGES.
                     setVendedores(res.data.filter(u => u.id !== user?.id && u.role !== 'Admin'));
                 } catch (err) {
                     console.error('Erro ao carregar vendedores', err);
@@ -97,13 +93,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         if (fileInput) fileInput.value = '';
     };
 
-    // NOVA FUNÇÃO: Transferir lead
     const transferirLead = async () => {
         if (!novoDonoId || novoDonoId === leadData.owner_id) return;
 
         try {
             const config = { headers: { Authorization: `Bearer ${token}` } };
-            // Note: assumindo que o ID do lead está em .id (PostgreSQL) ou _id (MongoDB)
             const leadIdentifier = leadData.id || leadData._id; 
             await axios.put(
                 `${API_BASE_URL}/api/v1/leads/${leadIdentifier}`,
@@ -129,7 +123,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         let internalNotes = leadData.notes ? [...leadData.notes] : [];
 
-        // Adiciona a nota nova ao array de notas
         if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
         }
@@ -138,7 +131,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
-        // CORREÇÃO CRÍTICA: Ajustar os nomes dos campos para o backend (snake_case do PostgreSQL)
         const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
         
         const dataToSend = {
@@ -151,7 +143,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             email: leadData.email,
             avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            notes: notesToSend, // Enviando string JSON
+            notes: notesToSend, 
             uc: leadData.uc,
             qsa: leadData.qsa || null,
             owner_id: leadData.owner_id, 
@@ -175,11 +167,23 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // 🚨 NOVA FUNÇÃO: Gerar o link do Google Maps
+    // Função existente: Gerar o link do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    };
+    
+    // 🚨 NOVA FUNÇÃO: Gerar o link do WhatsApp
+    const getWhatsAppLink = () => {
+        if (!leadData.phone) return null;
+        const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
+        const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
+        
+        const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
+        const encodedMessage = encodeURIComponent(initialMessage);
+
+        return `http://googleusercontent.com/wa.me/${formattedPhone}?text=${encodedMessage}`;
     };
 
 
@@ -199,19 +203,35 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                 <div className="space-y-4">
                     
-                    {/* 🚨 NOVO: Botão Google Maps */}
-                    {leadData.address && (
-                        <a 
-                            href={getGoogleMapsLink()} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
-                        >
-                            <FaMapMarkerAlt className="mr-2" />
-                            Ver Endereço no Google Maps
-                        </a>
-                    )}
-                    {/* FIM NOVO: Botão Google Maps */}
+                    {/* 🚨 NOVO: Container para os links */}
+                    <div className="flex flex-wrap gap-3">
+                        {/* Link Google Maps (Mantido) */}
+                        {leadData.address && (
+                            <a 
+                                href={getGoogleMapsLink()} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
+                            >
+                                <FaMapMarkerAlt className="mr-2" />
+                                Ver Endereço no Google Maps
+                            </a>
+                        )}
+                        
+                        {/* 🚨 NOVO: Link WhatsApp */}
+                        {leadData.phone && (
+                            <a 
+                                href={getWhatsAppLink()} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150"
+                            >
+                                <FaWhatsapp className="mr-2" />
+                                Falar no WhatsApp
+                            </a>
+                        )}
+                    </div>
+                    {/* FIM NOVO: Container para os links */}
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
@@ -229,14 +249,13 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
-                            {/* CORREÇÃO: Itera as chaves do objeto STAGES */}
                             <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Novo'} onChange={handleInputChange}>
                                 {Object.keys(STAGES).map(statusKey => (<option key={statusKey} value={statusKey}>{statusKey}</option>))}
                             </select>
                         </div>
                     </div>
 
-                    {/* TRANSFERÊNCIA DE LEAD */}
+                    {/* TRANSFERÊNCIA DE LEAD (inalterado) */}
                     {user?.transferencia_leads && leadData.owner_id === user.id && (
                         <div className="mt-6 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
                             <label className="block text-sm font-bold text-green-800 mb-2">
@@ -269,7 +288,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                     )}
 
-                    {/* Quadro de Adicionar Nova Nota / Anexo */}
+                    {/* Quadro de Adicionar Nova Nota / Anexo (inalterado) */}
                     <div className="border p-4 rounded-lg bg-gray-50">
                         <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
                         <textarea
@@ -304,14 +323,13 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </button>
                     </div>
 
-                    {/* Histórico de Notas */}
+                    {/* Histórico de Notas (inalterado) */}
                     <div>
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
                             {leadData.notes && leadData.notes.length > 0 ? (
                                 [...leadData.notes].reverse().map((note, index) => {
                                     const noteText = typeof note === 'string' ? note : (note.text || '');
-                                    // Tenta garantir que note.timestamp é um número ou string de data
                                     const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0); 
                                     const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
                                     const noteClass = isAttachment
