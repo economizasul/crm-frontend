@@ -1,7 +1,7 @@
 // src/components/reports/ReportsDashboard.jsx
 
 import React from 'react';
-import FunnelChart from './FunnelChart'; // Componente a ser criado
+import FunnelChart from './FunnelChart';
 import ProductivityTable from './ProductivityTable'; // Componente a ser criado
 import ForecastCard from './ForecastCard'; // Componente a ser criado
 import LostReasonsTable from './LostReasonsTable'; // Componente a ser criado
