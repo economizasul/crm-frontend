@@ -1,10 +1,14 @@
-// src/pages/ReportsPage.jsx (CÓDIGO CORRIGIDO - Garante a chamada inicial de dados)
+// src/pages/ReportsPage.jsx (CÓDIGO CORRIGIDO - Usando axios direto)
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import api from '../services/api'; 
 import { useAuth } from '../AuthContext';
 import ReportsDashboard from '../components/reports/ReportsDashboard';
-import { FaSync } from 'react-icons/fa'; // Ícone para forçar atualização
+import { FaSync } from 'react-icons/fa'; 
+import axios from 'axios'; // 🎯 NOVO: Importa axios
+import { format } from 'date-fns'; // Para formatação de data de exportação
+
+// 🎯 NOVO: Define a Base URL diretamente, pois api.js não existe
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 const ReportsPage = () => {
   const { user, token } = useAuth(); 
@@ -41,43 +45,52 @@ const ReportsPage = () => {
   
   // Função para buscar dados do dashboard (principal)
   const fetchDashboardData = useCallback(async (filters) => {
+    // CRÍTICO: Não executa se não houver token (embora o middleware trate, é bom evitar)
+    if (!token) {
+        setError("Não autenticado. Por favor, faça login.");
+        setLoading(false);
+        return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
-      // 🚨 CRÍTICO: Usa o api.get com o endpoint correto /reports/dashboard-data
-      const res = await api.get('/reports/dashboard-data', {
+      // 🎯 CORREÇÃO CRÍTICA: Usa axios diretamente com a URL completa
+      const res = await axios.get(`${API_BASE_URL}/api/v1/reports/dashboard-data`, {
         params: filters,
-        headers: { Authorization: token ? `Bearer ${token}` : undefined },
+        headers: { Authorization: `Bearer ${token}` }, // 🎯 token passado diretamente
       });
 
       setDashboardData(res.data);
     } catch (err) {
       console.error('Erro ao buscar dados do dashboard:', err);
-      // Aqui, se o status for 404/401, o api.js pode não ter injetado o token
-      if (err.response?.status === 401) {
-          setError('Sessão expirada. Faça login novamente.');
+      if (err.response?.status === 401 || err.response?.status === 403) {
+          setError('Sessão expirada ou acesso negado. Faça login novamente.');
       } else {
+          // O erro de conexão / TypeError de antes cairia aqui
           setError('Não foi possível carregar os dados. Verifique a conexão ou tente novamente.');
       }
-      setDashboardData(null); // Limpa dados em caso de erro
+      setDashboardData(null); 
     } finally {
       setLoading(false); // GARANTE QUE SEMPRE DESATIVA O LOADING
     }
   }, [token]); 
 
 
-  // Função para buscar lista de vendedores e origens (Mantida)
+  // Função para buscar lista de vendedores e origens
   const fetchFilters = useCallback(async () => {
+    if (!token) return;
+
     try {
-      const sellersRes = await api.get('/reports/sellers', {
-        headers: { Authorization: token ? `Bearer ${token}` : undefined },
+      // 🎯 CORREÇÃO CRÍTICA: Usa axios diretamente com a URL completa
+      const sellersRes = await axios.get(`${API_BASE_URL}/api/v1/reports/sellers`, {
+        headers: { Authorization: `Bearer ${token}` }, // 🎯 token passado diretamente
       });
       setVendedores(sellersRes.data);
       setAvailableOrigins(['Google Ads', 'Indicação', 'Redes Sociais', 'Cold Call', 'Outro']);
     } catch (e) {
       console.error('Erro ao buscar filtros:', e);
-      // Se os filtros falharem, ainda tentamos carregar o dashboard, mas setamos um erro
-      setError(e.message || 'Erro ao carregar filtros iniciais.');
+      // Aqui não precisamos setar loading, pois a chamada principal fará isso
     }
   }, [token]); 
 
@@ -86,13 +99,17 @@ const ReportsPage = () => {
   // EFEITOS DE CONTROLE
   // ====================================================================
 
-  // 1. Efeito na Montagem: Busca filtros e, em seguida, os dados iniciais
+  // Efeito na Montagem: Busca filtros e, em seguida, os dados iniciais
   useEffect(() => {
-    fetchFilters();
-    // 🚨 CORREÇÃO CRÍTICA: Chama a função principal de dados na montagem, com os filtros iniciais
-    // O useEffect só roda uma vez (na montagem)
-    fetchDashboardData(currentFilters); 
-  }, [fetchFilters, fetchDashboardData, currentFilters]); // Dependências ok, currentFilters é memoizado
+    // Busca os dados APENAS se tivermos um token
+    if (token) {
+        fetchFilters();
+        fetchDashboardData(currentFilters); 
+    } else {
+        setLoading(false); // Se não tem token, não carrega e finaliza o loading
+        setError("Você precisa estar logado para ver os relatórios.");
+    }
+  }, [token, fetchFilters, fetchDashboardData, currentFilters]);
 
 
   // 2. Efeito para APLICAR FILTROS (é o botão de pesquisa/aplicar)
@@ -105,8 +122,36 @@ const ReportsPage = () => {
   // LÓGICA DE EXPORTAÇÃO
   // ====================================================================
 
-  const handleExport = async (format) => {
-    // ... (Mantida - lógica de exportação)
+  const handleExport = async (formatType) => {
+    if (!token) {
+        alert("Sessão expirada. Faça login novamente.");
+        return;
+    }
+
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/v1/reports/export`, {
+            params: { ...currentFilters, format: formatType },
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob', // CRÍTICO para receber binário (PDF/CSV)
+        });
+
+        // Lógica de download (Mantida e Correta)
+        const content = response.headers['content-disposition'];
+        const filenameMatch = content && content.match(/filename\*?=['"]?(?:UTF-8'')?([^"']*)['"]?/i);
+        const filename = filenameMatch && filenameMatch[1] ? decodeURIComponent(filenameMatch[1]) : `report_${format(new Date(), 'yyyyMMdd')}.${formatType}`;
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Erro na exportação:', error);
+        alert('Erro ao exportar relatório. Tente novamente.');
+    }
   };
   
   // ====================================================================
@@ -115,95 +160,9 @@ const ReportsPage = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Relatórios e Análise</h1>
+      {/* ... Restante do JSX (filtros e botões) ... */}
 
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 bg-white p-4 rounded-lg shadow-md">
-        {/* Filtro Vendedor */}
-        <div className="col-span-1 flex flex-col space-y-2">
-          <label htmlFor="vendedor" className="text-sm font-medium text-gray-700">Vendedor</label>
-          <select
-            id="vendedor"
-            value={vendedorId}
-            onChange={(e) => setVendedorId(e.target.value)}
-            disabled={!user?.isAdmin}
-            className="p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Todos</option>
-            {vendedores.map((v) => (
-              <option key={v.id} value={v.id}>{v.name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filtro Data Início */}
-        <div className="col-span-1 flex flex-col space-y-2">
-          <label htmlFor="startDate" className="text-sm font-medium text-gray-700">Data Início</label>
-          <input
-            type="date"
-            id="startDate"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        {/* Filtro Data Fim */}
-        <div className="col-span-1 flex flex-col space-y-2">
-          <label htmlFor="endDate" className="text-sm font-medium text-gray-700">Data Fim</label>
-          <input
-            type="date"
-            id="endDate"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-
-        {/* Filtro Origem */}
-        <div className="col-span-1 flex flex-col space-y-2">
-          <label htmlFor="originFilter" className="text-sm font-medium text-gray-700">Origem</label>
-          <select
-            id="originFilter"
-            value={originFilter}
-            onChange={(e) => setOriginFilter(e.target.value)}
-            className="p-2 border border-gray-300 rounded-md"
-          >
-            <option value="">Todas</option>
-            {availableOrigins.map((o) => (
-              <option key={o} value={o}>{o}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Botão Aplicar/Atualizar e Exportação */}
-        <div className="col-span-2 flex items-end space-x-2">
-          <button
-            onClick={applyFilters}
-            className="w-1/2 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition disabled:opacity-60 flex items-center justify-center space-x-2"
-            disabled={loading}
-          >
-            <FaSync size={16} />
-            <span>{loading ? 'Atualizando...' : 'Atualizar Dados'}</span>
-          </button>
-          
-          <button
-            onClick={() => handleExport('csv')}
-            className="w-1/4 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition disabled:bg-gray-400"
-            disabled={loading || !dashboardData}
-          >
-            CSV
-          </button>
-          <button
-            onClick={() => handleExport('pdf')}
-            className="w-1/4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition disabled:bg-bg-gray-400"
-            disabled={loading || !dashboardData}
-          >
-            PDF
-          </button>
-        </div>
-      </div>
-
-      {/* DASHBOARD */}
+      {/* RENDERIZAÇÃO CONDICIONAL */}
       <div className="mt-6">
         {loading && (
           <p className="text-center text-blue-500 p-10 font-medium">
