@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE ERROS DE SAVE, DRAG/DROP E PROTOCOLO WHATSAPP
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE SAVE, DRAG/DROP E WHATSAPP WEB
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
@@ -105,7 +105,7 @@ const KanbanBoard = () => {
             setLeads(response.data.map(lead => ({
                 ...lead,
                 notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : [],
-                // Garante que o frontend tem os campos snake_case para o estado, se precisar
+                // Mapeia snake_case (DB) para camelCase (State) para uso no Modal
                 avgConsumption: lead.avg_consumption,
                 estimatedSavings: lead.estimated_savings,
             })));
@@ -204,14 +204,14 @@ const KanbanBoard = () => {
         setNewNoteText('');
     };
 
-    // FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
+    // 🚨 FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
 
         try {
-            // CORREÇÃO: Cria o objeto dataToSend explicitamente, 
-            // mapeando camelCase (frontend) para snake_case (backend/DB)
+            // Cria o objeto dataToSend explicitamente, 
+            // garantindo owner_id e mapeando camelCase (frontend) para snake_case (backend/DB)
             const dataToSend = {
                 name: leadData.name,
                 phone: leadData.phone,
@@ -222,10 +222,11 @@ const KanbanBoard = () => {
                 email: leadData.email,
                 uc: leadData.uc,
                 qsa: leadData.qsa,
+                owner_id: selectedLead.owner_id, // CRÍTICO: Incluir owner_id no payload de UPDATE
                 
                 // Conversão de camelCase para snake_case e para float ou null
-                avg_consumption: parseFloat(leadData.avgConsumption) || null, 
-                estimated_savings: parseFloat(leadData.estimatedSavings) || null,
+                avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+                estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
                 
                 // Campos de Geo (lat/lng)
                 lat: leadData.lat || null, 
@@ -233,10 +234,6 @@ const KanbanBoard = () => {
                 
                 // Notas (JSON String)
                 notes: JSON.stringify(leadData.notes || []), 
-                
-                // Os seguintes campos são necessários no PUT/UPDATE do backend:
-                // owner_id: selectedLead.owner_id, 
-                // created_at: selectedLead.created_at,
             };
 
             await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { 
@@ -247,7 +244,7 @@ const KanbanBoard = () => {
             closeLeadModal();
         } catch (error) {
             console.error("Erro ao salvar lead:", error.response?.data || error);
-            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead. Erro interno do servidor.', type: 'error' });
+            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead (Erro no servidor ou dados inválidos).', type: 'error' });
         } finally {
             setSaving(false);
         }
@@ -271,8 +268,8 @@ const KanbanBoard = () => {
                 ? JSON.stringify(leadToUpdate.notes) 
                 : leadToUpdate.notes || '[]';
 
-            // CORREÇÃO: Cria o objeto dataToSend explicitamente apenas com campos do DB
-            // Usamos os valores snake_case que já vieram do DB (leadToUpdate)
+            // CRÍTICO: Cria o objeto dataToSend explicitamente, incluindo TODOS os campos
+            // que o banco de dados pode esperar em um UPDATE completo.
             const dataToSend = {
                 name: leadToUpdate.name,
                 phone: leadToUpdate.phone,
@@ -285,6 +282,7 @@ const KanbanBoard = () => {
                 qsa: leadToUpdate.qsa,
                 
                 // Usar valores do leadToUpdate (snake_case) e garantir que são números/null
+                // CRÍTICO: Usa os valores originais do lead (avg_consumption, estimated_savings)
                 avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null,
                 estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null,
 
@@ -292,7 +290,7 @@ const KanbanBoard = () => {
                 lng: leadToUpdate.lng || null,
                 
                 notes: notesToSave, 
-                owner_id: leadToUpdate.owner_id, // Manter o owner_id
+                owner_id: leadToUpdate.owner_id, // CRÍTICO: Manter o owner_id
             };
             
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
@@ -313,15 +311,15 @@ const KanbanBoard = () => {
         }
     };
     
-    // Função existente: Gerar o link do Google Maps (Ajuste no URL de Maps)
+    // Função para gerar o link do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Protocolo Maps corrigido
+        // Uso de proxy seguro para links externos (https://www.google.com/maps/search/?api=1&query=$)
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp
+    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         // Remove caracteres não-numéricos ((), -, espaço)
@@ -333,8 +331,8 @@ const KanbanBoard = () => {
         const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
-        // Protocolo WA corrigido
-        return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+        // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)
+        return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
     };
 
 

@@ -119,7 +119,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
-    // FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
+    // FUNÇÃO DE SAVE DE LEADS
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
@@ -136,7 +136,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
-        // CORREÇÃO: Cria o objeto dataToSend explicitamente, 
+        // Cria o objeto dataToSend explicitamente, 
         // mapeando camelCase (frontend) para snake_case (backend/DB)
         const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
         
@@ -181,15 +181,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // Função existente: Gerar o link do Google Maps (Ajuste no URL de Maps)
+    // Função para gerar o link do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Protocolo Maps corrigido
+        // Uso de proxy seguro para links externos (https://www.google.com/maps/search/?api=1&query=$)
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp
+    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
@@ -198,8 +198,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
-        // Protocolo WA corrigido
-        return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+        // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)
+        return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
     };
 
 
