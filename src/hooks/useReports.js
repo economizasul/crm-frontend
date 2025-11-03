@@ -18,31 +18,31 @@ export function useReports(initialFilters = {}) {
     
     // Função para construir a string de query
     const buildQueryString = (currentFilters) => {
-        return Object.keys(currentFilters)
-            .filter(key => currentFilters[key])
-            .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(currentFilters[key])}`)
-            .join('&');
-    };
-    
-    // ... (fetchDashboardData, updateFilter, applyFilters, useEffect permanecem os mesmos)
-    // Eu vou apenas incluir a definição completa do fetchDashboardData aqui por clareza.
-    const fetchDashboardData = useCallback(async (currentFilters) => {
-        setLoading(true);
-        setError(null);
-        try {
+    return Object.keys(currentFilters)
+        .filter(key => currentFilters[key])
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(currentFilters[key])}`)
+        .join('&');
+};
+
+const fetchDashboardData = useCallback(async (currentFilters) => {
+    setLoading(true);
+    setError(null);
+    try {
             const queryString = buildQueryString(currentFilters);
-            const response = await axios.get(`${API_BASE_URL}/data?${queryString}`);
-            if (response.data.success) {
-                setData(response.data.data);
-            } else {
-                setError(response.data.message || 'Falha ao carregar dados do relatório.');
-            }
-        } catch (err) {
-            setError('Erro de conexão ou servidor ao carregar dados.');
-        } finally {
-            setLoading(false);
+            const response = await axios.post(`${API_BASE_URL}/data`, { filters: currentFilters });
+        
+        if (response.data.success) {
+            setData(response.data.data);
+        } else {
+            setError(response.data.message || 'Falha ao carregar dados do relatório.');
         }
-    }, []);
+    } catch (err) {
+        // Em caso de erro 401/403, você pode querer forçar o logout aqui
+        setError('Erro de conexão ou servidor ao carregar dados.');
+    } finally {
+        setLoading(false);
+    }
+}, []);
 
     // --- NOVAS FUNÇÕES DE EXPORTAÇÃO ---
 
