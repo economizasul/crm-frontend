@@ -1,621 +1,344 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL CORRIGIDO PARA ERRO DE DRAG AND DROP
+// LeadEditModal.jsx - AJUSTADO PARA USAR O OBJETO STAGES CORRETAMENTE
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // Importa FaMapMarkerAlt e FaWhatsapp
-import { useNavigate } from 'react-router-dom'; 
+import React, { useState, useEffect, useCallback } from 'react';
+import { FaTimes, FaSave, FaPaperclip, FaPlus } from 'react-icons/fa';
 import axios from 'axios';
-import { useAuth } from './AuthContext.jsx'; 
+// O STAGES é importado do KanbanBoard para manter o escopo
+import { STAGES } from './KanbanBoard.jsx'; 
+import { useAuth } from '../../AuthContext'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
-// Estágios do Kanban e suas cores
-export const STAGES = {
-    'Novo': 'bg-gray-200 text-gray-800',
-    'Pimeiro Contato': 'bg-blue-200 text-blue-800',
-    'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
-    'Em Negociação': 'bg-yellow-220 text-yellow-800',
-    'Proposta Enviada': 'bg-purple-200 text-purple-800',
-    'Ganho': 'bg-green-200 text-green-800',
-    'Perdido': 'bg-red-200 text-red-800',
-};
-
-// Componente simples de Toast para feedback (inalterado)
-const Toast = ({ message, type, onClose }) => {
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            onClose();
-        }, 3000); 
-        return () => clearTimeout(timer);
-    }, [onClose]);
-
-    const bgColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
-    
-    return (
-        <div className={`p-3 rounded-lg text-white font-medium shadow-lg fixed top-4 right-4 z-50 ${bgColor}`}>
-            {message}
-        </div>
-    );
-};
-
-// Componente Card de Lead (inalterado)
-const LeadCard = ({ lead, onClick }) => {
-    return (
-        <div 
-            onClick={() => onClick(lead)}
-            className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm mb-3 cursor-pointer hover:shadow-md transition duration-150 ease-in-out"
-            // Adiciona a propriedade draggable no componente pai (div de renderColumns)
-        >
-            <h3 className="font-semibold text-gray-800">{lead.name}</h3>
-            <p className="text-sm text-gray-600">{lead.phone}</p>
-            <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${STAGES[lead.status] || STAGES.Novo} mt-1 inline-block`}>
-                {lead.status}
-            </span>
-        </div>
-    );
-};
-
-// Função auxiliar de formatação de data (inalterado)
 const formatNoteDate = (timestamp) => {
-    if (!timestamp) return 'Sem Data';
+    if (timestamp === 0 || !timestamp) return 'Sem Data';
     try {
         const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return 'Data Inválida';
         return new Intl.DateTimeFormat('pt-BR', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false,
         }).format(date);
     } catch (e) {
-        return 'Data Inválida';
+        return 'Erro de Formato';
     }
 };
 
-
-const KanbanBoard = () => {
-    const [leads, setLeads] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [apiError, setApiError] = useState(null);
-    const [selectedLead, setSelectedLead] = useState(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [newNoteText, setNewNoteText] = useState(''); 
+// O componente agora recebe fetchLeads para forçar o refresh do Kanban
+const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
+    const { user } = useAuth();
+    const [leadData, setLeadData] = useState(selectedLead || {});
+    const [newNoteText, setNewNoteText] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
     const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState(null);
-    
-    const [searchTerm, setSearchTerm] = useState(''); 
-    const [searchResult, setSearchResult] = useState(null);
+    const [apiError, setApiError] = useState(null);
 
-    const navigate = useNavigate();
-    const { token, logout } = useAuth();
-    
-    // Estado usado para o formulário do modal (usando camelCase para o front)
-    const [leadData, setLeadData] = useState({
-        name: '', phone: '', document: '', address: '', status: '', origin: '', email: '', 
-        uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], 
-        lat: null, lng: null
-    });
-
-    // Função para buscar os leads
-    const fetchLeads = useCallback(async () => {
-        if (!token) return;
-
-        setIsLoading(true);
-        setApiError(null);
-
-        try {
-            const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            // Mapeia snake_case para camelCase para o estado do Frontend
-            setLeads(response.data.map(lead => ({
-                ...lead,
-                // Garantir que avg_consumption e estimated_savings estejam como camelCase para uso no modal/payload
-                avgConsumption: lead.avg_consumption, 
-                estimatedSavings: lead.estimated_savings,
-                // Garantir que as notas estejam em formato de array, se necessário
-                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : [],
-            })));
-            setIsLoading(false);
-        } catch (error) {
-            console.error("Erro ao buscar leads:", error);
-            if (error.response && error.response.status === 401) {
-                logout();
-                navigate('/login');
-            }
-            setApiError('Falha ao carregar leads. Tente novamente.');
-            setIsLoading(false);
-        }
-    }, [token, navigate, logout]);
+    // Estados para transferência
+    const [vendedores, setVendedores] = useState([]);
+    const [novoDonoId, setNovoDonoId] = useState('');
 
     useEffect(() => {
-        fetchLeads();
-    }, [fetchLeads]);
-    
-    // Lógica de filtragem (inalterada)
-    const handleSearch = (term) => {
-        setSearchTerm(term);
-        
-        if (term.trim() === '') {
-            setSearchResult(null);
-            return;
-        }
+        if (selectedLead) {
+            // Garante que avgConsumption e estimatedSavings sejam strings para o input de formulário
+            const leadWithCamelCase = {
+                ...selectedLead,
+                avgConsumption: selectedLead.avgConsumption || selectedLead.avg_consumption || '',
+                estimatedSavings: selectedLead.estimatedSavings || selectedLead.estimated_savings || '',
+            };
+            
+            const leadNotes = Array.isArray(leadWithCamelCase.notes)
+                ? leadWithCamelCase.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
+                : [];
 
-        const lowerCaseTerm = term.toLowerCase();
-        
-        const foundLead = leads.find(lead => 
-            (lead.name && lead.name.toLowerCase().includes(lowerCaseTerm)) ||
-            (lead.phone && lead.phone.includes(lowerCaseTerm)) ||
-            (lead.document && lead.document.includes(lowerCaseTerm))
-        );
+            setLeadData({ ...leadWithCamelCase, notes: leadNotes });
+            setNewNoteText('');
+            setSelectedFile(null);
+            setApiError(null);
+            setNovoDonoId(''); 
 
-        if (foundLead) {
-            setSearchResult(foundLead);
-        } else {
-            setSearchResult('not_found');
-        }
-    };
-    
-    // Lógica para abrir o modal de edição
-    const openLeadModal = useCallback((lead) => {
-        setSelectedLead(lead);
-        const currentNotes = Array.isArray(lead.notes) ? lead.notes : (lead.notes ? JSON.parse(lead.notes) : []);
-        setLeadData({
-            name: lead.name || '', phone: lead.phone || '', document: lead.document || '', 
-            address: lead.address || '', status: lead.status || 'Novo', origin: lead.origin || '', 
-            email: lead.email || '', uc: lead.uc || '', 
-            // Usa as propriedades camelCase mapeadas no fetchLeads
-            avgConsumption: lead.avgConsumption || lead.avg_consumption || '', 
-            estimatedSavings: lead.estimatedSavings || lead.estimated_savings || '', 
-            qsa: lead.qsa || '', notes: currentNotes, lat: lead.lat || null, lng: lead.lng || null,
-        });
-        setNewNoteText('');
-        setIsModalOpen(true);
-    }, []);
-
-    // Lógica para fechar o modal (inalterada)
-    const closeLeadModal = useCallback(() => {
-        setIsModalOpen(false);
-        setSelectedLead(null);
-        fetchLeads(); 
-    }, [fetchLeads]);
-    
-    // Handler de input do modal (inalterada)
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setLeadData(prev => ({ ...prev, [name]: value }));
-    };
-
-    // Adiciona nota ao estado local do modal (inalterada)
-    const addNewNote = () => {
-        if (newNoteText.trim() === '') return;
-
-        const newNote = {
-            text: newNoteText.trim(),
-            timestamp: Date.now(),
-        };
-
-        setLeadData(prev => ({
-            ...prev,
-            notes: [...(prev.notes || []), newNote]
-        }));
-        
-        setNewNoteText('');
-    };
-
-    // FUNÇÃO PARA SALVAR VIA MODAL (inalterada, pois estava OK)
-    const saveLeadChanges = async () => {
-        if (!selectedLead) return;
-        setSaving(true);
-
-        try {
-            // CRÍTICO: Cria o objeto dataToSend explicitamente, 
-            // garantindo owner_id e mapeando camelCase (frontend) para snake_case (backend/DB)
-            const dataToSend = {
-                name: leadData.name,
-                phone: leadData.phone,
-                document: leadData.document,
-                address: leadData.address,
-                status: leadData.status,
-                origin: leadData.origin,
-                email: leadData.email,
-                uc: leadData.uc,
-                qsa: leadData.qsa,
-                
-                // CRÍTICO: Incluir owner_id que é o ID do vendedor responsável
-                owner_id: selectedLead.owner_id, 
-                
-                // Conversão de camelCase para snake_case e para float ou null
-                avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-                estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-                
-                // Campos de Geo (lat/lng)
-                lat: leadData.lat || null, 
-                lng: leadData.lng || null,
-                
-                // Notas (JSON String)
-                notes: JSON.stringify(leadData.notes || []), 
+            // Carregar lista de vendedores (exceto o próprio)
+            const carregarVendedores = async () => {
+                try {
+                    const res = await axios.get(`${API_BASE_URL}/api/v1/users`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    setVendedores(res.data.filter(u => u.id !== user?.id && u.role !== 'Admin'));
+                } catch (err) {
+                    console.error('Erro ao carregar vendedores', err);
+                }
             };
 
-            // O ID do lead (usando 'id' ou '_id' dependendo do backend)
-            const leadIdentifier = selectedLead.id || selectedLead._id;
+            if (user?.transferencia_leads) {
+                carregarVendedores();
+            }
+        }
+    }, [selectedLead, token, user]);
 
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdentifier}`, dataToSend, { 
-                headers: { Authorization: `Bearer ${token}` }
-            });
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setLeadData((prev) => ({ ...prev, [name]: value }));
+    };
 
-            setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
-            closeLeadModal();
+    const handleFileChange = (e) => {
+        setSelectedFile(e.target.files[0] || null);
+    };
+
+    const handleAddNewNote = () => {
+        if (!newNoteText.trim() && !selectedFile) return;
+
+        let notesArray = leadData.notes ? [...leadData.notes] : [];
+
+        if (newNoteText.trim()) {
+            notesArray.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        }
+
+        if (selectedFile) {
+            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+            notesArray.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+        }
+
+        setLeadData((prev) => ({ ...prev, notes: notesArray }));
+        setNewNoteText('');
+        setSelectedFile(null);
+
+        const fileInput = document.getElementById('attachment-input');
+        if (fileInput) fileInput.value = '';
+    };
+
+    const transferirLead = async () => {
+        if (!novoDonoId || novoDonoId === leadData.owner_id) return;
+
+        try {
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+            await axios.put(
+                `${API_BASE_URL}/api/v1/leads/${leadData._id}`,
+                { owner_id: novoDonoId },
+                config
+            );
+
+            setLeadData(prev => ({ ...prev, owner_id: novoDonoId }));
+            setNovoDonoId('');
+            alert('Lead transferido com sucesso!');
+            fetchLeads();
+        } catch (err) {
+            const msg = err.response?.data?.error || err.message;
+            alert('Erro ao transferir lead: ' + msg);
+        }
+    };
+
+    const saveLeadChanges = async () => {
+        if (!leadData || saving) return;
+
+        setSaving(true);
+        setApiError(null);
+        
+        // 1. Prepara as notas: garante que todas as notas novas (digitadas ou de anexo) foram adicionadas ao estado local
+        let internalNotes = leadData.notes ? [...leadData.notes] : [];
+
+        // Adiciona a nota digitada se houver e ainda não foi adicionada
+        if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
+            internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        }
+        // Adiciona a nota de anexo se houver e ainda não foi adicionada
+        if (selectedFile && !internalNotes.some(n => n.text.includes(selectedFile.name))) {
+            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
+            internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+        }
+
+        // 2. Transforma o array de objetos de notas em uma string JSON (se o backend espera isso)
+        const notesToSend = JSON.stringify(internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean));
+
+        // 3. Prepara o payload para a API (camelCase -> snake_case)
+        const dataToSend = {
+            status: leadData.status,
+            name: leadData.name,
+            phone: leadData.phone,
+            document: leadData.document,
+            address: leadData.address,
+            origin: leadData.origin,
+            email: leadData.email,
+            // Conversão de camelCase para snake_case e para float ou null
+            avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+            estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+            notes: notesToSend,
+            uc: leadData.uc,
+            qsa: leadData.qsa || null,
+            owner_id: leadData.owner_id, 
+            lat: leadData.lat || null, 
+            lng: leadData.lng || null,
+        };
+
+        try {
+            const config = { headers: { 'Authorization': `Bearer ${token}` } };
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData._id}`, dataToSend, config);
+
+            // Se o lead for salvo, forçamos o refresh da lista no Kanban e fechamos o modal.
+            await fetchLeads();
+            onClose();
+            onSave(true, 'Lead salvo com sucesso!');
         } catch (error) {
-            console.error("Erro ao salvar lead:", error.response?.data || error);
-            // Captura erro 500 do backend
-            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead (Erro no servidor ou dados inválidos).', type: 'error' });
+            console.error('Erro ao salvar lead:', error.response?.data || error.message);
+            const serverError = error.response?.data?.error || 'Erro desconhecido';
+            setApiError(`Falha ao salvar: ${serverError}`);
         } finally {
             setSaving(false);
         }
     };
-    
-    // 🚨 FUNÇÃO CORRIGIDA: Lógica de Drag and Drop (Resolução do problema de ID/Estado)
-    const handleDrop = async (leadId, newStatus) => {
-        // 1. Garante que o leadId (vindo do dataTransfer) é uma string
-        const idAsString = String(leadId); 
 
-        // 2. Encontra o lead no estado atual para obter seus dados e status antigo
-        const leadToUpdate = leads.find(l => 
-            (l.id && String(l.id) === idAsString) || (l._id && String(l._id) === idAsString)
-        );
-        
-        if (!leadToUpdate || leadToUpdate.status === newStatus) return;
+    if (!isModalOpen) return null;
 
-        const oldStatus = leadToUpdate.status;
-
-        // 3. ATUALIZAÇÃO IMUTÁVEL CORRETA DO ESTADO LOCAL
-        // Esta é a chave para evitar que "todos os outros leads sejam levados junto".
-        // A comparação de ID deve ser estritamente consistente.
-        setLeads(prevLeads => prevLeads.map(l => {
-            const currentLeadId = l.id || l._id;
-            
-            if (String(currentLeadId) === idAsString) {
-                return { 
-                    ...l, 
-                    status: newStatus,
-                    // Atualizar updated_at opcionalmente para forçar a ordenação no topo da nova coluna
-                    updated_at: new Date().toISOString() 
-                };
-            }
-            return l;
-        }));
-
-        // 4. CHAMA A API PARA ATUALIZAR NO BACKEND
-        try {
-            // Garantir que as notas sejam uma string JSON válida
-            const notesToSave = Array.isArray(leadToUpdate.notes) 
-                ? JSON.stringify(leadToUpdate.notes) 
-                : leadToUpdate.notes || '[]';
-
-            // CRÍTICO: Cria o objeto dataToSend para o PUT
-            const dataToSend = {
-                name: leadToUpdate.name,
-                phone: leadToUpdate.phone,
-                document: leadToUpdate.document,
-                address: leadToUpdate.address,
-                origin: leadToUpdate.origin,
-                email: leadToUpdate.email,
-                uc: leadToUpdate.uc,
-                qsa: leadToUpdate.qsa,
-                
-                // CRÍTICO: Garantir owner_id
-                owner_id: leadToUpdate.owner_id, 
-                
-                // O campo que mudou
-                status: newStatus, 
-                
-                // Mapeamento e conversão de tipo (usando as propriedades camelCase mapeadas no fetch)
-                avg_consumption: parseFloat(leadToUpdate.avgConsumption) || null,
-                estimated_savings: parseFloat(leadToUpdate.estimatedSavings) || null,
-
-                lat: leadToUpdate.lat || null, 
-                lng: leadToUpdate.lng || null,
-                
-                notes: notesToSave, 
-            };
-            
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${idAsString}`, dataToSend, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            
-            setToast({ message: `Status de ${leadToUpdate.name} atualizado para ${newStatus}!`, type: 'success' });
-            
-        } catch (error) {
-            console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
-            
-            // 5. Rollback do estado no frontend em caso de erro na API
-            setLeads(prevLeads => prevLeads.map(l => {
-                const currentLeadId = l.id || l._id;
-                if (String(currentLeadId) === idAsString) {
-                    return { ...l, status: oldStatus };
-                }
-                return l;
-            }));
-            
-            setToast({ message: error.response?.data?.error || 'Falha ao mudar status. Recarregando.', type: 'error' });
-            fetchLeads(); // Força a sincronização
-        }
-    };
-    
-    // Função para gerar o link do Google Maps (inalterada)
-    const getGoogleMapsLink = () => {
-        if (!leadData.address) return null;
-        const encodedAddress = encodeURIComponent(leadData.address);
-        // Atenção: O prefixo do link (https://www.google.com/maps/search/?api=1&query=$) é incomum.
-        // O padrão correto é https://www.google.com/maps/search/?api=1&query=
-        // Mantendo o seu para evitar quebra, mas ajuste se necessário.
-        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    };
-    
-    // Função para gerar o link do WhatsApp para o WEB (inalterada)
-    const getWhatsAppLink = () => {
-        if (!leadData.phone) return null;
-        // Remove caracteres não-numéricos ((), -, espaço)
-        const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
-        // Adiciona 55 (código do Brasil) se não começar com ele. 
-        const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
-        
-        // Texto pré-preenchido
-        const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
-        const encodedMessage = encodeURIComponent(initialMessage);
-
-        // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)
-        return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
-    };
-    
-    // Renderiza as colunas do Kanban (inalterada na lógica)
-    const renderColumns = () => {
-        // Se houver resultado de pesquisa, renderiza apenas a coluna do lead encontrado
-        if (searchResult && searchResult !== 'not_found') {
-            const status = searchResult.status;
-            
-            return (
-                <div 
-                    key={status} 
-                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const leadId = e.dataTransfer.getData("leadId");
-                        handleDrop(leadId, status);
-                    }}
-                >
-                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
-                        {status} (1) 
-                        <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
-                    </h2>
-                    
-                    <div
-                        key={searchResult.id || searchResult._id}
-                        draggable
-                        onDragStart={(e) => {
-                            e.dataTransfer.setData("leadId", (searchResult.id || searchResult._id).toString());
-                        }}
-                    >
-                        <LeadCard lead={searchResult} onClick={openLeadModal} />
-                    </div>
-                </div>
-            );
-        }
-        
-        // Renderização normal do Kanban
-        const columns = Object.keys(STAGES).map(status => {
-            // Filtra os leads para a coluna atual
-            const statusLeads = leads.filter(lead => lead.status === status);
-            return (
-                <div 
-                    key={status} 
-                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const leadId = e.dataTransfer.getData("leadId");
-                        handleDrop(leadId, status);
-                    }}
-                >
-                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
-                        {status} ({statusLeads.length})
-                    </h2>
-                    
-                    {statusLeads.map(lead => (
-                        <div 
-                            key={lead.id || lead._id}
-                            draggable
-                            onDragStart={(e) => {
-                                // Garante que o ID é transferido como string
-                                e.dataTransfer.setData("leadId", (lead.id || lead._id).toString());
-                            }}
-                        >
-                            <LeadCard lead={lead} onClick={openLeadModal} />
-                        </div>
-                    ))}
-                    
-                    {statusLeads.length === 0 && (
-                        <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
-                    )}
-                </div>
-            );
-        });
-        return columns;
-    };
-
-
-    if (isLoading) {
-        return <div className="flex justify-center items-center h-full text-indigo-600 text-lg">Carregando Leads...</div>;
-    }
-
-    if (apiError) {
-        return <div className="p-8 text-center text-red-600">{apiError}</div>;
-    }
+    const canAddNewNote = newNoteText.trim() || selectedFile;
 
     return (
-        <div className="p-6">
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
-            <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
-            
-            {/* NOVA BARRA DE PESQUISA (inalterada) */}
-            <div className="mb-6 flex items-center space-x-4">
-                <div className="relative flex-1 max-w-lg">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Buscar por Nome, Telefone ou Documento..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearch(e.target.value)}
-                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"
-                    />
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+                <div className="flex justify-between items-center border-b pb-3 mb-4">
+                    <h2 className="text-2xl font-bold text-indigo-800">Editar Lead: {leadData.name}</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><FaTimes size={20} /></button>
                 </div>
-                {/* Feedbacks da Pesquisa (inalterada) */}
-                {searchResult === 'not_found' && searchTerm.trim() !== '' && (
-                    <span className="text-red-500 font-medium">Lead não encontrado.</span>
-                )}
-                {searchResult && searchResult !== 'not_found' && (
-                    <button onClick={() => setSearchResult(null)} className="text-sm px-4 py-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition">
-                        Limpar Pesquisa <FaTimes className="inline ml-1" />
-                    </button>
-                )}
-            </div>
-            
-            {/* Container do Kanban */}
-            <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-200px)]"> 
-                {renderColumns()}
-            </div>
 
-            {/* Modal de Edição do Lead */}
-            {isModalOpen && selectedLead && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
-                        
-                        <div className="flex justify-between items-start border-b pb-4 mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Editar Lead: {selectedLead.name}</h2>
-                            <button onClick={closeLeadModal} className="text-gray-500 hover:text-gray-800">
-                                <FaTimes size={20} />
-                            </button>
+                {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
+
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label><input type="text" name="document" className="w-full border rounded px-3 py-2" value={leadData.document || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem</label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} /></div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
+                            <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
                         </div>
-
-                        <div className="space-y-6">
-                            
-                            {/* Informações do Lead */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
-                                
-                                {/* Container para os links (Mapas e WhatsApp) */}
-                                <div className="flex flex-wrap gap-3">
-                                    {/* Link Google Maps */}
-                                    {leadData.address && (
-                                        <a 
-                                            href={getGoogleMapsLink()} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
-                                        >
-                                            <FaMapMarkerAlt className="mr-2" />
-                                            Ver Endereço no Google Maps
-                                        </a>
-                                    )}
-                                    
-                                    {/* Link WhatsApp */}
-                                    {leadData.phone && (
-                                        <a 
-                                            href={getWhatsAppLink()} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150"
-                                        >
-                                            <FaWhatsapp className="mr-2" />
-                                            Falar no WhatsApp
-                                        </a>
-                                    )}
-                                </div>
-                                {/* FIM: Container para os links */}
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
-                                    <input type="email" name="email" value={leadData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="text" name="phone" value={leadData.phone} onChange={handleChange} placeholder="Telefone" className="w-full p-2 border border-gray-300 rounded" required />
-                                    <input type="text" name="document" value={leadData.document} onChange={handleChange} placeholder="CPF/CNPJ" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="text" name="address" value={leadData.address} onChange={handleChange} placeholder="Endereço" className="col-span-2 p-2 border border-gray-300 rounded" />
-                                    
-                                    <input type="text" name="origin" value={leadData.origin} onChange={handleChange} placeholder="Origem" className="w-full p-2 border border-gray-300 rounded" />
-                                    <select name="status" value={leadData.status} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white" required>
-                                        {Object.keys(STAGES).map(status => (
-                                            <option key={status} value={status}>{status}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            {/* Informações Técnicas */}
-                            <div className="space-y-4">
-                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações Técnicas</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" name="uc" value={leadData.uc} onChange={handleChange} placeholder="Número da UC" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="number" name="avgConsumption" value={leadData.avgConsumption} onChange={handleChange} placeholder="Consumo Médio (kWh)" className="w-full p-2 border border-gray-300 rounded" />
-                                    <input type="number" name="estimatedSavings" value={leadData.estimatedSavings} onChange={handleChange} placeholder="Economia Estimada" className="w-full p-2 border border-gray-300 rounded" />
-                                    <div className="col-span-2">
-                                        <textarea name="qsa" value={leadData.qsa} onChange={handleChange} placeholder="QSA" className="w-full p-2 border border-gray-300 rounded" rows="2" />
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Notas e Histórico */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
-                                
-                                <div className="flex space-x-2 mb-4">
-                                    <textarea 
-                                        value={newNoteText} 
-                                        onChange={(e) => setNewNoteText(e.target.value)} 
-                                        placeholder="Adicionar nova nota..." 
-                                        className="flex-1 p-2 border border-gray-300 rounded resize-none" 
-                                        rows="2"
-                                    />
-                                    <button 
-                                        onClick={addNewNote}
-                                        className="self-start px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700"
-                                    >
-                                        <FaPlus size={16} />
-                                    </button>
-                                </div>
-                                
-                                <div className="border p-4 rounded-lg bg-gray-50 h-40 overflow-y-auto">
-                                    {leadData.notes && leadData.notes.length > 0 ? (
-                                        [...leadData.notes].reverse().map((note, index) => (
-                                                <div key={index} className="mb-3 p-2 border-l-4 border-indigo-400 bg-white shadow-sm rounded">
-                                                    <p className="text-xs text-gray-500 font-medium">
-                                                        {formatNoteDate(note.timestamp)}
-                                                    </p>
-                                                    <p className="text-gray-700 whitespace-pre-wrap">{note.text}</p> 
-                                                </div>
-                                            ))
-                                    ) : (
-                                        <p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>
-                                    )}
-                                </div>
-                            </div>
-                            
-                        </div>
-
-                        {/* Botões do Modal */}
-                        <div className="mt-6 flex justify-end space-x-2">
-                            <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
-                            <button 
-                                onClick={saveLeadChanges} 
-                                disabled={saving} 
-                                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
+                            <select 
+                                name="status" 
+                                className="w-full border rounded px-3 py-2" 
+                                value={leadData.status || 'Novo'} // Valor inicial deve ser 'Novo'
+                                onChange={handleInputChange}
                             >
-                                <FaSave size={16} />
-                                <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
-                            </button>
+                                {/* CORREÇÃO AQUI: Usar Object.keys para iterar sobre o objeto STAGES */}
+                                {Object.keys(STAGES).map(status => (
+                                    <option key={status} value={status}>{status}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* TRANSFERÊNCIA DE LEAD */}
+                    {user?.transferencia_leads && leadData.owner_id === user.id && (
+                        <div className="mt-6 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
+                            <label className="block text-sm font-bold text-green-800 mb-2">
+                                Transferir Lead para outro vendedor:
+                            </label>
+                            <div className="flex gap-2">
+                                <select
+                                    value={novoDonoId}
+                                    onChange={(e) => setNovoDonoId(e.target.value)}
+                                    className="flex-1 px-3 py-2 border rounded-md focus:ring-green-500 focus:border-green-500"
+                                >
+                                    <option value="">Selecione um vendedor...</option>
+                                    {vendedores.map(v => (
+                                        <option key={v.id} value={v.id}>
+                                            {v.name} ({v.email})
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={transferirLead}
+                                    disabled={!novoDonoId}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    Transferir
+                                </button>
+                            </div>
+                            <p className="text-xs text-green-600 mt-2">
+                                Apenas seus leads podem ser transferidos.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Quadro de Adicionar Nova Nota / Anexo */}
+                    <div className="border p-4 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
+                        <textarea
+                            rows={3}
+                            name="newNoteText"
+                            className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Descreva o atendimento ou a anotação aqui..."
+                            value={newNoteText}
+                            onChange={(e) => setNewNoteText(e.target.value)}
+                        />
+                        <div className="mb-4">
+                            <label htmlFor="attachment-input" className="block text-sm font-medium text-gray-700 mb-1">Anexo (Foto, PDF, etc.)</label>
+                            <input
+                                id="attachment-input"
+                                type="file"
+                                accept=".pdf,image/*"
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                onChange={handleFileChange}
+                            />
+                            {selectedFile && (
+                                <p className="mt-1 text-sm text-gray-600">Arquivo selecionado: {selectedFile.name}</p>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handleAddNewNote}
+                            disabled={!canAddNewNote}
+                            className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
+                        >
+                            <FaPlus size={14} />
+                            <span>Adicionar Nota ao Histórico</span>
+                        </button>
+                    </div>
+
+                    {/* Histórico de Notas */}
+                    <div>
+                        <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
+                        <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
+                            {leadData.notes && leadData.notes.length > 0 ? (
+                                [...leadData.notes].reverse().map((note, index) => {
+                                    const noteText = typeof note === 'string' ? note : (note.text || '');
+                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
+                                    const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
+                                    const noteClass = isAttachment
+                                        ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm"
+                                        : "mb-2 p-2 border-b last:border-b-0 text-sm";
+
+                                    return (
+                                        <div key={index} className={noteClass}>
+                                            <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(noteTimestamp)}</p>
+                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
+                                                {noteText}
+                                            </p>
+                                        </div>
+                                    );
+                                })
+                            ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
                         </div>
                     </div>
                 </div>
-            )}
+
+                <div className="mt-6 flex justify-end space-x-2">
+                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
+                    <button
+                        type="button"
+                        onClick={saveLeadChanges}
+                        disabled={saving}
+                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                    >
+                        <FaSave size={16} />
+                        <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };
 
-export default KanbanBoard;
+export default LeadEditModal;
