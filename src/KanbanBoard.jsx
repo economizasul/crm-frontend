@@ -1,7 +1,7 @@
 // src/KanbanBoard.jsx - CÓDIGO FINAL COM BARRA DE PESQUISA, FILTRO, MODAL E DRAG/DROP
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt } from 'react-icons/fa'; // Importa FaMapMarkerAlt
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
@@ -104,7 +104,11 @@ const KanbanBoard = () => {
             const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setLeads(response.data);
+            setLeads(response.data.map(lead => ({
+                ...lead,
+                // Garantir que as notas sejam um array, mesmo que venham como string JSON do DB
+                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : []
+            })));
             setIsLoading(false);
         } catch (error) {
             console.error("Erro ao buscar leads:", error);
@@ -148,12 +152,12 @@ const KanbanBoard = () => {
     // Lógica para abrir o modal de edição (inalterada)
     const openLeadModal = useCallback((lead) => {
         setSelectedLead(lead);
-        const currentNotes = Array.isArray(lead.notes) ? lead.notes : [];
+        const currentNotes = Array.isArray(lead.notes) ? lead.notes : (lead.notes ? JSON.parse(lead.notes) : []);
         setLeadData({
             name: lead.name || '', phone: lead.phone || '', document: lead.document || '', 
             address: lead.address || '', status: lead.status || 'Novo', origin: lead.origin || '', 
             email: lead.email || '', uc: lead.uc || '', 
-            avgConsumption: lead.avgConsumption || '', estimatedSavings: lead.estimatedSavings || '', 
+            avgConsumption: lead.avg_consumption || '', estimatedSavings: lead.estimated_savings || '', 
             qsa: lead.qsa || '', notes: currentNotes, lat: lead.lat || null, lng: lead.lng || null,
         });
         setNewNoteText('');
@@ -198,14 +202,16 @@ const KanbanBoard = () => {
         try {
             const dataToSend = {
                 ...leadData,
+                // JSON.stringify aqui é necessário, pois o backend espera uma string para o campo TEXT do PostgreSQL
                 notes: JSON.stringify(leadData.notes || []), 
-                avgConsumption: parseFloat(leadData.avgConsumption) || null,
-                estimatedSavings: parseFloat(leadData.estimatedSavings) || null,
+                avg_consumption: parseFloat(leadData.avgConsumption) || null, // CORREÇÃO: Usar o nome do campo do DB
+                estimated_savings: parseFloat(leadData.estimatedSavings) || null, // CORREÇÃO: Usar o nome do campo do DB
             };
 
             delete dataToSend._id; 
+            delete dataToSend.owner_name; // Remover campos de leitura
 
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead._id}`, dataToSend, {
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { // CORREÇÃO: Usar selectedLead.id, pois o DB é PostgreSQL
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -221,28 +227,31 @@ const KanbanBoard = () => {
     
     // Lógica de Drag and Drop (inalterada)
     const handleDrop = async (leadId, newStatus) => {
-        const idToFind = typeof leads[0]?._id === 'number' ? parseInt(leadId) : leadId;
-        const leadToUpdate = leads.find(l => l._id === idToFind);
+        const idToFind = typeof leads[0]?.id === 'number' ? parseInt(leadId) : leadId; // CORREÇÃO: Usa 'id'
+        const leadToUpdate = leads.find(l => l.id === idToFind); // CORREÇÃO: Usa 'id'
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
         const oldStatus = leadToUpdate.status;
         setLeads(prevLeads => prevLeads.map(l => 
-            l._id === idToFind ? { ...l, status: newStatus } : l
+            l.id === idToFind ? { ...l, status: newStatus } : l // CORREÇÃO: Usa 'id'
         ));
 
         try {
-            const notesToSave = JSON.stringify(leadToUpdate.notes || []); 
+            // Garante que o notes seja enviado como string JSON
+            const notesToSave = leadToUpdate.notes ? (typeof leadToUpdate.notes === 'string' ? leadToUpdate.notes : JSON.stringify(leadToUpdate.notes)) : '[]';
 
             const dataToSend = {
                 ...leadToUpdate,
                 status: newStatus,
                 notes: notesToSave, 
-                avgConsumption: parseFloat(leadToUpdate.avgConsumption) || null,
-                estimatedSavings: parseFloat(leadToUpdate.estimatedSavings) || null,
+                avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null, // CORREÇÃO: Usar o nome do campo do DB
+                estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null, // CORREÇÃO: Usar o nome do campo do DB
             };
 
             delete dataToSend._id; 
+            delete dataToSend.owner_name;
+            delete dataToSend.id; // Remover o ID para não tentar atualizar no body
             
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -254,7 +263,7 @@ const KanbanBoard = () => {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
             setLeads(prevLeads => prevLeads.map(l => 
-                l._id === idToFind ? { ...l, status: oldStatus } : l
+                l.id === idToFind ? { ...l, status: oldStatus } : l // CORREÇÃO: Usa 'id'
             ));
             
             setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
@@ -281,7 +290,7 @@ const KanbanBoard = () => {
                     <div
                         draggable
                         onDragStart={(e) => {
-                            e.dataTransfer.setData("leadId", searchResult._id.toString());
+                            e.dataTransfer.setData("leadId", searchResult.id.toString()); // CORREÇÃO: Usa 'id'
                         }}
                     >
                         <LeadCard lead={searchResult} onClick={openLeadModal} />
@@ -312,10 +321,10 @@ const KanbanBoard = () => {
                     
                     {statusLeads.map(lead => (
                         <div 
-                            key={lead._id}
+                            key={lead.id} // CORREÇÃO: Usa 'id'
                             draggable
                             onDragStart={(e) => {
-                                e.dataTransfer.setData("leadId", lead._id.toString());
+                                e.dataTransfer.setData("leadId", lead.id.toString()); // CORREÇÃO: Usa 'id'
                             }}
                         >
                             <LeadCard lead={lead} onClick={openLeadModal} />
@@ -329,6 +338,15 @@ const KanbanBoard = () => {
             );
         });
         return columns;
+    };
+    
+    // 🚨 NOVA FUNÇÃO: Gerar o link do Google Maps
+    const getGoogleMapsLink = () => {
+        if (!leadData.address) return null;
+        // Codifica o endereço para ser seguro em uma URL de pesquisa
+        const encodedAddress = encodeURIComponent(leadData.address);
+        // Retorna o URL de pesquisa com a API Search (mais simples para um endereço)
+        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
 
 
@@ -375,7 +393,7 @@ const KanbanBoard = () => {
                 {renderColumns()}
             </div>
 
-            {/* Modal de Edição do Lead (inalterado) */}
+            {/* Modal de Edição do Lead (COM LINK DO MAPS) */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
@@ -392,6 +410,21 @@ const KanbanBoard = () => {
                             {/* Informações do Lead */}
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
+                                
+                                {/* 🚨 NOVO: Botão Google Maps */}
+                                {leadData.address && (
+                                    <a 
+                                        href={getGoogleMapsLink()} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
+                                    >
+                                        <FaMapMarkerAlt className="mr-2" />
+                                        Ver Endereço no Google Maps
+                                    </a>
+                                )}
+                                {/* FIM NOVO: Botão Google Maps */}
+                                
                                 <div className="grid grid-cols-2 gap-4">
                                     <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
                                     <input type="email" name="email" value={leadData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border border-gray-300 rounded" />

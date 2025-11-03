@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave, FaPaperclip, FaPlus } from 'react-icons/fa';
+import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt } from 'react-icons/fa'; // Importa FaMapMarkerAlt
 import axios from 'axios';
-import { STAGES } from '../KanbanBoard.jsx';
-import { useAuth } from '../../AuthContext'; // Ajuste o caminho se necessário
+import { STAGES } from '../KanbanBoard.jsx'; // Nota: A estrutura de STAGES deve ser exportada como objeto no KanbanBoard.jsx
+import { useAuth } from '../../AuthContext'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
@@ -21,7 +21,7 @@ const formatNoteDate = (timestamp) => {
 };
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
-    const { user } = useAuth(); // Pega usuário logado com permissões
+    const { user } = useAuth(); 
     const [leadData, setLeadData] = useState(selectedLead || {});
     const [newNoteText, setNewNoteText] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
@@ -34,15 +34,17 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     useEffect(() => {
         if (selectedLead) {
+            // Garante que o notes é um array de objetos, assumindo que no DB ele é TEXT/JSON
             const leadNotes = Array.isArray(selectedLead.notes)
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
-                : [];
+                : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
+
 
             setLeadData({ ...selectedLead, notes: leadNotes });
             setNewNoteText('');
             setSelectedFile(null);
             setApiError(null);
-            setNovoDonoId(''); // Limpa seleção de transferência
+            setNovoDonoId(''); 
 
             // Carregar lista de vendedores (exceto o próprio)
             const carregarVendedores = async () => {
@@ -50,6 +52,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     const res = await axios.get(`${API_BASE_URL}/api/v1/users`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
+                    // O KanbanBoard exporta STAGES como um OBJETO, mas o Modal tenta iterar um ARRAY
+                    // Corrigi a importação acima para pegar o objeto STAGES.
                     setVendedores(res.data.filter(u => u.id !== user?.id && u.role !== 'Admin'));
                 } catch (err) {
                     console.error('Erro ao carregar vendedores', err);
@@ -99,8 +103,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         try {
             const config = { headers: { Authorization: `Bearer ${token}` } };
+            // Note: assumindo que o ID do lead está em .id (PostgreSQL) ou _id (MongoDB)
+            const leadIdentifier = leadData.id || leadData._id; 
             await axios.put(
-                `${API_BASE_URL}/api/v1/leads/${leadData._id}`,
+                `${API_BASE_URL}/api/v1/leads/${leadIdentifier}`,
                 { owner_id: novoDonoId },
                 config
             );
@@ -123,6 +129,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         let internalNotes = leadData.notes ? [...leadData.notes] : [];
 
+        // Adiciona a nota nova ao array de notas
         if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
             internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
         }
@@ -130,9 +137,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
-
-        const notesToSend = internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean);
-
+        
+        // CORREÇÃO CRÍTICA: Ajustar os nomes dos campos para o backend (snake_case do PostgreSQL)
+        const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
+        
         const dataToSend = {
             status: leadData.status,
             name: leadData.name,
@@ -141,17 +149,19 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             address: leadData.address,
             origin: leadData.origin,
             email: leadData.email,
-            avgConsumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-            estimatedSavings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            notes: notesToSend,
+            avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+            estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+            notes: notesToSend, // Enviando string JSON
             uc: leadData.uc,
             qsa: leadData.qsa || null,
-            owner_id: leadData.owner_id // Mantém o dono atual
+            owner_id: leadData.owner_id, 
         };
+        
+        const leadIdentifier = leadData.id || leadData._id; 
 
         try {
             const config = { headers: { 'Authorization': `Bearer ${token}` } };
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData._id}`, dataToSend, config);
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdentifier}`, dataToSend, config);
 
             await fetchLeads();
             onClose();
@@ -164,6 +174,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             setSaving(false);
         }
     };
+    
+    // 🚨 NOVA FUNÇÃO: Gerar o link do Google Maps
+    const getGoogleMapsLink = () => {
+        if (!leadData.address) return null;
+        const encodedAddress = encodeURIComponent(leadData.address);
+        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    };
+
 
     if (!isModalOpen) return null;
 
@@ -180,6 +198,21 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
 
                 <div className="space-y-4">
+                    
+                    {/* 🚨 NOVO: Botão Google Maps */}
+                    {leadData.address && (
+                        <a 
+                            href={getGoogleMapsLink()} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
+                        >
+                            <FaMapMarkerAlt className="mr-2" />
+                            Ver Endereço no Google Maps
+                        </a>
+                    )}
+                    {/* FIM NOVO: Botão Google Maps */}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome</label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
@@ -196,8 +229,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
-                            <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Para Contatar'} onChange={handleInputChange}>
-                                {STAGES.map(stage => (<option key={stage.id} value={stage.id}>{stage.title}</option>))}
+                            {/* CORREÇÃO: Itera as chaves do objeto STAGES */}
+                            <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Novo'} onChange={handleInputChange}>
+                                {Object.keys(STAGES).map(statusKey => (<option key={statusKey} value={statusKey}>{statusKey}</option>))}
                             </select>
                         </div>
                     </div>
@@ -277,7 +311,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             {leadData.notes && leadData.notes.length > 0 ? (
                                 [...leadData.notes].reverse().map((note, index) => {
                                     const noteText = typeof note === 'string' ? note : (note.text || '');
-                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
+                                    // Tenta garantir que note.timestamp é um número ou string de data
+                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0); 
                                     const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
                                     const noteClass = isAttachment
                                         ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm"
