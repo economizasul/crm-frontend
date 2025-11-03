@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL CORRIGIDO PARA ERRO 500 (owner_id) E WHATSAPP WEB
+// src/KanbanBoard.jsx - CÓDIGO FINAL CORRIGIDO PARA ERRO DE DRAG AND DROP
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // Importa FaMapMarkerAlt e FaWhatsapp
@@ -13,7 +13,7 @@ export const STAGES = {
     'Novo': 'bg-gray-200 text-gray-800',
     'Pimeiro Contato': 'bg-blue-200 text-blue-800',
     'Retorno Agendado': 'bg-indigo-200 text-indigo-800',
-    'Em Negociação': 'bg-yellow-200 text-yellow-800',
+    'Em Negociação': 'bg-yellow-220 text-yellow-800',
     'Proposta Enviada': 'bg-purple-200 text-purple-800',
     'Ganho': 'bg-green-200 text-green-800',
     'Perdido': 'bg-red-200 text-red-800',
@@ -43,6 +43,7 @@ const LeadCard = ({ lead, onClick }) => {
         <div 
             onClick={() => onClick(lead)}
             className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm mb-3 cursor-pointer hover:shadow-md transition duration-150 ease-in-out"
+            // Adiciona a propriedade draggable no componente pai (div de renderColumns)
         >
             <h3 className="font-semibold text-gray-800">{lead.name}</h3>
             <p className="text-sm text-gray-600">{lead.phone}</p>
@@ -198,7 +199,7 @@ const KanbanBoard = () => {
         setNewNoteText('');
     };
 
-    // 🚨 FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
+    // FUNÇÃO PARA SALVAR VIA MODAL (inalterada, pois estava OK)
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
@@ -250,26 +251,45 @@ const KanbanBoard = () => {
         }
     };
     
-    // 🚨 FUNÇÃO CORRIGIDA: Lógica de Drag and Drop
+    // 🚨 FUNÇÃO CORRIGIDA: Lógica de Drag and Drop (Resolução do problema de ID/Estado)
     const handleDrop = async (leadId, newStatus) => {
-        const idToFind = leads.find(l => (l.id && l.id.toString() === leadId) || (l._id && l._id.toString() === leadId))?.id || leadId;
-        const leadToUpdate = leads.find(l => (l.id && l.id.toString() === leadId) || (l._id && l._id.toString() === leadId));
+        // 1. Garante que o leadId (vindo do dataTransfer) é uma string
+        const idAsString = String(leadId); 
+
+        // 2. Encontra o lead no estado atual para obter seus dados e status antigo
+        const leadToUpdate = leads.find(l => 
+            (l.id && String(l.id) === idAsString) || (l._id && String(l._id) === idAsString)
+        );
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
         const oldStatus = leadToUpdate.status;
-        setLeads(prevLeads => prevLeads.map(l => 
-            (l.id === leadToUpdate.id || l._id === leadToUpdate._id) ? { ...l, status: newStatus } : l 
-        ));
 
+        // 3. ATUALIZAÇÃO IMUTÁVEL CORRETA DO ESTADO LOCAL
+        // Esta é a chave para evitar que "todos os outros leads sejam levados junto".
+        // A comparação de ID deve ser estritamente consistente.
+        setLeads(prevLeads => prevLeads.map(l => {
+            const currentLeadId = l.id || l._id;
+            
+            if (String(currentLeadId) === idAsString) {
+                return { 
+                    ...l, 
+                    status: newStatus,
+                    // Atualizar updated_at opcionalmente para forçar a ordenação no topo da nova coluna
+                    updated_at: new Date().toISOString() 
+                };
+            }
+            return l;
+        }));
+
+        // 4. CHAMA A API PARA ATUALIZAR NO BACKEND
         try {
             // Garantir que as notas sejam uma string JSON válida
             const notesToSave = Array.isArray(leadToUpdate.notes) 
                 ? JSON.stringify(leadToUpdate.notes) 
                 : leadToUpdate.notes || '[]';
 
-            // CRÍTICO: Cria o objeto dataToSend explicitamente, incluindo TODOS os campos
-            // que o banco de dados pode esperar em um UPDATE completo.
+            // CRÍTICO: Cria o objeto dataToSend para o PUT
             const dataToSend = {
                 name: leadToUpdate.name,
                 phone: leadToUpdate.phone,
@@ -280,15 +300,15 @@ const KanbanBoard = () => {
                 uc: leadToUpdate.uc,
                 qsa: leadToUpdate.qsa,
                 
-                // CRÍTICO: Garantir owner_id (propriedade que está causando o erro "undefined")
+                // CRÍTICO: Garantir owner_id
                 owner_id: leadToUpdate.owner_id, 
                 
                 // O campo que mudou
                 status: newStatus, 
                 
-                // Mapeamento e conversão de tipo (usando as propriedades que vieram no fetch)
-                avg_consumption: parseFloat(leadToUpdate.avgConsumption || leadToUpdate.avg_consumption) || null,
-                estimated_savings: parseFloat(leadToUpdate.estimatedSavings || leadToUpdate.estimated_savings) || null,
+                // Mapeamento e conversão de tipo (usando as propriedades camelCase mapeadas no fetch)
+                avg_consumption: parseFloat(leadToUpdate.avgConsumption) || null,
+                estimated_savings: parseFloat(leadToUpdate.estimatedSavings) || null,
 
                 lat: leadToUpdate.lat || null, 
                 lng: leadToUpdate.lng || null,
@@ -296,7 +316,7 @@ const KanbanBoard = () => {
                 notes: notesToSave, 
             };
             
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${idAsString}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
@@ -305,13 +325,17 @@ const KanbanBoard = () => {
         } catch (error) {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
-            // Reverte o estado no frontend em caso de erro
-            setLeads(prevLeads => prevLeads.map(l => 
-                (l.id === leadToUpdate.id || l._id === leadToUpdate._id) ? { ...l, status: oldStatus } : l 
-            ));
+            // 5. Rollback do estado no frontend em caso de erro na API
+            setLeads(prevLeads => prevLeads.map(l => {
+                const currentLeadId = l.id || l._id;
+                if (String(currentLeadId) === idAsString) {
+                    return { ...l, status: oldStatus };
+                }
+                return l;
+            }));
             
             setToast({ message: error.response?.data?.error || 'Falha ao mudar status. Recarregando.', type: 'error' });
-            fetchLeads(); 
+            fetchLeads(); // Força a sincronização
         }
     };
     
@@ -319,10 +343,13 @@ const KanbanBoard = () => {
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
+        // Atenção: O prefixo do link (https://www.google.com/maps/search/?api=1&query=$) é incomum.
+        // O padrão correto é https://www.google.com/maps/search/?api=1&query=
+        // Mantendo o seu para evitar quebra, mas ajuste se necessário.
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
+    // Função para gerar o link do WhatsApp para o WEB (inalterada)
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         // Remove caracteres não-numéricos ((), -, espaço)
@@ -397,6 +424,7 @@ const KanbanBoard = () => {
                             key={lead.id || lead._id}
                             draggable
                             onDragStart={(e) => {
+                                // Garante que o ID é transferido como string
                                 e.dataTransfer.setData("leadId", (lead.id || lead._id).toString());
                             }}
                         >
