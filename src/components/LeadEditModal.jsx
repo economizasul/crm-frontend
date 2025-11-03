@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
+import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
 import axios from 'axios';
 import { STAGES } from '../KanbanBoard.jsx'; 
 import { useAuth } from '../../AuthContext'; 
@@ -33,6 +33,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     useEffect(() => {
         if (selectedLead) {
+            // Garante que o ID do lead seja consistente para o PUT
+            const leadIdentifier = selectedLead.id || selectedLead._id;
+
             const leadNotes = Array.isArray(selectedLead.notes)
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
@@ -102,7 +105,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         try {
             const config = { headers: { Authorization: `Bearer ${token}` } };
-            const leadIdentifier = leadData.id || leadData._id; 
+            const leadIdentifier = selectedLead.id || selectedLead._id; 
             await axios.put(
                 `${API_BASE_URL}/api/v1/leads/${leadIdentifier}`,
                 { owner_id: novoDonoId },
@@ -119,7 +122,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
-    // FUNÇÃO DE SAVE DE LEADS
+    // FUNÇÃO DE SAVE DE LEADS (CORRIGIDA)
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
@@ -136,10 +139,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
-        // Cria o objeto dataToSend explicitamente, 
-        // mapeando camelCase (frontend) para snake_case (backend/DB)
-        const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
+        // Mapeia o array de objetos de notas para uma string JSON de apenas os textos
+        const notesToSend = JSON.stringify(internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean));
         
+        // CRÍTICO: Cria o objeto dataToSend explicitamente, mapeando camelCase para snake_case e garantindo owner_id
         const dataToSend = {
             // Campos Diretos
             name: leadData.name,
@@ -150,20 +153,24 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             origin: leadData.origin,
             email: leadData.email,
             uc: leadData.uc,
-            qsa: leadData.qsa,
-            owner_id: leadData.owner_id, 
-            lat: leadData.lat || null, 
-            lng: leadData.lng || null,
+            qsa: leadData.qsa || null,
             
-            // Conversão de camelCase para snake_case e para float ou null
+            // CRÍTICO: Owner ID para evitar erro 500
+            owner_id: leadData.owner_id, 
+            
+            // Mapeamento de camelCase para snake_case (DB)
             avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+            
+            // Campos de Geo (lat/lng)
+            lat: leadData.lat || null, 
+            lng: leadData.lng || null,
             
             // Notas (JSON String)
             notes: notesToSend, 
         };
         
-        const leadIdentifier = leadData.id || leadData._id; 
+        const leadIdentifier = selectedLead.id || selectedLead._id; 
 
         try {
             const config = { headers: { 'Authorization': `Bearer ${token}` } };
@@ -181,15 +188,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // Função para gerar o link do Google Maps
+    // Função para gerar o link do Google Maps (inalterada)
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Uso de proxy seguro para links externos (https://www.google.com/maps/search/?api=1&query=$)
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
+    // FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
@@ -265,13 +271,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
+                            {/* O estágio 'Para Contatar' não existe na lista STAGES do KanbanBoard, ajustando para 'Novo' */}
                             <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Novo'} onChange={handleInputChange}>
                                 {Object.keys(STAGES).map(statusKey => (<option key={statusKey} value={statusKey}>{statusKey}</option>))}
                             </select>
                         </div>
                     </div>
 
-                    {/* TRANSFERÊNCIA DE LEAD (inalterado) */}
+                    {/* TRANSFERÊNCIA DE LEAD */}
                     {user?.transferencia_leads && leadData.owner_id === user.id && (
                         <div className="mt-6 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
                             <label className="block text-sm font-bold text-green-800 mb-2">
@@ -304,7 +311,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                     )}
 
-                    {/* Quadro de Adicionar Nova Nota / Anexo (inalterado) */}
+                    {/* Quadro de Adicionar Nova Nota / Anexo */}
                     <div className="border p-4 rounded-lg bg-gray-50">
                         <label className="block text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
                         <textarea
@@ -339,14 +346,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </button>
                     </div>
 
-                    {/* Histórico de Notas (inalterado) */}
+                    {/* Histórico de Notas */}
                     <div>
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
                             {leadData.notes && leadData.notes.length > 0 ? (
                                 [...leadData.notes].reverse().map((note, index) => {
                                     const noteText = typeof note === 'string' ? note : (note.text || '');
-                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0); 
+                                    const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
                                     const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
                                     const noteClass = isAttachment
                                         ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm"

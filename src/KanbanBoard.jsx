@@ -1,7 +1,7 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE SAVE, DRAG/DROP E WHATSAPP WEB
+// src/KanbanBoard.jsx - CÓDIGO FINAL CORRIGIDO PARA ERRO 500 (owner_id) E WHATSAPP WEB
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
+import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // Importa FaMapMarkerAlt e FaWhatsapp
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
 import { useAuth } from './AuthContext.jsx'; 
@@ -53,7 +53,7 @@ const LeadCard = ({ lead, onClick }) => {
     );
 };
 
-// Função auxiliar de formatação de data (inalterada)
+// Função auxiliar de formatação de data (inalterado)
 const formatNoteDate = (timestamp) => {
     if (!timestamp) return 'Sem Data';
     try {
@@ -91,7 +91,7 @@ const KanbanBoard = () => {
         lat: null, lng: null
     });
 
-    // Função para buscar os leads (inalterada)
+    // Função para buscar os leads
     const fetchLeads = useCallback(async () => {
         if (!token) return;
 
@@ -102,12 +102,14 @@ const KanbanBoard = () => {
             const response = await axios.get(`${API_BASE_URL}/api/v1/leads`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            // Mapeia snake_case para camelCase para o estado do Frontend
             setLeads(response.data.map(lead => ({
                 ...lead,
-                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : [],
-                // Mapeia snake_case (DB) para camelCase (State) para uso no Modal
-                avgConsumption: lead.avg_consumption,
+                // Garantir que avg_consumption e estimated_savings estejam como camelCase para uso no modal/payload
+                avgConsumption: lead.avg_consumption, 
                 estimatedSavings: lead.estimated_savings,
+                // Garantir que as notas estejam em formato de array, se necessário
+                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : [],
             })));
             setIsLoading(false);
         } catch (error) {
@@ -154,21 +156,13 @@ const KanbanBoard = () => {
         setSelectedLead(lead);
         const currentNotes = Array.isArray(lead.notes) ? lead.notes : (lead.notes ? JSON.parse(lead.notes) : []);
         setLeadData({
-            name: lead.name || '', 
-            phone: lead.phone || '', 
-            document: lead.document || '', 
-            address: lead.address || '', 
-            status: lead.status || 'Novo', 
-            origin: lead.origin || '', 
-            email: lead.email || '', 
-            uc: lead.uc || '', 
-            // Mapeia snake_case (DB) para camelCase (State)
-            avgConsumption: lead.avg_consumption || '', 
-            estimatedSavings: lead.estimated_savings || '', 
-            qsa: lead.qsa || '', 
-            notes: currentNotes, 
-            lat: lead.lat || null, 
-            lng: lead.lng || null,
+            name: lead.name || '', phone: lead.phone || '', document: lead.document || '', 
+            address: lead.address || '', status: lead.status || 'Novo', origin: lead.origin || '', 
+            email: lead.email || '', uc: lead.uc || '', 
+            // Usa as propriedades camelCase mapeadas no fetchLeads
+            avgConsumption: lead.avgConsumption || lead.avg_consumption || '', 
+            estimatedSavings: lead.estimatedSavings || lead.estimated_savings || '', 
+            qsa: lead.qsa || '', notes: currentNotes, lat: lead.lat || null, lng: lead.lng || null,
         });
         setNewNoteText('');
         setIsModalOpen(true);
@@ -210,7 +204,7 @@ const KanbanBoard = () => {
         setSaving(true);
 
         try {
-            // Cria o objeto dataToSend explicitamente, 
+            // CRÍTICO: Cria o objeto dataToSend explicitamente, 
             // garantindo owner_id e mapeando camelCase (frontend) para snake_case (backend/DB)
             const dataToSend = {
                 name: leadData.name,
@@ -222,7 +216,9 @@ const KanbanBoard = () => {
                 email: leadData.email,
                 uc: leadData.uc,
                 qsa: leadData.qsa,
-                owner_id: selectedLead.owner_id, // CRÍTICO: Incluir owner_id no payload de UPDATE
+                
+                // CRÍTICO: Incluir owner_id que é o ID do vendedor responsável
+                owner_id: selectedLead.owner_id, 
                 
                 // Conversão de camelCase para snake_case e para float ou null
                 avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
@@ -236,7 +232,10 @@ const KanbanBoard = () => {
                 notes: JSON.stringify(leadData.notes || []), 
             };
 
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { 
+            // O ID do lead (usando 'id' ou '_id' dependendo do backend)
+            const leadIdentifier = selectedLead.id || selectedLead._id;
+
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdentifier}`, dataToSend, { 
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -244,6 +243,7 @@ const KanbanBoard = () => {
             closeLeadModal();
         } catch (error) {
             console.error("Erro ao salvar lead:", error.response?.data || error);
+            // Captura erro 500 do backend
             setToast({ message: error.response?.data?.error || 'Falha ao salvar lead (Erro no servidor ou dados inválidos).', type: 'error' });
         } finally {
             setSaving(false);
@@ -252,14 +252,14 @@ const KanbanBoard = () => {
     
     // 🚨 FUNÇÃO CORRIGIDA: Lógica de Drag and Drop
     const handleDrop = async (leadId, newStatus) => {
-        const idToFind = typeof leads[0]?.id === 'number' ? parseInt(leadId) : leadId; 
-        const leadToUpdate = leads.find(l => l.id === idToFind); 
+        const idToFind = leads.find(l => (l.id && l.id.toString() === leadId) || (l._id && l._id.toString() === leadId))?.id || leadId;
+        const leadToUpdate = leads.find(l => (l.id && l.id.toString() === leadId) || (l._id && l._id.toString() === leadId));
         
         if (!leadToUpdate || leadToUpdate.status === newStatus) return;
 
         const oldStatus = leadToUpdate.status;
         setLeads(prevLeads => prevLeads.map(l => 
-            l.id === idToFind ? { ...l, status: newStatus } : l 
+            (l.id === leadToUpdate.id || l._id === leadToUpdate._id) ? { ...l, status: newStatus } : l 
         ));
 
         try {
@@ -275,22 +275,25 @@ const KanbanBoard = () => {
                 phone: leadToUpdate.phone,
                 document: leadToUpdate.document,
                 address: leadToUpdate.address,
-                status: newStatus, // O campo que mudou
                 origin: leadToUpdate.origin,
                 email: leadToUpdate.email,
                 uc: leadToUpdate.uc,
                 qsa: leadToUpdate.qsa,
                 
-                // Usar valores do leadToUpdate (snake_case) e garantir que são números/null
-                // CRÍTICO: Usa os valores originais do lead (avg_consumption, estimated_savings)
-                avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null,
-                estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null,
+                // CRÍTICO: Garantir owner_id (propriedade que está causando o erro "undefined")
+                owner_id: leadToUpdate.owner_id, 
+                
+                // O campo que mudou
+                status: newStatus, 
+                
+                // Mapeamento e conversão de tipo (usando as propriedades que vieram no fetch)
+                avg_consumption: parseFloat(leadToUpdate.avgConsumption || leadToUpdate.avg_consumption) || null,
+                estimated_savings: parseFloat(leadToUpdate.estimatedSavings || leadToUpdate.estimated_savings) || null,
 
                 lat: leadToUpdate.lat || null, 
                 lng: leadToUpdate.lng || null,
                 
                 notes: notesToSave, 
-                owner_id: leadToUpdate.owner_id, // CRÍTICO: Manter o owner_id
             };
             
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
@@ -302,8 +305,9 @@ const KanbanBoard = () => {
         } catch (error) {
             console.error("Erro ao arrastar e soltar (Drag/Drop):", error);
             
+            // Reverte o estado no frontend em caso de erro
             setLeads(prevLeads => prevLeads.map(l => 
-                l.id === idToFind ? { ...l, status: oldStatus } : l 
+                (l.id === leadToUpdate.id || l._id === leadToUpdate._id) ? { ...l, status: oldStatus } : l 
             ));
             
             setToast({ message: error.response?.data?.error || 'Falha ao mudar status. Recarregando.', type: 'error' });
@@ -311,11 +315,10 @@ const KanbanBoard = () => {
         }
     };
     
-    // Função para gerar o link do Google Maps
+    // Função para gerar o link do Google Maps (inalterada)
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Uso de proxy seguro para links externos (https://www.google.com/maps/search/?api=1&query=$)
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
@@ -327,12 +330,87 @@ const KanbanBoard = () => {
         // Adiciona 55 (código do Brasil) se não começar com ele. 
         const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
         
-        // Texto pré-preenchido para iniciar a conversa
+        // Texto pré-preenchido
         const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
         // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)
         return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
+    };
+    
+    // Renderiza as colunas do Kanban (inalterada na lógica)
+    const renderColumns = () => {
+        // Se houver resultado de pesquisa, renderiza apenas a coluna do lead encontrado
+        if (searchResult && searchResult !== 'not_found') {
+            const status = searchResult.status;
+            
+            return (
+                <div 
+                    key={status} 
+                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg border-4 border-green-500" // Destaca a coluna
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const leadId = e.dataTransfer.getData("leadId");
+                        handleDrop(leadId, status);
+                    }}
+                >
+                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                        {status} (1) 
+                        <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
+                    </h2>
+                    
+                    <div
+                        key={searchResult.id || searchResult._id}
+                        draggable
+                        onDragStart={(e) => {
+                            e.dataTransfer.setData("leadId", (searchResult.id || searchResult._id).toString());
+                        }}
+                    >
+                        <LeadCard lead={searchResult} onClick={openLeadModal} />
+                    </div>
+                </div>
+            );
+        }
+        
+        // Renderização normal do Kanban
+        const columns = Object.keys(STAGES).map(status => {
+            // Filtra os leads para a coluna atual
+            const statusLeads = leads.filter(lead => lead.status === status);
+            return (
+                <div 
+                    key={status} 
+                    className="flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const leadId = e.dataTransfer.getData("leadId");
+                        handleDrop(leadId, status);
+                    }}
+                >
+                    <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
+                        {status} ({statusLeads.length})
+                    </h2>
+                    
+                    {statusLeads.map(lead => (
+                        <div 
+                            key={lead.id || lead._id}
+                            draggable
+                            onDragStart={(e) => {
+                                e.dataTransfer.setData("leadId", (lead.id || lead._id).toString());
+                            }}
+                        >
+                            <LeadCard lead={lead} onClick={openLeadModal} />
+                        </div>
+                    ))}
+                    
+                    {statusLeads.length === 0 && (
+                        <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
+                    )}
+                </div>
+            );
+        });
+        return columns;
     };
 
 
@@ -350,7 +428,7 @@ const KanbanBoard = () => {
             
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Kanban de Leads</h1>
             
-            {/* Barra de Pesquisa (inalterada) */}
+            {/* NOVA BARRA DE PESQUISA (inalterada) */}
             <div className="mb-6 flex items-center space-x-4">
                 <div className="relative flex-1 max-w-lg">
                     <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -375,47 +453,7 @@ const KanbanBoard = () => {
             
             {/* Container do Kanban */}
             <div className="flex space-x-4 overflow-x-auto pb-4 h-[calc(100vh-200px)]"> 
-                {Object.keys(STAGES).map(status => {
-                    const statusLeads = (searchResult && searchResult !== 'not_found' && searchResult.status === status) 
-                        ? [searchResult] 
-                        : (searchResult ? [] : leads.filter(lead => lead.status === status));
-                        
-                    return (
-                        <div 
-                            key={status} 
-                            className={`flex-shrink-0 w-44 bg-white p-3 rounded-lg shadow-lg ${searchResult && searchResult !== 'not_found' && searchResult.status === status ? 'border-4 border-green-500' : ''}`}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                                e.preventDefault();
-                                const leadId = e.dataTransfer.getData("leadId");
-                                handleDrop(leadId, status);
-                            }}
-                        >
-                            <h2 className={`text-lg font-semibold border-b pb-2 mb-3 ${STAGES[status] || 'text-gray-800'}`}>
-                                {status} ({statusLeads.length})
-                                {searchResult && searchResult !== 'not_found' && searchResult.status === status && (
-                                    <span className="text-sm font-normal text-green-500 block"> - Lead Encontrado</span>
-                                )}
-                            </h2>
-                            
-                            {statusLeads.map(lead => (
-                                <div 
-                                    key={lead.id} 
-                                    draggable
-                                    onDragStart={(e) => {
-                                        e.dataTransfer.setData("leadId", lead.id.toString());
-                                    }}
-                                >
-                                    <LeadCard lead={lead} onClick={openLeadModal} />
-                                </div>
-                            ))}
-                            
-                            {statusLeads.length === 0 && (
-                                <p className="text-gray-500 text-sm italic pt-2">Nenhum lead nesta etapa.</p>
-                            )}
-                        </div>
-                    );
-                })}
+                {renderColumns()}
             </div>
 
             {/* Modal de Edição do Lead */}
@@ -465,7 +503,7 @@ const KanbanBoard = () => {
                                     )}
                                 </div>
                                 {/* FIM: Container para os links */}
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <input type="text" name="name" value={leadData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border border-gray-300 rounded" required />
                                     <input type="email" name="email" value={leadData.email} onChange={handleChange} placeholder="Email" className="w-full p-2 border border-gray-300 rounded" />
@@ -495,7 +533,7 @@ const KanbanBoard = () => {
                                 </div>
                             </div>
                             
-                            {/* Notas e Histórico (inalterado) */}
+                            {/* Notas e Histórico */}
                             <div>
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Notas e Histórico</h3>
                                 
@@ -533,7 +571,7 @@ const KanbanBoard = () => {
                             
                         </div>
 
-                        {/* Botões do Modal (inalterado) */}
+                        {/* Botões do Modal */}
                         <div className="mt-6 flex justify-end space-x-2">
                             <button onClick={closeLeadModal} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
                             <button 
