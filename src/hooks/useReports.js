@@ -1,9 +1,9 @@
-// src/hooks/useReports.js
+// src/hooks/useReports.js (ATUALIZADO com funções de Exportação)
 
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios'; // Assumindo que você usa axios
+import axios from 'axios'; 
 
-const API_BASE_URL = '/api/reports'; // Ajuste conforme a URL base da sua API
+const API_BASE_URL = '/api/reports'; 
 
 /**
  * Hook customizado para gerenciar a lógica de busca e estado dos relatórios.
@@ -14,51 +14,88 @@ export function useReports(initialFilters = {}) {
     const [filters, setFilters] = useState(initialFilters);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [exporting, setExporting] = useState(false); // Novo estado para exportação
     
-    // Função para construir a string de query com base nos filtros
+    // Função para construir a string de query
     const buildQueryString = (currentFilters) => {
         return Object.keys(currentFilters)
-            .filter(key => currentFilters[key]) // Remove filtros vazios
+            .filter(key => currentFilters[key])
             .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(currentFilters[key])}`)
             .join('&');
     };
-
+    
+    // ... (fetchDashboardData, updateFilter, applyFilters, useEffect permanecem os mesmos)
+    // Eu vou apenas incluir a definição completa do fetchDashboardData aqui por clareza.
     const fetchDashboardData = useCallback(async (currentFilters) => {
         setLoading(true);
         setError(null);
         try {
             const queryString = buildQueryString(currentFilters);
-            
-            // Requisição GET para o endpoint que criamos: /api/reports/data
             const response = await axios.get(`${API_BASE_URL}/data?${queryString}`);
-            
             if (response.data.success) {
                 setData(response.data.data);
             } else {
                 setError(response.data.message || 'Falha ao carregar dados do relatório.');
             }
         } catch (err) {
-            console.error('Erro na requisição dos relatórios:', err);
-            setError('Erro de conexão ou servidor. Tente novamente.');
+            setError('Erro de conexão ou servidor ao carregar dados.');
         } finally {
             setLoading(false);
         }
     }, []);
 
-    // Função para atualizar um único filtro
-    const updateFilter = useCallback((key, value) => {
-        setFilters(prev => ({
-            ...prev,
-            [key]: value
-        }));
-    }, []);
-    
-    // Função para aplicar os filtros e recarregar os dados
-    const applyFilters = useCallback(() => {
-        fetchDashboardData(filters);
-    }, [filters, fetchDashboardData]);
+    // --- NOVAS FUNÇÕES DE EXPORTAÇÃO ---
 
-    // Carrega os dados na montagem do componente (com filtros iniciais)
+    const exportFile = useCallback(async (format) => {
+        setExporting(true);
+        setError(null);
+        try {
+            const queryString = buildQueryString(filters);
+            const url = `${API_BASE_URL}/export/${format}?${queryString}`;
+            
+            // Usamos responseType: 'blob' para lidar com o arquivo de forma binária
+            const response = await axios.get(url, { responseType: 'blob' });
+            
+            if (response.status !== 200) {
+                // Se o servidor retornar erro 500, precisaremos ler a mensagem de erro do blob
+                 setError('Erro ao gerar o arquivo no servidor.');
+                 return;
+            }
+
+            // Lógica para criar um link e simular o clique para download
+            const blob = new Blob([response.data]);
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            
+            // Nome do arquivo baseado no cabeçalho de resposta Content-Disposition
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = `relatorio.${format}`;
+            if (contentDisposition) {
+                 const match = contentDisposition.match(/filename="(.+)"/);
+                 if (match.length > 1) {
+                    fileName = match[1];
+                 }
+            }
+            
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+        } catch (err) {
+            console.error('Erro na exportação:', err);
+            setError(`Erro ao exportar para ${format.toUpperCase()}.`);
+        } finally {
+            setExporting(false);
+        }
+    }, [filters]);
+    
+    const exportToCsv = () => exportFile('csv');
+    const exportToPdf = () => exportFile('pdf');
+    
+    // Carrega os dados na montagem do componente
     useEffect(() => {
         fetchDashboardData(filters);
     }, [fetchDashboardData]); 
@@ -68,8 +105,10 @@ export function useReports(initialFilters = {}) {
         filters,
         loading,
         error,
+        exporting, // Retorna o estado de exportação
         updateFilter,
         applyFilters,
-        fetchDashboardData // Pode ser útil para refrescar dados
+        exportToCsv, // Novas funções
+        exportToPdf
     };
 }
