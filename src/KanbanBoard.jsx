@@ -1,4 +1,4 @@
-// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO NO ENVIO DE DADOS PARA O BACKEND
+// src/KanbanBoard.jsx - CÓDIGO FINAL COM CORREÇÃO DE ERROS DE SAVE, DRAG/DROP E PROTOCOLO WHATSAPP
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; 
@@ -104,7 +104,10 @@ const KanbanBoard = () => {
             });
             setLeads(response.data.map(lead => ({
                 ...lead,
-                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : []
+                notes: lead.notes ? (typeof lead.notes === 'string' ? JSON.parse(lead.notes) : lead.notes) : [],
+                // Garante que o frontend tem os campos snake_case para o estado, se precisar
+                avgConsumption: lead.avg_consumption,
+                estimatedSavings: lead.estimated_savings,
             })));
             setIsLoading(false);
         } catch (error) {
@@ -121,6 +124,30 @@ const KanbanBoard = () => {
     useEffect(() => {
         fetchLeads();
     }, [fetchLeads]);
+    
+    // Lógica de filtragem (inalterada)
+    const handleSearch = (term) => {
+        setSearchTerm(term);
+        
+        if (term.trim() === '') {
+            setSearchResult(null);
+            return;
+        }
+
+        const lowerCaseTerm = term.toLowerCase();
+        
+        const foundLead = leads.find(lead => 
+            (lead.name && lead.name.toLowerCase().includes(lowerCaseTerm)) ||
+            (lead.phone && lead.phone.includes(lowerCaseTerm)) ||
+            (lead.document && lead.document.includes(lowerCaseTerm))
+        );
+
+        if (foundLead) {
+            setSearchResult(foundLead);
+        } else {
+            setSearchResult('not_found');
+        }
+    };
     
     // Lógica para abrir o modal de edição
     const openLeadModal = useCallback((lead) => {
@@ -140,8 +167,8 @@ const KanbanBoard = () => {
             estimatedSavings: lead.estimated_savings || '', 
             qsa: lead.qsa || '', 
             notes: currentNotes, 
-            lat: lead.lat || null, // Incluído na etapa anterior
-            lng: lead.lng || null, // Incluído na etapa anterior
+            lat: lead.lat || null, 
+            lng: lead.lng || null,
         });
         setNewNoteText('');
         setIsModalOpen(true);
@@ -177,13 +204,13 @@ const KanbanBoard = () => {
         setNewNoteText('');
     };
 
-    // 🚨 FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
+    // FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
     const saveLeadChanges = async () => {
         if (!selectedLead) return;
         setSaving(true);
 
         try {
-            // 🚨 CORREÇÃO: Cria o objeto dataToSend explicitamente, 
+            // CORREÇÃO: Cria o objeto dataToSend explicitamente, 
             // mapeando camelCase (frontend) para snake_case (backend/DB)
             const dataToSend = {
                 name: leadData.name,
@@ -196,7 +223,7 @@ const KanbanBoard = () => {
                 uc: leadData.uc,
                 qsa: leadData.qsa,
                 
-                // Conversão de camelCase para snake_case
+                // Conversão de camelCase para snake_case e para float ou null
                 avg_consumption: parseFloat(leadData.avgConsumption) || null, 
                 estimated_savings: parseFloat(leadData.estimatedSavings) || null,
                 
@@ -206,10 +233,11 @@ const KanbanBoard = () => {
                 
                 // Notas (JSON String)
                 notes: JSON.stringify(leadData.notes || []), 
+                
+                // Os seguintes campos são necessários no PUT/UPDATE do backend:
+                // owner_id: selectedLead.owner_id, 
+                // created_at: selectedLead.created_at,
             };
-
-            // Remove o ID do corpo (já está na URL) e outros campos de leitura, se houver
-            // Não é mais necessário deletar `_id` ou `owner_name` se não usamos o spread.
 
             await axios.put(`${API_BASE_URL}/api/v1/leads/${selectedLead.id}`, dataToSend, { 
                 headers: { Authorization: `Bearer ${token}` }
@@ -219,14 +247,13 @@ const KanbanBoard = () => {
             closeLeadModal();
         } catch (error) {
             console.error("Erro ao salvar lead:", error.response?.data || error);
-            // Mensagem de erro mais detalhada para debug
-            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead (Verifique se o backend está ativo e o modelo de dados).', type: 'error' });
+            setToast({ message: error.response?.data?.error || 'Falha ao salvar lead. Erro interno do servidor.', type: 'error' });
         } finally {
             setSaving(false);
         }
     };
     
-    // Lógica de Drag and Drop (mantida com a correção original para usar 'id' e notes como JSON)
+    // 🚨 FUNÇÃO CORRIGIDA: Lógica de Drag and Drop
     const handleDrop = async (leadId, newStatus) => {
         const idToFind = typeof leads[0]?.id === 'number' ? parseInt(leadId) : leadId; 
         const leadToUpdate = leads.find(l => l.id === idToFind); 
@@ -239,23 +266,34 @@ const KanbanBoard = () => {
         ));
 
         try {
-            const notesToSave = leadToUpdate.notes ? (typeof leadToUpdate.notes === 'string' ? leadToUpdate.notes : JSON.stringify(leadToUpdate.notes)) : '[]';
+            // Garantir que as notas sejam uma string JSON válida
+            const notesToSave = Array.isArray(leadToUpdate.notes) 
+                ? JSON.stringify(leadToUpdate.notes) 
+                : leadToUpdate.notes || '[]';
 
-            // ATENÇÃO: Aqui o leadToUpdate já está no formato DB (snake_case), mas 
-            // tem que garantir que as notas e valores numéricos estão prontos para envio.
+            // CORREÇÃO: Cria o objeto dataToSend explicitamente apenas com campos do DB
+            // Usamos os valores snake_case que já vieram do DB (leadToUpdate)
             const dataToSend = {
-                // Ao arrastar, assume-se que a maioria dos campos não mudou. 
-                // Apenas o 'status' e 'notes' são sobrescritos com segurança.
-                ...leadToUpdate,
-                status: newStatus,
-                notes: notesToSave, 
+                name: leadToUpdate.name,
+                phone: leadToUpdate.phone,
+                document: leadToUpdate.document,
+                address: leadToUpdate.address,
+                status: newStatus, // O campo que mudou
+                origin: leadToUpdate.origin,
+                email: leadToUpdate.email,
+                uc: leadToUpdate.uc,
+                qsa: leadToUpdate.qsa,
+                
+                // Usar valores do leadToUpdate (snake_case) e garantir que são números/null
                 avg_consumption: parseFloat(leadToUpdate.avg_consumption) || null,
                 estimated_savings: parseFloat(leadToUpdate.estimated_savings) || null,
-            };
 
-            delete dataToSend._id; 
-            delete dataToSend.owner_name;
-            delete dataToSend.id; 
+                lat: leadToUpdate.lat || null, 
+                lng: leadToUpdate.lng || null,
+                
+                notes: notesToSave, 
+                owner_id: leadToUpdate.owner_id, // Manter o owner_id
+            };
             
             await axios.put(`${API_BASE_URL}/api/v1/leads/${idToFind}`, dataToSend, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -270,28 +308,33 @@ const KanbanBoard = () => {
                 l.id === idToFind ? { ...l, status: oldStatus } : l 
             ));
             
-            setToast({ message: 'Falha ao mudar status. Recarregando.', type: 'error' });
+            setToast({ message: error.response?.data?.error || 'Falha ao mudar status. Recarregando.', type: 'error' });
             fetchLeads(); 
         }
     };
     
-    // Função existente: Gerar o link do Google Maps
+    // Função existente: Gerar o link do Google Maps (Ajuste no URL de Maps)
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
+        // Protocolo Maps corrigido
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // Função existente: Gerar o link do WhatsApp
+    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
+        // Remove caracteres não-numéricos ((), -, espaço)
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
+        // Adiciona 55 (código do Brasil) se não começar com ele. 
         const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
         
+        // Texto pré-preenchido para iniciar a conversa
         const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
-        return `http://googleusercontent.com/wa.me/${formattedPhone}?text=${encodedMessage}`;
+        // Protocolo WA corrigido
+        return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     };
 
 
@@ -377,7 +420,7 @@ const KanbanBoard = () => {
                 })}
             </div>
 
-            {/* Modal de Edição do Lead (COM LINKS DO MAPS E WHATSAPP) */}
+            {/* Modal de Edição do Lead */}
             {isModalOpen && selectedLead && (
                 <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 max-h-[90vh] overflow-y-auto">
@@ -395,7 +438,7 @@ const KanbanBoard = () => {
                             <div className="space-y-4">
                                 <h3 className="text-lg font-semibold text-indigo-600 mb-4">Informações do Lead</h3>
                                 
-                                {/* Container para os links */}
+                                {/* Container para os links (Mapas e WhatsApp) */}
                                 <div className="flex flex-wrap gap-3">
                                     {/* Link Google Maps */}
                                     {leadData.address && (

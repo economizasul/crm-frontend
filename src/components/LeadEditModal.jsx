@@ -119,7 +119,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
-    // 🚨 FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
+    // FUNÇÃO CORRIGIDA: Salva as alterações do lead via modal
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
@@ -136,7 +136,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
         }
         
-        // 🚨 CORREÇÃO: Cria o objeto dataToSend explicitamente, 
+        // CORREÇÃO: Cria o objeto dataToSend explicitamente, 
         // mapeando camelCase (frontend) para snake_case (backend/DB)
         const notesToSend = JSON.stringify(internalNotes.map(n => n.text).filter(Boolean));
         
@@ -155,7 +155,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             lat: leadData.lat || null, 
             lng: leadData.lng || null,
             
-            // Conversão de camelCase para snake_case
+            // Conversão de camelCase para snake_case e para float ou null
             avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
             
@@ -181,14 +181,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // Função existente: Gerar o link do Google Maps
+    // Função existente: Gerar o link do Google Maps (Ajuste no URL de Maps)
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
+        // Protocolo Maps corrigido
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
     
-    // Função existente: Gerar o link do WhatsApp
+    // 🚨 FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
@@ -197,7 +198,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
-        return `http://googleusercontent.com/wa.me/${formattedPhone}?text=${encodedMessage}`;
+        // Protocolo WA corrigido
+        return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     };
 
 
