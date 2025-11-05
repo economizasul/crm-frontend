@@ -1,18 +1,21 @@
-// src/App.jsx 
+// src/App.jsx - CÓDIGO FINAL COM CORREÇÃO DE IMPORTS E ROTAS ANINHADAS
 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './AuthContext.jsx';
-import Login from './pages/Login.jsx'; 
-import Register from './pages/Register.jsx'; 
-import ChangePassword from './pages/ChangePassword.jsx';
+
+// ⭐️ CORREÇÃO DOS IMPORTS: Assumindo que Login, Register e ChangePassword estão diretamente em /src/
+import Login from './Login.jsx'; 
+import Register from './Register.jsx'; 
+import ChangePassword from './ChangePassword.jsx';
 
 // Componentes de Layout e Conteúdo
-import Dashboard from './components/Dashboard.jsx'; // Dashboard é o Layout (Sidebar + Conteúdo)
-import KanbanBoard from './pages/KanbanBoard.jsx'; // Conteúdo principal
-import LeadSearch from './pages/LeadSearch.jsx'; // Conteúdo
-import LeadForm from './pages/LeadForm.jsx'; // Conteúdo para cadastro/edição
+// ATENÇÃO: Mantendo os caminhos para 'pages/' nos demais, ajuste se necessário
+import Dashboard from './components/Dashboard.jsx'; // Dashboard é o Layout (Sidebar + Conteúdo) 
+import KanbanBoard from './pages/KanbanBoard.jsx'; // Conteúdo principal 
+import LeadSearch from './pages/LeadSearch.jsx'; // Conteúdo 
+import LeadForm from './pages/LeadForm.jsx'; // Conteúdo para cadastro/edição 
 import ReportsPage from './pages/ReportsPage.jsx'; // Página de Relatórios
 import Configuracoes from './pages/Configuracoes.jsx'; // Página de Configurações
 
@@ -43,42 +46,35 @@ function App() {
                 {/* Rotas Protegidas - Usam o componente Dashboard como Layout */}
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
                     
-                    <Route index element={<Navigate to="/dashboard" replace />} /> {/* Rota raiz aponta para dashboard */}
+                    <Route index element={<Navigate to="/dashboard" replace />} />
 
+                    {/* ⭐️ CORREÇÃO: Rotas Aninhadas Relativas */}
+                    
                     {/* 1. Dashboard Principal (Kanban Board) */}
-                    {/* CORREÇÃO: Mudança de path="/dashboard" para path="dashboard" */}
                     <Route path="dashboard" element={<KanbanBoard />} />
 
                     {/* 2. Busca/Lista de Leads */}
-                    {/* CORREÇÃO: Mudança de path="/leads" para path="leads" */}
                     <Route path="leads" element={<LeadSearch />} />
 
                     {/* 3. Cadastro/Edição de Leads */}
-                    {/* CORREÇÃO: Mudança de path="/register-lead" para path="register-lead" */}
                     <Route path="register-lead" element={<LeadForm />} />
-                    {/* CRÍTICO: Rota para Edição com ID dinâmico */}
-                    {/* CORREÇÃO: Mudança de path="/register-lead/:id" para path="register-lead/:id" */}
                     <Route path="register-lead/:id" element={<LeadForm />} />
 
-                    {/* 4. Gerenciamento de Usuários */}
-                    {/* CORREÇÃO: Mudança de path="/user-register" para path="user-register" */}
+                    {/* 4. Gerenciamento de Usuários (Se Register for usado como form de criação) */}
                     <Route path="user-register" element={<Register />} />
                     
                     {/* 5. Troca de Senha */}
-                    {/* CORREÇÃO: Mudança de path="/change-password" para path="change-password" */}
                     <Route path="change-password" element={<ChangePassword />} />
 
                     {/* 6. Relatórios */}
-                    {/* CORREÇÃO: Mudança de path="/reports" para path="reports" */}
                     <Route path="reports" element={<ReportsPage />} />
 
                     {/* 7. Configurações */}
-                    {/* CORREÇÃO: Mudança de path="/settings" para path="settings" */}
                     <Route path="settings" element={<Configuracoes />} />
 
                 </Route>
 
-                {/* Rota curinga (404) - Redireciona para /dashboard se nenhuma rota corresponder */}
+                {/* Rota curinga (404) */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </AuthProvider>
