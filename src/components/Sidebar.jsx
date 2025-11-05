@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft, FaLock } from 'react-icons/fa';
+import { FaSearch, FaTachometerAlt, FaUserPlus, FaCogs, FaSignOutAlt, FaChartBar, FaTimes, FaAngleDoubleRight, FaAngleDoubleLeft, FaLock, FaPlus } from 'react-icons/fa'; // Adicionei FaPlus se necessário
 import { useAuth } from '../AuthContext.jsx'; 
 
 // Estilos para os links de navegação
@@ -14,41 +14,42 @@ const LinkClass = ({ isActive, isExpanded }) =>
     ${isExpanded ? 'justify-start space-x-3' : 'justify-center'}
     `;
 
+// Recebe 'isExpanded', 'toggleExpansion', 'toggleMobileSidebar' como props
 const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => { 
     const navigate = useNavigate();
     const { logout, user } = useAuth(); 
 
-    // Função que fecha o menu (principalmente para mobile)
     const handleNavLinkClick = () => {
         if (window.innerWidth < 768 && toggleMobileSidebar) { 
             toggleMobileSidebar(); 
         }
     };
     
-    // Função para logout
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
-    // ⭐️ CORREÇÃO/NOVO: O objeto `user` do AuthContext agora tem as permissões do backend
+    // ⭐️ VARIÁVEIS DE PERMISSÃO (CRÍTICO)
+    // As permissões vêm do objeto 'user' do AuthContext, que é preenchido no login
     const canSeeReports = user && (user.relatorios_proprios_only || user.relatorios_todos || user.role === 'Admin');
     const isAdmin = user && user.role === 'Admin';
     const canAccessSettings = user && user.acesso_configuracoes;
 
-    // 1. Links de Navegação Primária
+    // 1. Links de Navegação Primária (Kanban, Leads, Cadastro, Relatórios)
     const navItems = [
-        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt },
+        { name: 'Dashboard', path: '/dashboard', icon: FaTachometerAlt }, // É o Kanban
         { name: 'Busca de Leads', path: '/leads', icon: FaSearch },
-        // ⭐️ Adiciona a rota de Relatórios, visível se o usuário tiver alguma permissão de relatório
+        { name: 'Cadastrar Lead', path: '/register-lead', icon: FaPlus }, // Assumindo que este item estava lá
+        
+        // ⭐️ ÚNICA MODIFICAÇÃO PERTINENTE: Adicionar o link de Relatórios
         ...(canSeeReports 
             ? [{ name: 'Relatórios', path: '/reports', icon: FaChartBar }] 
             : []
         ),
-        // Adicione outros links primários aqui, se houver
     ];
 
-    // 2. Links de Administração/Rodapé
+    // 2. Links de Administração/Rodapé (Novo Usuário, Mudar Senha, Configurações)
     const footerItems = [
         // Cadastro de Usuários (Apenas Admin)
         ...(isAdmin 
@@ -63,7 +64,6 @@ const Sidebar = ({ isExpanded, toggleExpansion, toggleMobileSidebar }) => {
         { name: 'Mudar Senha', path: '/change-password', icon: FaLock },
     ];
 
-    // Se o usuário não está logado, não renderiza nada ou lida com o estado inicial
     if (!user) return null; 
 
     return (

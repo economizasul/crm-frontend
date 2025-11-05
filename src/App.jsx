@@ -1,4 +1,4 @@
-// src/App.jsx - CÓDIGO FINAL COM ROTAS ANINHADAS PARA O LAYOUT FIXO
+// src/App.jsx 
 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'; 
@@ -6,18 +6,17 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext.jsx'; 
 import Login from './Login.jsx'; 
 import Register from './Register.jsx'; 
-import ChangePassword from './ChangePassword.jsx';
+import ChangePassword from './ChangePassword.jsx'; // Componente de Mudar Senha
 
 // Componentes de Layout e Conteúdo
-import Dashboard from './Dashboard.jsx'; 
-import KanbanBoard from './KanbanBoard.jsx'; 
+import Dashboard from './Dashboard.jsx'; // O layout principal que contém o Sidebar
+import KanbanBoard from './KanbanBoard.jsx'; // Componente Kanban (o Dashboard principal)
 import LeadSearch from './LeadSearch.jsx'; 
 import LeadForm from './LeadForm.jsx';
 
-// ⭐️ NOVO/CORRIGIDO: Importa a página de Relatórios
+// ⭐️ ÚNICA MODIFICAÇÃO: Importa a nova página de Relatórios
 import ReportsPage from './pages/ReportsPage.jsx'; 
-
-// Importa a página de Configurações
+// Importa a página de Configurações (Componente já existente)
 import Configuracoes from './pages/Configuracoes.jsx'; 
 
 // Componente para proteger rotas
@@ -36,15 +35,13 @@ const ProtectedRoute = ({ children }) => {
 
 // Componente de Layout (Dashboard com Sidebar)
 const MainLayout = () => {
-    // Aqui você deve ter o estado e a lógica para o Dashboard
-    // Exemplo: const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+    // Note que o MainLayout é apenas o 'wrapper' que fornece o contexto e o layout fixo (Sidebar/Header)
     return (
         <Dashboard>
-            {/* O conteúdo da rota aninhada será renderizado aqui */}
+            {/* O conteúdo da rota aninhada será renderizado dentro do Dashboard */}
             <Routes>
-                {/* Rotas Protegidas */}
-                {/* 1. Dashboard Principal (Kanban Board) */}
-                <Route index element={<KanbanBoard />} /> {/* Rota padrão para /dashboard */}
+                {/* ⭐️ RESTAURADO: Rota padrão de index para o Dashboard principal */}
+                <Route index element={<KanbanBoard />} /> 
                 <Route path="/dashboard" element={<KanbanBoard />} />
                 
                 {/* 2. Busca/Lista de Leads */}
@@ -54,7 +51,7 @@ const MainLayout = () => {
                 <Route path="/register-lead" element={<LeadForm />} />
                 <Route path="/register-lead/:id" element={<LeadForm />} /> 
                 
-                {/* ⭐️ ROTA DE RELATÓRIOS (USANDO ReportsPage) */}
+                {/* ⭐️ NOVO: ROTA DE RELATÓRIOS */}
                 <Route path="/reports" element={<ReportsPage />} />
                 
                 {/* Outras Rotas */}
@@ -75,11 +72,11 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 
-                {/* Rotas Protegidas (Layout Principal) */}
+                {/* Rotas Protegidas (MainLayout) */}
+                {/* ⭐️ RESTAURADO: Rota curinga que usa o MainLayout para todas as rotas internas */}
                 <Route path="/*" element={<ProtectedRoute><MainLayout /></ProtectedRoute>} />
                 
-                {/* Rota curinga (404) - Se nenhuma rota for encontrada, redireciona para o login ou dashboard */}
-                {/* A rota "/*" acima já cobre isso, mas para garantir o catch-all: */}
+                {/* Rota final (Catch-all não estritamente necessário devido ao /* acima) */}
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </AuthProvider>

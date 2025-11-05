@@ -1,6 +1,6 @@
 // src/services/ReportService.js
 
-import api from './api'; // Importa a instância configurada do seu cliente Axios/Fetch
+import api from './api'; // Importa a instância configurada do Axios (ou fetch)
 
 // ==========================================================
 // 1. DADOS DO DASHBOARD
@@ -12,10 +12,12 @@ import api from './api'; // Importa a instância configurada do seu cliente Axio
  */
 export const fetchDashboardMetrics = async (filters) => {
     try {
-        // Usa POST para enviar filtros complexos no corpo da requisição
+        // Usando POST para enviar filtros complexos no corpo da requisição
         const response = await api.post('/reports/data', { 
             filters,
         });
+
+        // O Backend retorna { success: true, data: { ...métricas... } }
         return response.data.data; 
         
     } catch (error) {
@@ -25,7 +27,7 @@ export const fetchDashboardMetrics = async (filters) => {
 };
 
 // ==========================================================
-// 2. DADOS ANALÍTICOS (NOTAS DO LEAD) - (Se for implementado em outro lugar, pode ser omitido)
+// 2. DADOS ANALÍTICOS (NOTAS DO LEAD)
 // ==========================================================
 
 /**
@@ -34,7 +36,10 @@ export const fetchDashboardMetrics = async (filters) => {
  */
 export const fetchAnalyticNotes = async (leadId) => {
     try {
+        // Usando GET e passando o leadId como query parameter
         const response = await api.get(`/reports/analytic?leadId=${leadId}`);
+        
+        // O Backend retorna { success: true, data: { leadInfo, notes } }
         return response.data.data;
         
     } catch (error) {
@@ -56,10 +61,10 @@ export const downloadCsvReport = async (filters) => {
         const params = new URLSearchParams(filters).toString();
         
         const response = await api.get(`/reports/export/csv?${params}`, {
-            responseType: 'blob', 
+            responseType: 'blob', // Recebe a resposta como binário/blob
         });
 
-        // Lógica de download
+        // Força o download no navegador
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -86,7 +91,7 @@ export const downloadPdfReport = async (filters) => {
             responseType: 'blob',
         });
 
-        // Lógica de download
+        // Força o download no navegador
         const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;

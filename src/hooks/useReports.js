@@ -1,16 +1,16 @@
 // src/hooks/useReports.js
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../AuthContext'; // Para pegar o user ID e isAdmin
+import { useAuth } from '../AuthContext'; // ⭐️ Importação CRÍTICA
 import { 
     fetchDashboardMetrics, 
     downloadCsvReport, 
     downloadPdfReport 
-} from '../services/ReportService';
+} from '../services/ReportService'; // ⭐️ Importação CRÍTICA
 
 // Filtros iniciais padrão para qualquer relatório
 const initialDefaultFilters = { 
-    ownerId: 'all', // 'all' ou o ID de um vendedor
+    ownerId: 'all', 
     status: 'all',
     startDate: '', 
     endDate: '' 
@@ -30,12 +30,13 @@ export function useReports(initialFilters = {}) {
     
     // Obtém o usuário logado para passar as permissões para o backend
     const { user } = useAuth();
+    // ⭐️ Contexto de Autenticação
     const authContext = { userId: user ? user.id : null, isAdmin: user ? user.role === 'Admin' : false };
 
 
     // 1. FUNÇÃO DE BUSCA DE DADOS
     const fetchDashboardData = useCallback(async (currentFilters) => {
-        // Não busca se não houver um user logado
+        // Não busca se o user ID ainda não está disponível
         if (!authContext.userId) return; 
 
         setLoading(true);
@@ -44,7 +45,6 @@ export function useReports(initialFilters = {}) {
             // Chama o serviço, passando os filtros e o contexto de autenticação
             const metrics = await fetchDashboardMetrics(currentFilters, authContext);
             
-            // ⭐️ O backend retorna um objeto { productivity: {...}, otherMetrics: {...} }
             setData(metrics); 
             
         } catch (err) {
@@ -64,7 +64,6 @@ export function useReports(initialFilters = {}) {
         try {
             let response;
             
-            // Chama o serviço de exportação (CSV ou PDF)
             if (format === 'csv') {
                 response = await downloadCsvReport(filters);
             } else if (format === 'pdf') {
@@ -73,16 +72,16 @@ export function useReports(initialFilters = {}) {
                 throw new Error("Formato de exportação inválido.");
             }
 
-            // Lógica de download com base na resposta 'blob'
+            // Lógica de download (manter a lógica robusta de blob/header)
             const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
             
-            // Tenta obter o nome do arquivo do header (Content-Disposition)
             const contentDisposition = response.headers['content-disposition'];
             let fileName = `relatorio_${format}.${format}`;
             if (contentDisposition) {
-                 const match = contentDisposition.match(/filename=\"?(.+)\"?/);
+                 // Regex para extrair o nome do arquivo, ajustado para ser mais flexível
+                 const match = contentDisposition.match(/filename\*?=['"]?(?:UTF-8'')?([^;"]+)/i);
                  if (match && match.length > 1) {
-                    fileName = match[1];
+                    fileName = decodeURIComponent(match[1]); // Decodifica caracteres especiais (como espaços)
                  }
             }
             
@@ -118,12 +117,12 @@ export function useReports(initialFilters = {}) {
     
     // Efeito colateral que dispara a primeira busca de dados
     useEffect(() => {
-        // Se o userId estiver pronto no AuthContext, dispara a busca inicial
+        // ⭐️ CRÍTICO: Dispara a busca quando o user ID estiver pronto
         if (authContext.userId) {
             fetchDashboardData(filters);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authContext.userId]); // Dispara na montagem E quando o user fica pronto
+    }, [authContext.userId]); 
 
 
     return {
