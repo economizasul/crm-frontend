@@ -1,11 +1,20 @@
 // src/components/FilterBar.jsx
 
 import React from 'react';
-import { FaFileCsv, FaFilePdf, FaSearch, FaRedo } from 'react-icons/fa';
+import { FaFileCsv, FaFilePdf, FaFilter, FaRedo } from 'react-icons/fa';
 
 /**
- * Barra de Filtros para a página de Relatórios.
- * Gerencia a entrada de filtros e os botões de ação (Buscar e Exportar).
+ * Componente Barra de Filtros para o Dashboard de Relatórios.
+ * Permite ao usuário aplicar filtros e exportar os dados.
+ *
+ * @param {Object} props
+ * @param {Object} props.currentFilters - O estado atual dos filtros (startDate, endDate, vendorId, etc.).
+ * @param {function} props.onFilterChange - Função para atualizar um filtro temporariamente.
+ * @param {function} props.onApplyFilters - Função para aplicar os filtros e recarregar os dados.
+ * @param {function} props.exportToCsv - Função para iniciar a exportação CSV.
+ * @param {function} props.exportToPdf - Função para iniciar a exportação PDF.
+ * @param {boolean} props.isExporting - Indica se o processo de exportação está em andamento.
+ * @param {boolean} props.isLoading - Indica se a busca de dados está em andamento.
  */
 function FilterBar({ 
     currentFilters, 
@@ -14,138 +23,116 @@ function FilterBar({
     exportToCsv, 
     exportToPdf, 
     isExporting,
-    isLoading
+    isLoading 
 }) {
-    // Exemplo de manipulação de data (assumindo inputs text/date)
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        onFilterChange(name, value);
-    };
     
-    // Função para renderizar o ícone de carregamento/exportação
-    const RenderIcon = ({ onClick, icon: Icon, label, disabled, color, isExport }) => (
-        <button
-            onClick={onClick}
-            disabled={disabled || isExporting}
-            className={`
-                flex items-center space-x-2 px-4 py-2 rounded-lg 
-                font-semibold transition duration-200 
-                ${isExporting && isExport ? 'bg-gray-400 cursor-not-allowed' : 
-                  disabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' :
-                  `bg-${color}-500 hover:bg-${color}-600 text-white shadow-md`}
-            `}
-        >
-            {isExporting && isExport ? (
-                <>
-                    <FaRedo className="animate-spin" />
-                    <span>Exportando...</span>
-                </>
-            ) : (
-                <>
-                    <Icon />
-                    <span>{label}</span>
-                </>
-            )}
-        </button>
-    );
+    // Lista simulada de Vendedores (Vendor IDs) e Fontes
+    const vendors = [
+        { id: 'all', name: 'Todos os Vendedores' },
+        { id: '1', name: 'João Silva' },
+        { id: '2', name: 'Maria Souza' },
+        // Adicionar mais vendedores reais aqui
+    ];
+
+    const sources = [
+        { id: 'all', name: 'Todas as Fontes' },
+        { id: 'google', name: 'Google Ads' },
+        { id: 'facebook', name: 'Facebook/Instagram' },
+        { id: 'organic', name: 'Orgânico' },
+    ];
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-lg mb-6 flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
-            {/* Seção de Filtros */}
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Filtro de Data Inicial */}
-                <div>
-                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">De</label>
+        <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
+            <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
+                
+                {/* 1. Filtro de Data Inicial */}
+                <div className="flex-1">
+                    <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">De (Data Inicial)</label>
                     <input
                         type="date"
-                        name="startDate"
                         id="startDate"
-                        value={currentFilters.startDate || ''}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        name="startDate"
+                        value={currentFilters.startDate}
+                        onChange={(e) => onFilterChange({ startDate: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                     />
                 </div>
-                
-                {/* Filtro de Data Final */}
-                <div>
-                    <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">Até</label>
+
+                {/* 2. Filtro de Data Final */}
+                <div className="flex-1">
+                    <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">Até (Data Final)</label>
                     <input
                         type="date"
-                        name="endDate"
                         id="endDate"
-                        value={currentFilters.endDate || ''}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        name="endDate"
+                        value={currentFilters.endDate}
+                        onChange={(e) => onFilterChange({ endDate: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
                     />
                 </div>
-                
-                {/* Filtro de Vendedor (Exemplo) */}
-                <div>
+
+                {/* 3. Filtro de Vendedor */}
+                <div className="flex-1">
                     <label htmlFor="vendorId" className="block text-sm font-medium text-gray-700">Vendedor</label>
                     <select
-                        name="vendorId"
                         id="vendorId"
-                        value={currentFilters.vendorId || 'all'}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        name="vendorId"
+                        value={currentFilters.vendorId}
+                        onChange={(e) => onFilterChange({ vendorId: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white"
                     >
-                        <option value="all">Todos</option>
-                        {/* ⚠️ ADICIONAR OPTIONS DE VENDEDORES REAIS AQUI */}
-                        <option value="1">Vendedor A</option>
-                        <option value="2">Vendedor B</option>
+                        {vendors.map(vendor => (
+                            <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                        ))}
                     </select>
                 </div>
-
-                {/* Filtro de Fonte (Exemplo) */}
-                <div>
+                
+                {/* 4. Filtro de Fonte */}
+                <div className="flex-1">
                     <label htmlFor="source" className="block text-sm font-medium text-gray-700">Fonte</label>
                     <select
-                        name="source"
                         id="source"
-                        value={currentFilters.source || 'all'}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        name="source"
+                        value={currentFilters.source}
+                        onChange={(e) => onFilterChange({ source: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white"
                     >
-                        <option value="all">Todas</option>
-                        {/* ⚠️ ADICIONAR OPTIONS DE FONTES REAIS AQUI */}
-                        <option value="Site">Site</option>
-                        <option value="Telefone">Telefone</option>
+                        {sources.map(source => (
+                            <option key={source.id} value={source.id}>{source.name}</option>
+                        ))}
                     </select>
                 </div>
 
-            </div>
-            
-            {/* Seção de Ações (Buscar e Exportar) */}
-            <div className="flex space-x-2 justify-end">
-                {/* Botão de Buscar/Aplicar Filtros */}
-                <RenderIcon 
+                {/* 5. Botão Aplicar Filtros */}
+                <button
                     onClick={onApplyFilters}
-                    icon={FaSearch}
-                    label={isLoading ? 'Buscando...' : 'Buscar'}
                     disabled={isLoading || isExporting}
-                    color="indigo"
-                    isExport={false}
-                />
+                    className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150 h-[42px]"
+                >
+                    <FaFilter className="mr-2" /> 
+                    {isLoading ? 'Aplicando...' : 'Aplicar Filtros'}
+                </button>
                 
-                {/* Botão de Exportar CSV */}
-                <RenderIcon 
-                    onClick={exportToCsv}
-                    icon={FaFileCsv}
-                    label="Exportar CSV"
-                    disabled={isLoading || isExporting}
-                    color="green"
-                    isExport={true}
-                />
-                
-                {/* Botão de Exportar PDF */}
-                <RenderIcon 
-                    onClick={exportToPdf}
-                    icon={FaFilePdf}
-                    label="Exportar PDF"
-                    disabled={isLoading || isExporting}
-                    color="red"
-                    isExport={true}
-                />
+                {/* 6. Botões de Exportação */}
+                <div className="flex space-x-2">
+                    <button
+                        onClick={exportToCsv}
+                        disabled={isExporting || isLoading}
+                        title="Exportar para CSV"
+                        className="flex items-center justify-center p-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150"
+                    >
+                        <FaFileCsv className="w-5 h-5 text-green-600" />
+                        {isExporting && <span className='ml-2 text-xs'>Exportando...</span>}
+                    </button>
+                    <button
+                        onClick={exportToPdf}
+                        disabled={isExporting || isLoading}
+                        title="Exportar para PDF"
+                        className="flex items-center justify-center p-3 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition duration-150"
+                    >
+                        <FaFilePdf className="w-5 h-5 text-red-600" />
+                    </button>
+                </div>
             </div>
         </div>
     );
