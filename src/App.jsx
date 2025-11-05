@@ -1,5 +1,4 @@
-// src/App.jsx - CÓDIGO FINAL COM ROTAS ANINHADAS PARA O LAYOUT FIXO
-
+// src/App.jsx 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
@@ -31,50 +30,50 @@ const ProtectedRoute = ({ children }) => {
     return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Componente principal App
+// Componente principal da aplicação
 function App() {
     return (
-        // O AuthProvider deve envolver tudo para que useAuth funcione nas rotas
         <AuthProvider>
             <Routes>
                 {/* Rotas Públicas */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} /> 
+                <Route path="/register" element={<Register />} />
 
-                {/* Rota Protegida (com layout fixo) */}
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard /> {/* Componente de layout com Sidebar e Header */}
-                        </ProtectedRoute>
-                    }
-                >
-                    {/* Rotas Aninhadas (Conteúdo do Dashboard/Layout) */}
+                {/* Rotas Protegidas - Usam o componente Dashboard como Layout */}
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
+                    
                     <Route index element={<Navigate to="/dashboard" replace />} /> {/* Rota raiz aponta para dashboard */}
 
                     {/* 1. Dashboard Principal (Kanban Board) */}
-                    <Route path="/dashboard" element={<KanbanBoard />} />
+                    {/* CORREÇÃO: Mudança de path="/dashboard" para path="dashboard" */}
+                    <Route path="dashboard" element={<KanbanBoard />} />
 
                     {/* 2. Busca/Lista de Leads */}
-                    <Route path="/leads" element={<LeadSearch />} />
+                    {/* CORREÇÃO: Mudança de path="/leads" para path="leads" */}
+                    <Route path="leads" element={<LeadSearch />} />
 
                     {/* 3. Cadastro/Edição de Leads */}
-                    <Route path="/register-lead" element={<LeadForm />} />
+                    {/* CORREÇÃO: Mudança de path="/register-lead" para path="register-lead" */}
+                    <Route path="register-lead" element={<LeadForm />} />
                     {/* CRÍTICO: Rota para Edição com ID dinâmico */}
-                    <Route path="/register-lead/:id" element={<LeadForm />} />
+                    {/* CORREÇÃO: Mudança de path="/register-lead/:id" para path="register-lead/:id" */}
+                    <Route path="register-lead/:id" element={<LeadForm />} />
 
                     {/* 4. Gerenciamento de Usuários */}
-                    <Route path="/user-register" element={<Register />} />
+                    {/* CORREÇÃO: Mudança de path="/user-register" para path="user-register" */}
+                    <Route path="user-register" element={<Register />} />
                     
                     {/* 5. Troca de Senha */}
-                    <Route path="/change-password" element={<ChangePassword />} />
+                    {/* CORREÇÃO: Mudança de path="/change-password" para path="change-password" */}
+                    <Route path="change-password" element={<ChangePassword />} />
 
                     {/* 6. Relatórios */}
-                    <Route path="/reports" element={<ReportsPage />} />
+                    {/* CORREÇÃO: Mudança de path="/reports" para path="reports" */}
+                    <Route path="reports" element={<ReportsPage />} />
 
                     {/* 7. Configurações */}
-                    <Route path="/settings" element={<Configuracoes />} />
+                    {/* CORREÇÃO: Mudança de path="/settings" para path="settings" */}
+                    <Route path="settings" element={<Configuracoes />} />
 
                 </Route>
 
