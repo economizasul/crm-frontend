@@ -1,83 +1,93 @@
-// src/hooks/useReports.js (ATUALIZADO com funções de Exportação)
+// src/hooks/useReports.js
 
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios'; 
+import { useAuth } from '../AuthContext'; // Para pegar o user ID e isAdmin
+import { 
+    fetchDashboardMetrics, 
+    downloadCsvReport, 
+    downloadPdfReport 
+} from '../services/ReportService';
 
-const API_BASE_URL = '/api/reports'; 
+// Filtros iniciais padrão para qualquer relatório
+const initialDefaultFilters = { 
+    ownerId: 'all', // 'all' ou o ID de um vendedor
+    status: 'all',
+    startDate: '', 
+    endDate: '' 
+};
 
 /**
  * Hook customizado para gerenciar a lógica de busca e estado dos relatórios.
  * @param {Object} initialFilters - Filtros iniciais.
  */
 export function useReports(initialFilters = {}) {
+    // Mescla filtros iniciais com os padrões
     const [data, setData] = useState(null);
-    const [filters, setFilters] = useState(initialFilters);
+    const [filters, setFilters] = useState({ ...initialDefaultFilters, ...initialFilters });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [exporting, setExporting] = useState(false); // Novo estado para exportação
+    const [exporting, setExporting] = useState(false);
     
-    // Função para construir a string de query
-    const buildQueryString = (currentFilters) => {
-    return Object.keys(currentFilters)
-        .filter(key => currentFilters[key])
-        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(currentFilters[key])}`)
-        .join('&');
-};
+    // Obtém o usuário logado para passar as permissões para o backend
+    const { user } = useAuth();
+    const authContext = { userId: user ? user.id : null, isAdmin: user ? user.role === 'Admin' : false };
 
-const fetchDashboardData = useCallback(async (currentFilters) => {
-    setLoading(true);
-    setError(null);
-    try {
-            const queryString = buildQueryString(currentFilters);
-            const response = await axios.post(`${API_BASE_URL}/data`, { filters: currentFilters });
-        
-        if (response.data.success) {
-            setData(response.data.data);
-        } else {
-            setError(response.data.message || 'Falha ao carregar dados do relatório.');
+
+    // 1. FUNÇÃO DE BUSCA DE DADOS
+    const fetchDashboardData = useCallback(async (currentFilters) => {
+        // Não busca se não houver um user logado
+        if (!authContext.userId) return; 
+
+        setLoading(true);
+        setError(null);
+        try {
+            // Chama o serviço, passando os filtros e o contexto de autenticação
+            const metrics = await fetchDashboardMetrics(currentFilters, authContext);
+            
+            // ⭐️ O backend retorna um objeto { productivity: {...}, otherMetrics: {...} }
+            setData(metrics); 
+            
+        } catch (err) {
+            console.error("Erro ao buscar dados do dashboard:", err);
+            setError(err.response?.data?.message || 'Falha ao carregar métricas.');
+            setData(null);
+        } finally {
+            setLoading(false);
         }
-    } catch (err) {
-        // Em caso de erro 401/403, você pode querer forçar o logout aqui
-        setError('Erro de conexão ou servidor ao carregar dados.');
-    } finally {
-        setLoading(false);
-    }
-}, []);
+    }, [authContext.userId, authContext.isAdmin]); 
 
-    // --- NOVAS FUNÇÕES DE EXPORTAÇÃO ---
 
+    // 2. FUNÇÕES DE EXPORTAÇÃO
     const exportFile = useCallback(async (format) => {
         setExporting(true);
         setError(null);
         try {
-            const queryString = buildQueryString(filters);
-            const url = `${API_BASE_URL}/export/${format}?${queryString}`;
+            let response;
             
-            // Usamos responseType: 'blob' para lidar com o arquivo de forma binária
-            const response = await axios.get(url, { responseType: 'blob' });
-            
-            if (response.status !== 200) {
-                // Se o servidor retornar erro 500, precisaremos ler a mensagem de erro do blob
-                 setError('Erro ao gerar o arquivo no servidor.');
-                 return;
+            // Chama o serviço de exportação (CSV ou PDF)
+            if (format === 'csv') {
+                response = await downloadCsvReport(filters);
+            } else if (format === 'pdf') {
+                response = await downloadPdfReport(filters);
+            } else {
+                throw new Error("Formato de exportação inválido.");
             }
 
-            // Lógica para criar um link e simular o clique para download
-            const blob = new Blob([response.data]);
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
+            // Lógica de download com base na resposta 'blob'
+            const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
             
-            // Nome do arquivo baseado no cabeçalho de resposta Content-Disposition
+            // Tenta obter o nome do arquivo do header (Content-Disposition)
             const contentDisposition = response.headers['content-disposition'];
-            let fileName = `relatorio.${format}`;
+            let fileName = `relatorio_${format}.${format}`;
             if (contentDisposition) {
-                 const match = contentDisposition.match(/filename="(.+)"/);
-                 if (match.length > 1) {
+                 const match = contentDisposition.match(/filename=\"?(.+)\"?/);
+                 if (match && match.length > 1) {
                     fileName = match[1];
                  }
             }
             
+            const a = document.createElement('a');
+            a.href = downloadUrl;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
@@ -92,23 +102,39 @@ const fetchDashboardData = useCallback(async (currentFilters) => {
         }
     }, [filters]);
     
+    // 3. APLICAÇÃO E ATUALIZAÇÃO DE FILTROS
+    const updateFilter = (key, value) => {
+        setFilters(prev => ({ ...prev, [key]: value }));
+    };
+    
+    const applyFilters = () => {
+        // Força a busca dos dados com os filtros atuais
+        fetchDashboardData(filters);
+    };
+    
+    // Funções públicas de exportação
     const exportToCsv = () => exportFile('csv');
     const exportToPdf = () => exportFile('pdf');
     
-    // Carrega os dados na montagem do componente
+    // Efeito colateral que dispara a primeira busca de dados
     useEffect(() => {
-        fetchDashboardData(filters);
-    }, [fetchDashboardData]); 
+        // Se o userId estiver pronto no AuthContext, dispara a busca inicial
+        if (authContext.userId) {
+            fetchDashboardData(filters);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authContext.userId]); // Dispara na montagem E quando o user fica pronto
+
 
     return {
         data,
         filters,
         loading,
         error,
-        exporting, // Retorna o estado de exportação
+        exporting,
         updateFilter,
         applyFilters,
-        exportToCsv, // Novas funções
+        exportToCsv,
         exportToPdf
     };
 }
