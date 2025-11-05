@@ -15,15 +15,7 @@ import Configuracoes from '@/pages/Configuracoes.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isAuthReady } = useAuth();
-
-  if (!isAuthReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <span>Carregando...</span>
-      </div>
-    );
-  }
-
+  if (!isAuthReady) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><span>Carregando...</span></div>;
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
@@ -33,7 +25,6 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<KanbanBoard />} />
@@ -45,7 +36,6 @@ function App() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<Configuracoes />} />
         </Route>
-
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AuthProvider>
