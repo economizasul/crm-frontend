@@ -1,6 +1,7 @@
 // src/App.jsx
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+
 import { AuthProvider, useAuth } from '@/AuthContext.jsx';
 import Login from '@/pages/Login.jsx';
 import Register from '@/pages/Register.jsx';
