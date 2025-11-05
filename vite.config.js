@@ -1,4 +1,4 @@
-// vite.config.js
+// vite.config.js (NA RAIZ DO PROJETO)
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -8,7 +8,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'), // FORÇADO: 'src' sem ./ para evitar src/src
+      '@': path.resolve(__dirname, './src'),
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json'],
   },
