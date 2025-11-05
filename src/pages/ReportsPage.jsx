@@ -1,11 +1,12 @@
-// src/pages/ReportsPage.js (Exemplo em React)
+// src/pages/ReportsPage.jsx
 
-import React, { useState, useEffect } from 'react';
-// Importa o novo serviço de relatórios
-import { fetchDashboardMetrics } from '../services/ReportService'; 
-import ReportsDashboard from '../components/ReportsDashboard';
-// import mockData from '../data/mockReports'; // <-- REMOVA OU COMENTE ISTO
+import React from 'react';
+// ⭐️ NOVIDADE: Importa o hook customizado
+import { useReports } from '../hooks/useReports'; 
+import ReportsDashboard from '../components/ReportsDashboard'; 
+import FilterBar from '../components/FilterBar'; // ⭐️ ASSUMIDO: Adicionando componente de Filtros para uso
 
+// Filtros iniciais
 const initialFilters = { 
     startDate: '2024-01-01', 
     endDate: '2024-12-31', 
@@ -14,59 +15,52 @@ const initialFilters = {
 };
 
 function ReportsPage() {
-    const [metrics, setMetrics] = useState(null);
-    const [filters, setFilters] = useState(initialFilters);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    const loadMetrics = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            // ⭐️ SUBSTITUIÇÃO AQUI ⭐️
-            // Chama a API do Backend com os filtros
-            const data = await fetchDashboardMetrics(filters); 
-            
-            setMetrics(data); // Define os dados reais retornados pelo Backend
-        } catch (err) {
-            setError('Falha ao carregar dados do relatório. Tente novamente.');
-            setMetrics(null); // Limpa dados em caso de erro
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadMetrics();
-    }, [filters]); // Recarrega sempre que os filtros mudam
-
-    // Função para ser passada aos componentes de filtro
-    const handleFilterChange = (newFilters) => {
-        setFilters(prev => ({ ...prev, ...newFilters }));
-    };
-
+    // ⭐️ SUBSTITUIÇÃO COMPLETA: Usando o hook useReports para gerenciar o estado
+    const {
+        data: metrics, // Renomeado 'data' para 'metrics' para manter a consistência com o Dashboard
+        filters,
+        loading,
+        error,
+        exporting,
+        updateFilter,
+        applyFilters,
+        exportToCsv,
+        exportToPdf,
+    } = useReports(initialFilters);
+    
+    // Agora, a lógica de carregamento e erro é muito mais limpa
     if (loading && !metrics) {
-        return <div>Carregando Relatórios...</div>;
+        return <div className="p-8 text-center text-xl text-indigo-600">Carregando Dashboard...</div>;
     }
     
     if (error) {
-        return <div>Erro: {error}</div>;
+        return <div className="p-8 text-center text-xl text-red-600">Erro: {error}</div>;
     }
     
-    // Passa os dados reais e as funções de filtro para o componente Dashboard
     return (
-        <div>
-            <h1>Dashboard de Relatórios</h1>
-            {/* Aqui você passa o handleFilterChange para o seu componente de filtro */}
-            {/* ... Componentes de Filtro ... */}
+        <div className="p-4 sm:p-6 lg:p-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard de Relatórios</h1>
             
-            {metrics && (
+            {/* Componente de Filtro (Assumindo que ele será criado para usar as funções) */}
+            <FilterBar 
+                currentFilters={filters}
+                onFilterChange={updateFilter} // Atualiza o estado do filtro no hook
+                onApplyFilters={applyFilters} // Dispara a nova busca de dados
+                exportToCsv={exportToCsv}     // Função para exportar CSV
+                exportToPdf={exportToPdf}     // Função para exportar PDF
+                isExporting={exporting}
+                isLoading={loading}
+            />
+            
+            {/* O componente Dashboard recebe as métricas prontas */}
+            {metrics ? (
                 <ReportsDashboard 
                     metrics={metrics} 
-                    currentFilters={filters}
-                    onFilterChange={handleFilterChange}
-                    // Adicione props para exportação aqui
                 />
+            ) : (
+                <div className="mt-8 p-4 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg">
+                    Nenhum dado encontrado para os filtros selecionados.
+                </div>
             )}
         </div>
     );
