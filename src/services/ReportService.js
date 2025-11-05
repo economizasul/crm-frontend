@@ -1,6 +1,6 @@
 // src/services/ReportService.js
 
-import api from './api'; 
+import api from './api'; // Importa a instância configurada do seu cliente Axios/Fetch
 
 // ==========================================================
 // 1. DADOS DO DASHBOARD
@@ -8,28 +8,24 @@ import api from './api';
 
 /**
  * Busca todas as métricas do dashboard com base nos filtros.
- * @param {Object} filters - { startDate, endDate, ownerId, status, ... }
- * @param {Object} authContext - { userId, isAdmin }
+ * @param {Object} filters - { startDate, endDate, vendorId, source, ... }
  */
-export const fetchDashboardMetrics = async (filters, authContext) => {
+export const fetchDashboardMetrics = async (filters) => {
     try {
         // Usa POST para enviar filtros complexos no corpo da requisição
-        const response = await api.post('/reports', { 
-            // Os dados do usuário logado e os filtros são enviados no corpo
-            filters: filters,
-            context: authContext 
+        const response = await api.post('/reports/data', { 
+            filters,
         });
-        // Retorna a estrutura de dados (data: metrics)
         return response.data.data; 
         
     } catch (error) {
-        // Lança o erro para ser tratado pelo hook ou componente
+        console.error("Erro ao buscar métricas:", error);
         throw error;
     }
 };
 
 // ==========================================================
-// 2. DADOS ANALÍTICOS (NOTAS DO LEAD)
+// 2. DADOS ANALÍTICOS (NOTAS DO LEAD) - (Se for implementado em outro lugar, pode ser omitido)
 // ==========================================================
 
 /**
@@ -38,11 +34,11 @@ export const fetchDashboardMetrics = async (filters, authContext) => {
  */
 export const fetchAnalyticNotes = async (leadId) => {
     try {
-        // ⭐️ CORREÇÃO: Usando URL parameter /analytic/:leadId (conforme rota do backend)
-        const response = await api.get(`/reports/analytic/${leadId}`);
+        const response = await api.get(`/reports/analytic?leadId=${leadId}`);
         return response.data.data;
         
     } catch (error) {
+        console.error(`Erro ao buscar notas do Lead ${leadId}:`, error);
         throw error;
     }
 };
@@ -57,18 +53,23 @@ export const fetchAnalyticNotes = async (leadId) => {
  */
 export const downloadCsvReport = async (filters) => {
     try {
-        // Converte o objeto de filtros em string de query params
         const params = new URLSearchParams(filters).toString();
         
-        // Chama a rota de exportação e informa ao Axios para tratar a resposta como 'blob' (arquivo binário)
         const response = await api.get(`/reports/export/csv?${params}`, {
             responseType: 'blob', 
         });
 
-        // Retorna o objeto de resposta completo (incluindo headers para nome do arquivo)
-        return response;
+        // Lógica de download
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'relatorio_leads.csv'); 
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
 
     } catch (error) {
+        console.error("Erro no download CSV:", error);
         throw error;
     }
 };
@@ -85,10 +86,17 @@ export const downloadPdfReport = async (filters) => {
             responseType: 'blob',
         });
 
-        // Retorna o objeto de resposta completo
-        return response;
-
+        // Lógica de download
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'relatorio_resumo.pdf');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        
     } catch (error) {
+        console.error("Erro no download PDF:", error);
         throw error;
     }
 };
