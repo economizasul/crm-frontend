@@ -2,16 +2,16 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
-import { AuthProvider, useAuth } from '@/AuthContext.jsx';
-import Login from '@/pages/Login.jsx';
-import Register from '@/pages/Register.jsx';
-import ChangePassword from '@/pages/ChangePassword.jsx';
-import Dashboard from '@/components/Dashboard.jsx';
-import KanbanBoard from '@/pages/KanbanBoard.jsx';
-import LeadSearch from '@/pages/LeadSearch.jsx';
-import LeadForm from '@/pages/LeadForm.jsx';
-import ReportsPage from '@/pages/ReportsPage.jsx';
-import Configuracoes from '@/pages/Configuracoes.jsx';
+import { AuthProvider, useAuth } from './AuthContext.jsx';
+import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
+import ChangePassword from './pages/ChangePassword.jsx';
+import Dashboard from './components/Dashboard.jsx';
+import KanbanBoard from './pages/KanbanBoard.jsx';
+import LeadSearch from './pages/LeadSearch.jsx';
+import LeadForm from './pages/LeadForm.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
+import Configuracoes from './pages/Configuracoes.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isAuthReady } = useAuth();
