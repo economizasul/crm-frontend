@@ -1,4 +1,3 @@
-cat > src/vite.config.js << 'EOF'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -7,8 +6,7 @@ export default defineConfig({
   base: '/',
   resolve: {
     alias: {
-      '@': '/opt/render/project/src'  // ← ENDEREÇO ABSOLUTO FORÇADO (FUNCIONA NO RENDER)
+      '@': '/opt/render/project/src'
     }
   }
 })
-EOF
