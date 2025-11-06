@@ -6,7 +6,7 @@ export default defineConfig({
   base: '/',
   resolve: {
     alias: {
-      '@': '/opt/render/project/src'
+      '@': new URL('./', import.meta.url).pathname
     }
   }
 })
