@@ -8,7 +8,7 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '.'),  // <-- AGORA É '.' PORQUE ESTÁ DENTRO DE src/
+      '@': path.resolve(__dirname, '.'), // <-- dentro da pasta src/
     },
   },
 
