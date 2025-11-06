@@ -1,13 +1,14 @@
+cat > src/vite.config.js << 'EOF'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
   base: '/',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, '..')  // ← VAI PRA PASTA ACIMA (src/ → raiz)
+      '@': '/opt/render/project/src'  // ← ENDEREÇO ABSOLUTO FORÇADO (FUNCIONA NO RENDER)
     }
   }
 })
+EOF
