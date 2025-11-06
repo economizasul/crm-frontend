@@ -1,14 +1,11 @@
-// vite.config.js (na raiz do repo)
+// vite.config.js (NA RAIZ DO REPOSITÓRIO)
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
   base: '/',
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src')
-    }
+  build: {
+    outDir: 'src/dist'
   }
 })

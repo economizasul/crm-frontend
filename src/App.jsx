@@ -3,8 +3,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // CAMINHOS RELATIVOS — FUNCIONA NO RENDER 1000000%
-import { AuthProvider, useAuth } from '@/AuthContext.jsx';
-import Login from '@/pages/Login.jsx';
+import { AuthProvider, useAuth } from '@/AuthContext.jsx'
+import Login from '@/pages/Login.jsx'
 import Register from '@/pages/Register.jsx';
 import ChangePassword from '@/pages/ChangePassword.jsx';
 import Dashboard from '@/components/Dashboard.jsx';
