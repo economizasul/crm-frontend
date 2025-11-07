@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Lock, Loader2 } from 'lucide-react'; 
-import { useAuth } from './AuthContext.jsx'; 
+import { useAuth } from '../AuthContext.jsx'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 

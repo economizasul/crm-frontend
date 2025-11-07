@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // Importa FaMapMarkerAlt e FaWhatsapp
 import { useNavigate } from 'react-router-dom'; 
 import axios from 'axios';
-import { useAuth } from './AuthContext.jsx'; 
+import { useAuth } from '../AuthContext.jsx'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FaSearch, FaPlus, FaEdit } from 'react-icons/fa'; // Mantidos os ícones que parecem ser usados
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from './AuthContext.jsx'; 
+import { useAuth } from '../AuthContext.jsx'; 
 import { STAGES } from './KanbanBoard.jsx'; 
 
 // 💡 CORREÇÃO: Removida a importação de LeadEditModal e outros ícones não utilizados na versão final
