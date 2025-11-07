@@ -7,7 +7,7 @@ import { useAuth } from '../AuthContext.jsx';
 import { FaSignInAlt, FaEnvelope, FaLock } from 'react-icons/fa'; 
 
 // LOGO
-import EconomizaSulLogo from './src/ECONOMIZASUL.png'; 
+import EconomizaSulLogo from '../ECONOMIZASUL.png'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
