@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useReports } from '../hooks/useReports'; // Importa o hook customizado
-import FilterBar from '../components/reports/FilterBar'; // Ajuste o caminho se necessário
+import FilterBar from '../components/reports/ui/FilterBar'; // Ajuste o caminho se necessário
 import ReportsDashboard from '../components/reports/ReportsDashboard'; // Ajuste o caminho se necessário
 import { FaChartBar } from 'react-icons/fa'; // Mantido para o ícone do título, se desejar
 
