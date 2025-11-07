@@ -6,7 +6,7 @@ import { AuthProvider, useAuth } from './AuthContext.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import ChangePassword from './pages/ChangePassword.jsx';
-import Dashboard from './components/Dashboard.jsx';
+import Dashboard from './Dashboard.jsx';
 import KanbanBoard from './pages/KanbanBoard.jsx';
 import LeadSearch from './pages/LeadSearch.jsx';
 import LeadForm from './pages/LeadForm.jsx';
