@@ -92,7 +92,7 @@ const LeadForm = () => {
       avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
       estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
       qsa: formData.qsa?.trim() || null,
-      owner_id: user?.id || user?._id || null, // OBRIGATÓRIO
+      owner_id: user?.id || user?._id,
       notes: JSON.stringify([{ 
         text: `Lead criado via formulário (Origem: ${formData.origin})`, 
         timestamp: Date.now() 
