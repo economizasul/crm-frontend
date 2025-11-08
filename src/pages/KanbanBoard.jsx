@@ -75,37 +75,42 @@ const KanbanBoard = () => {
   setApiError(null);
   try {
     const response = await api.get('/leads');
-    const mappedLeads = response.data.map(lead => ({
-      ...lead,
-      id: lead.id || lead._id,
-      owner_id: lead.owner_id || lead.vendedor_id, // garante o campo
-      avgConsumption: lead.avg_consumption || '',
-      estimatedSavings: lead.estimated_savings || '',
-      notes: typeof lead.notes === 'string' ? JSON.parse(lead.notes || '[]') : (lead.notes || [])
+    const rawLeads = response.data;
+
+    console.log('LEADS DO BACKEND:', rawLeads);
+    console.log('USUÁRIO LOGADO:', user);
+
+    const mappedLeads = rawLeads.map(lead => ({
+      id: lead._id || lead.id,
+      name: lead.name || 'Sem nome',
+      phone: lead.phone || '',
+      email: lead.email || '',
+      status: lead.status || 'Novo',
+      owner_id: lead.ownerId || lead.owner_id, // CRÍTICO: ownerId do formatLeadResponse
+      ownerName: lead.ownerName || 'Desconhecido',
+      document: lead.document || '',
+      uc: lead.uc || '',
+      avgConsumption: lead.avgConsumption || '',
+      estimatedSavings: lead.estimatedSavings || '',
+      notes: Array.isArray(lead.notes) ? lead.notes : [],
+      createdAt: lead.createdAt,
     }));
 
-    console.log('TODOS OS LEADS DO BACKEND:', mappedLeads); // DEBUG 1
-    console.log('USUÁRIO LOGADO:', user); // DEBUG 2
-
     // FILTRAGEM CORRETA — TESTADA COM SEU BACKEND
-    const filtered = user?.role === 'Admin'
+    const userId = String(user?.id || user?._id || '');
+    const filteredLeads = user?.role === 'Admin'
       ? mappedLeads
-      : mappedLeads.filter(lead => {
-          const leadOwnerId = String(lead.owner_id || lead.vendedor_id || '');
-          const userId = String(user?.id || user?._id || '');
-          return leadOwnerId === userId;
-        });
+      : mappedLeads.filter(lead => String(lead.owner_id) === userId);
 
-    console.log('LEADS FILTRADOS (DEVEM APARECER):', filtered); // DEBUG 3
+    console.log('LEADS FILTRADOS (DEVEM APARECER):', filteredLeads);
 
-    setLeads(filtered);
+    setLeads(filteredLeads);
   } catch (error) {
-    console.error('Erro ao carregar leads:', error.response || error);
+    console.error('Erro ao carregar leads:', error);
+    setApiError('Erro ao carregar leads. Tente novamente.');
     if (error.response?.status === 401) {
       logout();
       navigate('/login');
-    } else {
-      setApiError('Erro ao carregar leads. Verifique o console.');
     }
   } finally {
     setIsLoading(false);
@@ -113,8 +118,10 @@ const KanbanBoard = () => {
 }, [user, logout, navigate]);
 
   useEffect(() => {
+  if (user) {
     fetchLeads();
-  }, [fetchLeads]);
+  }
+}, [user, fetchLeads]);
 
   const handleSearch = (term) => {
     setSearchTerm(term);
