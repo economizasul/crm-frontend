@@ -1,6 +1,6 @@
 // src/pages/KanbanBoard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp, FaEdit } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
@@ -31,9 +31,16 @@ const Toast = ({ message, type, onClose }) => {
 const LeadCard = ({ lead, onClick }) => (
   <div
     onClick={() => onClick(lead)}
-    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-pointer hover:shadow-lg hover:border-indigo-400 transition-all transform hover:scale-105"
-    draggable
-    onDragStart={(e) => e.dataTransfer.setData('leadId', lead.id)}
+    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
+    draggable="true"
+    onDragStart={(e) => {
+      e.dataTransfer.setData('leadId', lead.id);
+      e.dataTransfer.effectAllowed = 'move';
+      e.currentTarget.style.opacity = '0.5';
+    }}
+    onDragEnd={(e) => {
+      e.currentTarget.style.opacity = '1';
+    }}
   >
     <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
     <p className="text-sm text-gray-600">{lead.phone}</p>
@@ -60,7 +67,6 @@ const KanbanBoard = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
 
   const navigate = useNavigate();
   const { logout, user } = useAuth();
@@ -103,13 +109,18 @@ const KanbanBoard = () => {
       setLeads(filteredLeads);
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
-      if (error.response?.status === 401) { logout(); navigate('/login'); }
+      if (error.response?.status === 401) {
+        logout();
+        navigate('/login');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [user, logout, navigate]);
 
-  useEffect(() => { if (user) fetchLeads(); }, [user, fetchLeads]);
+  useEffect(() => {
+    if (user) fetchLeads();
+  }, [user, fetchLeads]);
 
   const openLeadModal = (lead) => {
     setSelectedLead(lead);
@@ -160,23 +171,31 @@ const KanbanBoard = () => {
       setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
       closeLeadModal();
     } catch (error) {
-      setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
+      console.error('Erro ao salvar:', error.response?.data);
+      setToast({ message: error.response?.data?.error || 'Erro ao salvar lead', type: 'error' });
     } finally {
       setSaving(false);
     }
   };
 
+  // DRAG & DROP 100% CORRIGIDO
   const handleDrop = async (leadId, newStatus) => {
-    const lead = leads.find(l => String(l.id) === String(leadId));
+    const id = String(leadId);
+    const lead = leads.find(l => String(l.id) === id);
     if (!lead || lead.status === newStatus) return;
 
     const oldStatus = lead.status;
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
+
+    // Atualiza UI imediatamente
+    setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: newStatus } : l));
 
     try {
-      await api.put(`/leads/${leadId}`, { status: newStatus });
-    } catch {
-      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: oldStatus } : l));
+      await api.put(`/leads/${id}`, { status: newStatus });
+      setToast({ message: `Lead movido para "${newStatus}"!`, type: 'success' });
+    } catch (error) {
+      console.error('Erro ao mover lead:', error);
+      setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: oldStatus } : l));
+      setToast({ message: 'Erro ao mover lead', type: 'error' });
       fetchLeads();
     }
   };
@@ -210,35 +229,46 @@ const KanbanBoard = () => {
             type="text"
             placeholder="Buscar lead..."
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              // busca simples
-            }}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg"
           />
         </div>
       </div>
 
-      {/* KANBAN COM COLUNAS COMPACTAS E ALTURA DINÂMICA */}
+      {/* KANBAN COM COLUNAS DE 176px (55% da original) + DRAG & DROP PERFEITO */}
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
           const statusLeads = leads.filter(l => l.status === status);
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData("leadId"), status); }}
+              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.backgroundColor = '#f0fdf4';
+                e.currentTarget.style.borderColor = '#22c55e';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.borderColor = '';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.backgroundColor = '';
+                e.currentTarget.style.borderColor = '';
+                const leadId = e.dataTransfer.getData('leadId');
+                if (leadId) handleDrop(leadId, status);
+              }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
-                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm">{statusLeads.length}</span>
+                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">{statusLeads.length}</span>
               </h2>
-              <div className="space-y-3 min-h-0">
+              <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
                 ))}
                 {statusLeads.length === 0 && (
-                  <p className="text-center text-gray-400 italic py-8">Vazio</p>
+                  <p className="text-center text-gray-400 italic py-12 text-sm">Arraste leads aqui</p>
                 )}
               </div>
             </div>
@@ -246,7 +276,7 @@ const KanbanBoard = () => {
         })}
       </div>
 
-      {/* MODAL COMPACTO E COMPLETO */}
+      {/* MODAL COMPACTO */}
       {isModalOpen && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
@@ -283,7 +313,7 @@ const KanbanBoard = () => {
                   {leadData.notes.length === 0 ? <p className="text-gray-500 italic">Sem notas</p> : leadData.notes.map((n, i) => (
                     <div key={i} className="bg-white p-3 rounded border text-sm">
                       <p>{n.text}</p>
-                      <p className="text-xs text-gray-500 mt-1">{n.user} - {formatNoteDate(n.timestamp)}</p>
+                      <p className="text-xs text-gray-500 mt-1">{n.user || 'Sistema'} - {formatNoteDate(n.timestamp)}</p>
                     </div>
                   ))}
                 </div>
@@ -292,7 +322,7 @@ const KanbanBoard = () => {
                     value={newNoteText}
                     onChange={e => setNewNoteText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), saveLeadChanges())}
-                    placeholder="Nova nota..."
+                    placeholder="Nova nota... (Enter para salvar)"
                     className="flex-1 p-3 border rounded-lg"
                   />
                   <button onClick={saveLeadChanges} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold">
@@ -303,8 +333,8 @@ const KanbanBoard = () => {
 
               <div className="flex justify-between items-center pt-4 border-t">
                 <div className="flex gap-3">
-                  {leadData.address && <a href={getGoogleMapsLink()} target="_blank" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><FaMapMarkerAlt /> Maps</a>}
-                  {leadData.phone && <a href={getWhatsAppLink()} target="_blank" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"><FaWhatsapp /> WhatsApp</a>}
+                  {leadData.address && <a href={getGoogleMapsLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><FaMapMarkerAlt /> Maps</a>}
+                  {leadData.phone && <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"><FaWhatsapp /> WhatsApp</a>}
                 </div>
                 <div className="flex gap-3">
                   <button onClick={closeLeadModal} className="px-6 py-3 border-2 border-gray-400 rounded-lg font-bold">Cancelar</button>
