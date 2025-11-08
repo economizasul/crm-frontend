@@ -158,7 +158,7 @@ const LeadForm = () => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Supermercado Mai"
+              placeholder="Mercado Lead"
               className={`w-full p-4 border-2 rounded-xl text-lg transition ${
                 errors.name ? 'border-red-500' : 'border-gray-300 focus:border-indigo-500'
               }`}
@@ -177,7 +177,7 @@ const LeadForm = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              placeholder="41995606080"
+              placeholder="45 999000000"
               className={`w-full p-4 border-2 rounded-xl text-lg transition ${
                 errors.phone ? 'border-red-500' : 'border-gray-300 focus:border-indigo-500'
               }`}
@@ -207,7 +207,7 @@ const LeadForm = () => {
               name="document"
               value={formData.document}
               onChange={handleChange}
-              placeholder="12403493000190"
+              placeholder="00000000000000"
               className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500"
             />
           </div>
@@ -274,7 +274,7 @@ const LeadForm = () => {
               name="uc"
               value={formData.uc}
               onChange={handleChange}
-              placeholder="27794270"
+              placeholder="00000000"
               className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg"
             />
           </div>
