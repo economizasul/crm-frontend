@@ -1,6 +1,6 @@
 // src/pages/KanbanBoard.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
+import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp, FaUserTie } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
@@ -45,6 +45,9 @@ const LeadCard = ({ lead, onClick }) => (
     <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
     <p className="text-sm text-gray-600">{lead.phone}</p>
     {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
+    <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+      <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+    </div>
     <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
       {lead.status}
     </span>
@@ -60,6 +63,7 @@ const formatNoteDate = (timestamp) => {
 
 const KanbanBoard = () => {
   const [leads, setLeads] = useState([]);
+  const [users, setUsers] = useState([]); // NOVO: lista de vendedores
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,8 +77,19 @@ const KanbanBoard = () => {
 
   const [leadData, setLeadData] = useState({
     name: '', phone: '', email: '', document: '', address: '', status: 'Novo',
-    origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: []
+    origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
   });
+
+  // CARREGA VENDEDORES (SÓ ADMIN VÊ)
+  const fetchUsers = useCallback(async () => {
+    if (user?.role !== 'Admin') return;
+    try {
+      const res = await api.get('/users');
+      setUsers(res.data.filter(u => u.role !== 'Admin')); // só vendedores
+    } catch (err) {
+      console.error('Erro ao carregar vendedores:', err);
+    }
+  }, [user]);
 
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
@@ -88,7 +103,7 @@ const KanbanBoard = () => {
         phone: lead.phone || '',
         email: lead.email || '',
         status: lead.status || 'Novo',
-        owner_id: lead.ownerId || lead.owner_id,
+        owner_id: lead.ownerId || lead.owner_id || lead.owner_id,
         ownerName: lead.ownerName || 'Desconhecido',
         document: lead.document || '',
         uc: lead.uc || '',
@@ -119,8 +134,11 @@ const KanbanBoard = () => {
   }, [user, logout, navigate]);
 
   useEffect(() => {
-    if (user) fetchLeads();
-  }, [user, fetchLeads]);
+    if (user) {
+      fetchLeads();
+      fetchUsers();
+    }
+  }, [user, fetchLeads, fetchUsers]);
 
   const openLeadModal = (lead) => {
     setSelectedLead(lead);
@@ -128,6 +146,7 @@ const KanbanBoard = () => {
       ...lead,
       avgConsumption: lead.avgConsumption || '',
       estimatedSavings: lead.estimatedSavings || '',
+      owner_id: lead.owner_id || ''
     });
     setNewNoteText('');
     setIsModalOpen(true);
@@ -159,6 +178,11 @@ const KanbanBoard = () => {
         qsa: leadData.qsa?.trim() || null,
       };
 
+      // TRANSFERÊNCIA DE TITULARIDADE (SÓ ADMIN)
+      if (user?.role === 'Admin' && leadData.owner_id) {
+        payload.owner_id = leadData.owner_id;
+      }
+
       if (newNoteText.trim()) {
         payload.newNote = {
           text: newNoteText.trim(),
@@ -168,7 +192,12 @@ const KanbanBoard = () => {
       }
 
       await api.put(`/leads/${selectedLead.id}`, payload);
-      setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
+      setToast({ 
+        message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
+          ? 'Lead transferido e atualizado!' 
+          : 'Lead atualizado com sucesso!', 
+        type: 'success' 
+      });
       closeLeadModal();
     } catch (error) {
       console.error('Erro ao salvar:', error.response?.data);
@@ -178,22 +207,18 @@ const KanbanBoard = () => {
     }
   };
 
-  // DRAG & DROP 100% CORRIGIDO
   const handleDrop = async (leadId, newStatus) => {
     const id = String(leadId);
     const lead = leads.find(l => String(l.id) === id);
     if (!lead || lead.status === newStatus) return;
 
     const oldStatus = lead.status;
-
-    // Atualiza UI imediatamente
     setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: newStatus } : l));
 
     try {
       await api.put(`/leads/${id}`, { status: newStatus });
       setToast({ message: `Lead movido para "${newStatus}"!`, type: 'success' });
     } catch (error) {
-      console.error('Erro ao mover lead:', error);
       setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: oldStatus } : l));
       setToast({ message: 'Erro ao mover lead', type: 'error' });
       fetchLeads();
@@ -235,7 +260,6 @@ const KanbanBoard = () => {
         </div>
       </div>
 
-      {/* KANBAN COM COLUNAS DE 176px (55% da original) + DRAG & DROP PERFEITO */}
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
           const statusLeads = leads.filter(l => l.status === status);
@@ -276,7 +300,7 @@ const KanbanBoard = () => {
         })}
       </div>
 
-      {/* MODAL COMPACTO */}
+      {/* MODAL COM TRANSFERÊNCIA DE TITULARIDADE */}
       {isModalOpen && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
@@ -288,6 +312,27 @@ const KanbanBoard = () => {
             </div>
 
             <div className="p-6 space-y-5">
+              {/* CAMPO DE TRANSFERÊNCIA - SÓ ADMIN VÊ */}
+              {user?.role === 'Admin' && (
+                <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
+                  <label className="block text-sm font-bold text-amber-800 mb-2">
+                    <FaUserTie className="inline mr-2" /> Transferir para Vendedor
+                  </label>
+                  <select
+                    value={leadData.owner_id || ''}
+                    onChange={(e) => setLeadData(prev => ({ ...prev, owner_id: e.target.value }))}
+                    className="w-full p-3 border-2 border-amber-300 rounded-lg bg-white font-medium"
+                  >
+                    <option value="">Selecione um vendedor</option>
+                    {users.map(u => (
+                      <option key={u._id} value={u._id}>
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <input value={leadData.name} onChange={e => setLeadData(p => ({...p, name: e.target.value}))} placeholder="Nome" className="p-3 border rounded-lg" />
                 <input value={leadData.phone} onChange={e => setLeadData(p => ({...p, phone: e.target.value}))} placeholder="Telefone" className="p-3 border rounded-lg" />
