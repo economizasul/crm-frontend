@@ -226,10 +226,9 @@ const KanbanBoard = () => {
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-80 bg-gray-100 rounded-xl shadow-lg border-2 border-gray-200 p-4"
+              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData('leadId'), status); }}
-              style={{ minHeight: '600px' }}
+              onDrop={(e) => { e.preventDefault(); handleDrop(e.dataTransfer.getData("leadId"), status); }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
                 {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm">{statusLeads.length}</span>
