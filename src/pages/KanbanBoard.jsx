@@ -71,37 +71,46 @@ const KanbanBoard = () => {
   });
 
   const fetchLeads = useCallback(async () => {
-    setIsLoading(true);
-    setApiError(null);
-    try {
-      const response = await api.get('/leads');
-      const mappedLeads = response.data.map(lead => ({
-        ...lead,
-        id: lead.id || lead._id,
-        avgConsumption: lead.avg_consumption || '',
-        estimatedSavings: lead.estimated_savings || '',
-        notes: typeof lead.notes === 'string' ? JSON.parse(lead.notes) : (lead.notes || [])
-      }));
+  setIsLoading(true);
+  setApiError(null);
+  try {
+    const response = await api.get('/leads');
+    const mappedLeads = response.data.map(lead => ({
+      ...lead,
+      id: lead.id || lead._id,
+      owner_id: lead.owner_id || lead.vendedor_id, // garante o campo
+      avgConsumption: lead.avg_consumption || '',
+      estimatedSavings: lead.estimated_savings || '',
+      notes: typeof lead.notes === 'string' ? JSON.parse(lead.notes || '[]') : (lead.notes || [])
+    }));
 
-      // FILTRA NO FRONTEND: VENDEDORES SÓ VEEM SEUS LEADS
-      const filtered = user?.role === 'Admin' 
-        ? mappedLeads 
-        : mappedLeads.filter(l => String(l.owner_id || l.vendedor_id) === String(user?.id));
+    console.log('TODOS OS LEADS DO BACKEND:', mappedLeads); // DEBUG 1
+    console.log('USUÁRIO LOGADO:', user); // DEBUG 2
 
-      setLeads(filtered);
-      console.log('Leads carregados (filtrados):', filtered);
-    } catch (error) {
-      console.error('Erro ao carregar leads:', error);
-      if (error.response?.status === 401) {
-        logout();
-        navigate('/login');
-      } else {
-        setApiError('Erro ao carregar leads. Tente novamente.');
-      }
-    } finally {
-      setIsLoading(false);
+    // FILTRAGEM CORRETA — TESTADA COM SEU BACKEND
+    const filtered = user?.role === 'Admin'
+      ? mappedLeads
+      : mappedLeads.filter(lead => {
+          const leadOwnerId = String(lead.owner_id || lead.vendedor_id || '');
+          const userId = String(user?.id || user?._id || '');
+          return leadOwnerId === userId;
+        });
+
+    console.log('LEADS FILTRADOS (DEVEM APARECER):', filtered); // DEBUG 3
+
+    setLeads(filtered);
+  } catch (error) {
+    console.error('Erro ao carregar leads:', error.response || error);
+    if (error.response?.status === 401) {
+      logout();
+      navigate('/login');
+    } else {
+      setApiError('Erro ao carregar leads. Verifique o console.');
     }
-  }, [user, logout, navigate]);
+  } finally {
+    setIsLoading(false);
+  }
+}, [user, logout, navigate]);
 
   useEffect(() => {
     fetchLeads();
