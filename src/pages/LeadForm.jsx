@@ -43,17 +43,20 @@ const LeadForm = () => {
     }
   }, [toast]);
 
-  // CARREGA LEAD (COM TOLERÂNCIA A CAMPOS VARIADOS)
+  // CARREGA LEAD + VENDEDORES (INDESTRUTÍVEL — SUPORTA QUALQUER FORMATO)
   useEffect(() => {
-    if (isEditMode) {
-      const loadLead = async () => {
-        try {
-          setLoading(true);
-          const res = await api.get(`/leads/${id}`);
-          const lead = res.data;
+    const loadAllData = async () => {
+      if (!isEditMode && !user) return;
 
-          // NORMALIZA CAMPOS PROBLEMÁTICOS
-          const normalized = {
+      try {
+        setLoading(true);
+
+        // 1. CARREGA LEAD (SE FOR EDIÇÃO)
+        if (isEditMode) {
+          const leadRes = await api.get(`/leads/${id}`);
+          let lead = leadRes.data || {};
+
+          const normalizedLead = {
             ...lead,
             name: lead.name || '',
             phone: lead.phone || '',
@@ -75,38 +78,62 @@ const LeadForm = () => {
               return [];
             })()
           };
-
-          setFormData(normalized);
-        } catch (err) {
-          console.error('Erro ao carregar lead:', err);
-          setToast({ message: 'Lead não encontrado ou erro no servidor', type: 'error' });
-          setTimeout(() => navigate('/leads'), 2000);
-        } finally {
-          setLoading(false);
+          setFormData(normalizedLead);
         }
-      };
-      loadLead();
-    }
-  }, [id, isEditMode, navigate]);
 
-  // CARREGA VENDEDORES COM TRATAMENTO DE ERRO
-  useEffect(() => {
-    if (user?.role === 'Admin') {
-      const loadUsers = async () => {
-        try {
-          const res = await api.get('/users');
-          const sellers = (res.data || [])
-            .filter(u => u.role !== 'Admin' && u._id)
-            .map(u => ({ _id: u._id, name: u.name || 'Sem Nome', email: u.email || 'sem@email.com' }));
-          setUsers(sellers);
-        } catch (err) {
-          console.error('Erro ao carregar vendedores:', err);
-          setToast({ message: 'Erro ao carregar lista de vendedores', type: 'error' });
+        // 2. CARREGA VENDEDORES (SÓ ADMIN) — SUPORTA QUALQUER FORMATO
+        if (user?.role === 'Admin') {
+          try {
+            const usersRes = await api.get('/users');
+            let raw = usersRes.data;
+
+            let usersArray = [];
+
+            // NORMALIZA TODOS OS FORMATOS POSSÍVEIS
+            if (Array.isArray(raw)) {
+              usersArray = raw;
+            } else if (raw && typeof raw === 'object') {
+              if (Array.isArray(raw.users)) usersArray = raw.users;
+              else if (Array.isArray(raw.data)) usersArray = raw.data;
+              else if (Array.isArray(raw.result)) usersArray = raw.result;
+              else if (raw.success && Array.isArray(raw.users)) usersArray = raw.users;
+            } else if (typeof raw === 'string') {
+              try {
+                const parsed = JSON.parse(raw);
+                usersArray = Array.isArray(parsed) ? parsed : (parsed.users || parsed.data || []);
+              } catch (e) {
+                console.error('Erro ao parsear JSON de usuários');
+              }
+            }
+
+            const sellers = (Array.isArray(usersArray) ? usersArray : [])
+              .filter(u => u && u.role !== 'Admin' && (u._id || u.id))
+              .map(u => ({
+                _id: u._id || u.id,
+                name: u.name || u.nome || 'Sem Nome',
+                email: u.email || 'sem@email.com'
+              }));
+
+            setUsers(sellers);
+
+            if (sellers.length === 0) {
+              console.warn('Nenhum vendedor encontrado após normalização');
+            }
+          } catch (err) {
+            console.error('Erro ao carregar vendedores:', err);
+            setToast({ message: 'Erro ao carregar vendedores', type: 'error' });
+          }
         }
-      };
-      loadUsers();
-    }
-  }, [user]);
+      } catch (err) {
+        console.error('Erro crítico ao carregar dados:', err);
+        setToast({ message: 'Erro ao carregar dados do servidor', type: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, [id, isEditMode, user]);
 
   // ATUALIZA owner_id NO CADASTRO NOVO
   useEffect(() => {
@@ -156,12 +183,10 @@ const LeadForm = () => {
       qsa: formData.qsa?.trim() || null,
     };
 
-    // TRANSFERÊNCIA DE TITULARIDADE
     if (user?.role === 'Admin' && formData.owner_id) {
       payload.owner_id = formData.owner_id;
     }
 
-    // NOTA AUTOMÁTICA OU NOVA NOTA
     if (newNote.trim()) {
       payload.newNote = {
         text: newNote.trim(),
@@ -187,7 +212,7 @@ const LeadForm = () => {
       setTimeout(() => navigate('/leads'), 1500);
     } catch (error) {
       console.error('Erro ao salvar:', error.response?.data);
-      const msg = error.response?.data?.error || 'Erro no servidor. Tente novamente.';
+      const msg = error.response?.data?.error || 'Erro no servidor';
       setToast({ message: msg, type: 'error' });
     } finally {
       setSaving(false);
@@ -225,11 +250,8 @@ const LeadForm = () => {
 
   return (
     <div className="p-8 max-w-7xl mx-auto bg-gray-50 min-h-screen">
-      {/* TOAST */}
       {toast && (
-        <div className={`fixed top-6 right-6 z-50 p-6 rounded-2xl shadow-2xl text-white font-bold text-xl transition-all animate-bounce ${
-          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        }`}>
+        <div className={`fixed top-6 right-6 z-50 p-6 rounded-2xl shadow-2xl text-white font-bold text-xl transition-all animate-bounce ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
           {toast.message}
           <button onClick={() => setToast(null)} className="ml-6 text-3xl">×</button>
         </div>
@@ -259,7 +281,7 @@ const LeadForm = () => {
             >
               <option value="">Selecione um vendedor</option>
               {users.length === 0 ? (
-                <option disabled>Carregando vendedores...</option>
+                <option disabled>Nenhum vendedor disponível</option>
               ) : (
                 users.map(u => (
                   <option key={u._id} value={u._id}>
@@ -271,9 +293,7 @@ const LeadForm = () => {
           </div>
         )}
 
-        {/* RESTANTE DO FORMULÁRIO (igual ao seu original, só com mais estilo) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Todos os campos mantidos exatamente como você tinha */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nome Completo <span className="text-red-500">*</span></label>
             <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Mercado Lead" className={`w-full p-4 border-2 rounded-xl text-lg transition ${errors.name ? 'border-red-500' : 'border-gray-300 focus:border-indigo-500'}`} />
@@ -284,7 +304,6 @@ const LeadForm = () => {
             <input type="text" name="phone" value={formData.phone} onChange={handleChange} placeholder="45 999000000" className={`w-full p-4 border-2 rounded-xl text-lg transition ${errors.phone ? 'border-red-500' : 'border-gray-300 focus:border-indigo-500'}`} />
             {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
           </div>
-          {/* ... (todos os outros campos exatamente como antes) */}
           <div><label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
             <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="contato@exemplo.com" className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500" />
           </div>
@@ -328,7 +347,6 @@ const LeadForm = () => {
           </div>
         </div>
 
-        {/* NOTAS + WHATSAPP + MAPS + BOTÕES */}
         {isEditMode && (
           <div className="mt-12 bg-gradient-to-b from-gray-50 to-gray-100 p-10 rounded-3xl border-4 border-indigo-200">
             <h3 className="text-3xl font-black mb-8 text-indigo-900">Histórico de Interações</h3>
