@@ -1,4 +1,4 @@
-// src/components/FilterBar.jsx
+// src/components/ui/FilterBar.jsx
 
 import React from 'react';
 import { FaFileCsv, FaFilePdf, FaFilter, FaRedo } from 'react-icons/fa';
