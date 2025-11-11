@@ -177,54 +177,54 @@ const KanbanBoard = () => {
   };
 
   const saveLeadChanges = async () => {
-    if (!selectedLead) return;
-    setSaving(true);
+  if (!selectedLead) return;
+  setSaving(true);
 
-    try {
-      const payload = {
-        name: leadData.name?.trim(),
-        phone: leadData.phone?.replace(/\D/g, ''),
-        email: leadData.email?.trim() || null,
-        document: leadData.document?.trim() || null,
-        address: leadData.address?.trim() || '',
-        status: leadData.status,
-        origin: leadData.origin?.trim() || '',
-        uc: leadData.uc?.trim() || null,
-        avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-        estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-        qsa: leadData.qsa?.trim() || null,
-      };
+  try {
+    const payload = {
+      name: leadData.name?.trim(),
+      phone: leadData.phone?.replace(/\D/g, ''),
+      email: leadData.email?.trim() || null,
+      document: leadData.document?.trim() || null,
+      address: leadData.address?.trim() || '',
+      status: leadData.status,
+      origin: leadData.origin?.trim() || '',
+      uc: leadData.uc?.trim() || null,
+      avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+      estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+      qsa: leadData.qsa?.trim() || null,
+    };
 
-      // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO
-      if (leadData.owner_id && leadData.owner_id !== '') {
-        payload.owner_id = leadData.owner_id;
-      }
-
-      if (newNoteText.trim()) {
-        payload.newNote = {
-          text: newNoteText.trim(),
-          timestamp: Date.now(),
-          user: user?.name || 'Usuário'
-        };
-      }
-
-      await api.put(`/leads/${selectedLead.id}`, payload);
-      fetchLeads();
-
-      setToast({ 
-        message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
-          ? 'Lead transferido com sucesso!' 
-          : 'Lead atualizado!', 
-        type: 'success' 
-      });
-      closeLeadModal();
-    } catch (error) {
-      console.error('Erro ao salvar:', error.response?.data);
-      setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
-    } finally {
-      setSaving(false);
+    // SEMPRE ENVIA owner_id SE ESTIVER NO leadData
+    if (leadData.owner_id && leadData.owner_id !== '') {
+      payload.owner_id = leadData.owner_id;
     }
-  };
+
+    if (newNoteText.trim()) {
+      payload.newNote = {
+        text: newNoteText.trim(),
+        timestamp: Date.now(),
+        user: user?.name || 'Usuário'
+      };
+    }
+
+    await api.put(`/leads/${selectedLead.id}`, payload);
+    fetchLeads();
+
+    setToast({ 
+      message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
+        ? 'Lead transferido com sucesso!' 
+        : 'Lead atualizado!', 
+      type: 'success' 
+    });
+    closeLeadModal();
+  } catch (error) {
+    console.error('Erro ao salvar:', error.response?.data);
+    setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDrop = async (leadId, newStatus) => {
     const id = String(leadId);

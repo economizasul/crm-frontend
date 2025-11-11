@@ -137,60 +137,60 @@ const LeadForm = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+  e.preventDefault();
+  if (!validate()) return;
 
-    setSaving(true);
+  setSaving(true);
 
-    const payload = {
-      name: formData.name.trim(),
-      phone: formData.phone.replace(/\D/g, ''),
-      email: formData.email?.trim() || null,
-      document: formData.document?.trim() || null,
-      address: formData.address?.trim() || null,
-      status: formData.status,
-      origin: formData.origin,
-      uc: formData.uc?.trim() || null,
-      avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
-      estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
-      qsa: formData.qsa?.trim() || null,
-    };
-
-    // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO
-    if (formData.owner_id && formData.owner_id !== '') {
-      payload.owner_id = formData.owner_id;
-    }
-
-    if (newNote.trim()) {
-      payload.newNote = {
-        text: newNote.trim(),
-        timestamp: Date.now(),
-        user: user?.name || 'Usuário'
-      };
-    } else if (!isEditMode) {
-      payload.newNote = {
-        text: `Lead criado via formulário (Origem: ${formData.origin})`,
-        timestamp: Date.now(),
-        user: user?.name || 'Sistema'
-      };
-    }
-
-    try {
-      if (isEditMode) {
-        await api.put(`/leads/${id}`, payload);
-        setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
-      } else {
-        await api.post('/leads', payload);
-        setToast({ message: 'Lead criado com sucesso!', type: 'success' });
-      }
-      setTimeout(() => navigate('/leads'), 1500);
-    } catch (error) {
-      setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
-    } finally {
-      setSaving(false);
-      setNewNote('');
-    }
+  const payload = {
+    name: formData.name.trim(),
+    phone: formData.phone.replace(/\D/g, ''),
+    email: formData.email?.trim() || null,
+    document: formData.document?.trim() || null,
+    address: formData.address?.trim() || null,
+    status: formData.status,
+    origin: formData.origin,
+    uc: formData.uc?.trim() || null,
+    avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
+    estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
+    qsa: formData.qsa?.trim() || null,
   };
+
+  // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO NO FORMULÁRIO
+  if (formData.owner_id && formData.owner_id !== '') {
+    payload.owner_id = formData.owner_id;
+  }
+
+  if (newNote.trim()) {
+    payload.newNote = {
+      text: newNote.trim(),
+      timestamp: Date.now(),
+      user: user?.name || 'Usuário'
+    };
+  } else if (!isEditMode) {
+    payload.newNote = {
+      text: `Lead criado via formulário (Origem: ${formData.origin})`,
+      timestamp: Date.now(),
+      user: user?.name || 'Sistema'
+    };
+  }
+
+  try {
+    if (isEditMode) {
+      await api.put(`/leads/${id}`, payload);
+      setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
+    } else {
+      await api.post('/leads', payload);
+      setToast({ message: 'Lead criado com sucesso!', type: 'success' });
+    }
+    setTimeout(() => navigate('/leads'), 1500);
+  } catch (error) {
+    setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
+  } finally {
+    setSaving(false);
+    setNewNote('');
+  }
+};
 
   const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
   const getWhatsAppLink = () => {
