@@ -8,7 +8,7 @@ import { FaChartBar } from 'react-icons/fa'; // Mantido para o ícone do título
 
 
 const initialFilters = { 
-    startDate: '2024-01-01', 
+    startDate: new Date().toISOString().split('T')[0], 
     endDate: new Date().toISOString().split('T')[0], // Data de hoje
     vendorId: 'all', 
     source: 'all' 
