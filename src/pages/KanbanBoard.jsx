@@ -80,21 +80,26 @@ const KanbanBoard = () => {
     origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
   });
 
-  // CARREGA VENDEDORES (SÓ ADMIN)
+  // CARREGA TODOS OS USUÁRIOS (INCLUI ADMIN)
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'Admin') return;
     try {
       const res = await api.get('/users');
-      const sellers = (res.data || [])
-        .filter(u => u && u.role !== 'Admin' && u._id)
-        .map(u => ({ _id: u._id, name: u.name || 'Sem Nome', email: u.email || 'sem@email.com' }));
-      setUsers(sellers);
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.users || res.data?.data || []);
+      const allUsers = raw
+        .filter(u => u && (u._id || u.id))
+        .map(u => ({
+          _id: u._id || u.id,
+          name: u.name || u.nome || 'Sem Nome',
+          email: u.email || 'sem@email.com'
+        }));
+      setUsers(allUsers);
     } catch (err) {
-      console.error('Erro ao carregar vendedores:', err);
+      console.error('Erro ao carregar usuários:', err);
     }
   }, [user]);
 
-  // CARREGA LEADS COM FILTRO CORRETO POR owner_id
+  // CARREGA LEADS COM FILTRO CORRETO
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -102,7 +107,7 @@ const KanbanBoard = () => {
       const rawLeads = response.data || [];
 
       const userId = user?._id || user?.id;
-      if (!userId) {
+      if (userId === undefined) {
         setLeads([]);
         setIsLoading(false);
         return;
@@ -114,7 +119,6 @@ const KanbanBoard = () => {
         phone: lead.phone || '',
         email: lead.email || '',
         status: lead.status || 'Novo',
-        // PRIORIZA owner_id → ownerId → _id do owner
         owner_id: lead.owner_id || lead.ownerId || lead.owner?._id || '',
         ownerName: lead.ownerName || lead.owner?.name || 'Desconhecido',
         document: lead.document || '',
@@ -130,7 +134,6 @@ const KanbanBoard = () => {
         createdAt: lead.createdAt,
       }));
 
-      // FILTRA CORRETAMENTE PELO _id DO USUÁRIO
       const filteredLeads = user.role === 'Admin'
         ? mappedLeads
         : mappedLeads.filter(lead => String(lead.owner_id) === String(userId));
@@ -170,7 +173,7 @@ const KanbanBoard = () => {
     setIsModalOpen(false);
     setSelectedLead(null);
     setNewNoteText('');
-    fetchLeads(); // RECARREGA APÓS FECHAR
+    fetchLeads();
   };
 
   const saveLeadChanges = async () => {
@@ -192,8 +195,8 @@ const KanbanBoard = () => {
         qsa: leadData.qsa?.trim() || null,
       };
 
-      // TRANSFERÊNCIA NO KANBAN (SÓ ADMIN)
-      if (user?.role === 'Admin' && leadData.owner_id) {
+      // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO
+      if (leadData.owner_id && leadData.owner_id !== '') {
         payload.owner_id = leadData.owner_id;
       }
 
@@ -206,8 +209,6 @@ const KanbanBoard = () => {
       }
 
       await api.put(`/leads/${selectedLead.id}`, payload);
-
-      // RECARREGA IMEDIATAMENTE
       fetchLeads();
 
       setToast({ 
@@ -332,18 +333,18 @@ const KanbanBoard = () => {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* TRANSFERÊNCIA NO KANBAN */}
+              {/* TRANSFERÊNCIA - ADMIN PODE TRANSFERIR PARA QUALQUER UM (INCLUI ADMIN) */}
               {user?.role === 'Admin' && (
                 <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
                   <label className="block text-sm font-bold text-amber-800 mb-2">
-                    <FaUserTie className="inline mr-2" /> Transferir para Vendedor
+                    <FaUserTie className="inline mr-2" /> Transferir para
                   </label>
                   <select
                     value={leadData.owner_id || ''}
                     onChange={(e) => setLeadData(prev => ({ ...prev, owner_id: e.target.value }))}
                     className="w-full p-3 border-2 border-amber-300 rounded-lg bg-white font-medium"
                   >
-                    <option value="">Selecione um vendedor</option>
+                    <option value="">Selecione um usuário</option>
                     {users.map(u => (
                       <option key={u._id} value={u._id}>
                         {u.name} ({u.email})

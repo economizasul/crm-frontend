@@ -24,7 +24,7 @@ const LeadForm = () => {
     avg_consumption: '',
     estimated_savings: '',
     qsa: '',
-    owner_id: user?.id || user?._id || '',
+    owner_id: '',
     notes: []
   });
 
@@ -35,7 +35,6 @@ const LeadForm = () => {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(isEditMode);
 
-  // TOAST COM AUTO CLOSE
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 4000);
@@ -43,7 +42,6 @@ const LeadForm = () => {
     }
   }, [toast]);
 
-  // CARREGA LEAD + VENDEDORES (INDESTRUTÍVEL — SUPORTA QUALQUER FORMATO)
   useEffect(() => {
     const loadAllData = async () => {
       if (!isEditMode && !user) return;
@@ -51,7 +49,6 @@ const LeadForm = () => {
       try {
         setLoading(true);
 
-        // 1. CARREGA LEAD (SE FOR EDIÇÃO)
         if (isEditMode) {
           const leadRes = await api.get(`/leads/${id}`);
           let lead = leadRes.data || {};
@@ -69,64 +66,40 @@ const LeadForm = () => {
             avg_consumption: lead.avgConsumption || lead.avg_consumption || '',
             estimated_savings: lead.estimatedSavings || lead.estimated_savings || '',
             qsa: lead.qsa || '',
-            owner_id: lead.owner_id || lead.ownerId || lead.owner_id || '',
-            notes: (() => {
-              if (Array.isArray(lead.notes)) return lead.notes;
-              if (typeof lead.notes === 'string') {
-                try { return JSON.parse(lead.notes); } catch { return []; }
-              }
-              return [];
-            })()
+            owner_id: lead.owner_id || lead.ownerId || lead.owner?._id || '',
+            notes: Array.isArray(lead.notes) 
+              ? lead.notes 
+              : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : [])
           };
           setFormData(normalizedLead);
         }
 
-        // 2. CARREGA VENDEDORES (SÓ ADMIN) — SUPORTA QUALQUER FORMATO
+        // CARREGA TODOS OS USUÁRIOS (INCLUI ADMIN)
         if (user?.role === 'Admin') {
           try {
             const usersRes = await api.get('/users');
             let raw = usersRes.data;
 
             let usersArray = [];
+            if (Array.isArray(raw)) usersArray = raw;
+            else if (raw?.users) usersArray = raw.users;
+            else if (raw?.data) usersArray = raw.data;
 
-            // NORMALIZA TODOS OS FORMATOS POSSÍVEIS
-            if (Array.isArray(raw)) {
-              usersArray = raw;
-            } else if (raw && typeof raw === 'object') {
-              if (Array.isArray(raw.users)) usersArray = raw.users;
-              else if (Array.isArray(raw.data)) usersArray = raw.data;
-              else if (Array.isArray(raw.result)) usersArray = raw.result;
-              else if (raw.success && Array.isArray(raw.users)) usersArray = raw.users;
-            } else if (typeof raw === 'string') {
-              try {
-                const parsed = JSON.parse(raw);
-                usersArray = Array.isArray(parsed) ? parsed : (parsed.users || parsed.data || []);
-              } catch (e) {
-                console.error('Erro ao parsear JSON de usuários');
-              }
-            }
-
-            const sellers = (Array.isArray(usersArray) ? usersArray : [])
-              .filter(u => u && u.role !== 'Admin' && (u._id || u.id))
+            const allUsers = usersArray
+              .filter(u => u && (u._id || u.id))
               .map(u => ({
                 _id: u._id || u.id,
                 name: u.name || u.nome || 'Sem Nome',
                 email: u.email || 'sem@email.com'
               }));
 
-            setUsers(sellers);
-
-            if (sellers.length === 0) {
-              console.warn('Nenhum vendedor encontrado após normalização');
-            }
+            setUsers(allUsers);
           } catch (err) {
-            console.error('Erro ao carregar vendedores:', err);
-            setToast({ message: 'Erro ao carregar vendedores', type: 'error' });
+            console.error('Erro ao carregar usuários:', err);
           }
         }
       } catch (err) {
-        console.error('Erro crítico ao carregar dados:', err);
-        setToast({ message: 'Erro ao carregar dados do servidor', type: 'error' });
+        setToast({ message: 'Erro ao carregar dados', type: 'error' });
       } finally {
         setLoading(false);
       }
@@ -135,12 +108,12 @@ const LeadForm = () => {
     loadAllData();
   }, [id, isEditMode, user]);
 
-  // ATUALIZA owner_id NO CADASTRO NOVO
+  // SETA owner_id DO CRIADOR
   useEffect(() => {
-    if (!isEditMode && (user?.id || user?._id)) {
+    if (!isEditMode && user) {
       setFormData(prev => ({
         ...prev,
-        owner_id: user.id || user._id || ''
+        owner_id: user._id || user.id || ''
       }));
     }
   }, [user, isEditMode]);
@@ -156,7 +129,7 @@ const LeadForm = () => {
     if (!formData.name?.trim()) newErrors.name = 'Nome é obrigatório';
     const cleanPhone = formData.phone?.replace(/\D/g, '') || '';
     if (!cleanPhone) newErrors.phone = 'Telefone é obrigatório';
-    else if (cleanPhone.length < 10 || cleanPhone.length > 11) newErrors.phone = 'Telefone inválido';
+    else if (cleanPhone.length < 10) newErrors.phone = 'Telefone inválido';
     if (!formData.status) newErrors.status = 'Status é obrigatório';
     if (!formData.origin) newErrors.origin = 'Origem é obrigatória';
     setErrors(newErrors);
@@ -183,7 +156,8 @@ const LeadForm = () => {
       qsa: formData.qsa?.trim() || null,
     };
 
-    if (user?.role === 'Admin' && formData.owner_id) {
+    // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO
+    if (formData.owner_id && formData.owner_id !== '') {
       payload.owner_id = formData.owner_id;
     }
 
@@ -211,9 +185,7 @@ const LeadForm = () => {
       }
       setTimeout(() => navigate('/leads'), 1500);
     } catch (error) {
-      console.error('Erro ao salvar:', error.response?.data);
-      const msg = error.response?.data?.error || 'Erro no servidor';
-      setToast({ message: msg, type: 'error' });
+      setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
     } finally {
       setSaving(false);
       setNewNote('');
@@ -268,7 +240,7 @@ const LeadForm = () => {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-3xl p-12">
 
-        {/* TRANSFERÊNCIA */}
+        {/* TRANSFERÊNCIA - ADMIN PODE TRANSFERIR PARA QUALQUER UM */}
         {user?.role === 'Admin' && isEditMode && (
           <div className="mb-12 bg-gradient-to-r from-amber-100 to-orange-100 border-4 border-amber-500 rounded-3xl p-10">
             <label className="flex items-center gap-4 text-3xl font-bold text-amber-900 mb-6">
@@ -279,20 +251,17 @@ const LeadForm = () => {
               onChange={(e) => setFormData({ ...formData, owner_id: e.target.value })}
               className="w-full p-6 border-4 border-amber-600 rounded-2xl text-xl font-bold bg-white shadow-inner"
             >
-              <option value="">Selecione um vendedor</option>
-              {users.length === 0 ? (
-                <option disabled>Nenhum vendedor disponível</option>
-              ) : (
-                users.map(u => (
-                  <option key={u._id} value={u._id}>
-                    {u.name} ({u.email})
-                  </option>
-                ))
-              )}
+              <option value="">Selecione um usuário</option>
+              {users.map(u => (
+                <option key={u._id} value={u._id}>
+                  {u.name} ({u.email})
+                </option>
+              ))}
             </select>
           </div>
         )}
 
+        {/* RESTANTE DO FORMULÁRIO... (igual ao anterior, sem alterações) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nome Completo <span className="text-red-500">*</span></label>
