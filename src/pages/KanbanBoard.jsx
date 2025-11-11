@@ -80,16 +80,15 @@ const KanbanBoard = () => {
     origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
   });
 
-  // CARREGA TODOS OS USUÁRIOS (INCLUI ADMIN)
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'Admin') return;
     try {
       const res = await api.get('/users');
       const raw = Array.isArray(res.data) ? res.data : (res.data?.users || res.data?.data || []);
       const allUsers = raw
-        .filter(u => u && (u._id || u.id))
+        .filter(u => u && (u.id || u._id))
         .map(u => ({
-          _id: u._id || u.id,
+          id: u.id || u._id,
           name: u.name || u.nome || 'Sem Nome',
           email: u.email || 'sem@email.com'
         }));
@@ -99,14 +98,13 @@ const KanbanBoard = () => {
     }
   }, [user]);
 
-  // CARREGA LEADS COM FILTRO CORRETO
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await api.get('/leads');
       const rawLeads = response.data || [];
 
-      const userId = user?._id || user?.id;
+      const userId = user?.id || user?._id;
       if (userId === undefined) {
         setLeads([]);
         setIsLoading(false);
@@ -114,12 +112,12 @@ const KanbanBoard = () => {
       }
 
       const mappedLeads = rawLeads.map(lead => ({
-        id: lead._id || lead.id,
+        id: lead.id,
         name: lead.name || 'Sem nome',
         phone: lead.phone || '',
         email: lead.email || '',
         status: lead.status || 'Novo',
-        owner_id: lead.owner_id || lead.ownerId || lead.owner?._id || '',
+        owner_id: lead.owner_id || lead.ownerId || lead.owner?.id || '',
         ownerName: lead.ownerName || lead.owner?.name || 'Desconhecido',
         document: lead.document || '',
         uc: lead.uc || '',
@@ -177,54 +175,54 @@ const KanbanBoard = () => {
   };
 
   const saveLeadChanges = async () => {
-  if (!selectedLead) return;
-  setSaving(true);
+    if (!selectedLead) return;
+    setSaving(true);
 
-  try {
-    const payload = {
-      name: leadData.name?.trim(),
-      phone: leadData.phone?.replace(/\D/g, ''),
-      email: leadData.email?.trim() || null,
-      document: leadData.document?.trim() || null,
-      address: leadData.address?.trim() || '',
-      status: leadData.status,
-      origin: leadData.origin?.trim() || '',
-      uc: leadData.uc?.trim() || null,
-      avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-      estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-      qsa: leadData.qsa?.trim() || null,
-    };
-
-    // SEMPRE ENVIA owner_id SE ESTIVER NO leadData
-    if (leadData.owner_id && leadData.owner_id !== '') {
-      payload.owner_id = leadData.owner_id;
-    }
-
-    if (newNoteText.trim()) {
-      payload.newNote = {
-        text: newNoteText.trim(),
-        timestamp: Date.now(),
-        user: user?.name || 'Usuário'
+    try {
+      const payload = {
+        name: leadData.name?.trim(),
+        phone: leadData.phone?.replace(/\D/g, ''),
+        email: leadData.email?.trim() || null,
+        document: leadData.document?.trim() || null,
+        address: leadData.address?.trim() || '',
+        status: leadData.status,
+        origin: leadData.origin?.trim() || '',
+        uc: leadData.uc?.trim() || null,
+        avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
+        estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
+        qsa: leadData.qsa?.trim() || null,
       };
+
+      // ENVIA owner_id COMO INTEGER
+      if (leadData.owner_id && leadData.owner_id !== '') {
+        payload.owner_id = parseInt(leadData.owner_id, 10);
+      }
+
+      if (newNoteText.trim()) {
+        payload.newNote = {
+          text: newNoteText.trim(),
+          timestamp: Date.now(),
+          user: user?.name || 'Usuário'
+        };
+      }
+
+      await api.put(`/leads/${selectedLead.id}`, payload);
+      fetchLeads();
+
+      setToast({ 
+        message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
+          ? 'Lead transferido com sucesso!' 
+          : 'Lead atualizado!', 
+        type: 'success' 
+      });
+      closeLeadModal();
+    } catch (error) {
+      console.error('Erro ao salvar:', error.response?.data);
+      setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
+    } finally {
+      setSaving(false);
     }
-
-    await api.put(`/leads/${selectedLead.id}`, payload);
-    fetchLeads();
-
-    setToast({ 
-      message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
-        ? 'Lead transferido com sucesso!' 
-        : 'Lead atualizado!', 
-      type: 'success' 
-    });
-    closeLeadModal();
-  } catch (error) {
-    console.error('Erro ao salvar:', error.response?.data);
-    setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const handleDrop = async (leadId, newStatus) => {
     const id = String(leadId);
@@ -321,7 +319,6 @@ const KanbanBoard = () => {
         })}
       </div>
 
-      {/* MODAL COM TRANSFERÊNCIA */}
       {isModalOpen && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
@@ -333,7 +330,6 @@ const KanbanBoard = () => {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* TRANSFERÊNCIA - ADMIN PODE TRANSFERIR PARA QUALQUER UM (INCLUI ADMIN) */}
               {user?.role === 'Admin' && (
                 <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
                   <label className="block text-sm font-bold text-amber-800 mb-2">
@@ -346,7 +342,7 @@ const KanbanBoard = () => {
                   >
                     <option value="">Selecione um usuário</option>
                     {users.map(u => (
-                      <option key={u._id} value={u._id}>
+                      <option key={u.id} value={u.id}>
                         {u.name} ({u.email})
                       </option>
                     ))}
@@ -354,6 +350,7 @@ const KanbanBoard = () => {
                 </div>
               )}
 
+              {/* RESTANTE DO MODAL (SEM MUDANÇAS) */}
               <div className="grid grid-cols-2 gap-4">
                 <input value={leadData.name} onChange={e => setLeadData(p => ({...p, name: e.target.value}))} placeholder="Nome" className="p-3 border rounded-lg" />
                 <input value={leadData.phone} onChange={e => setLeadData(p => ({...p, phone: e.target.value}))} placeholder="Telefone" className="p-3 border rounded-lg" />

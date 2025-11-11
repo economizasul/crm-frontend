@@ -63,10 +63,10 @@ const LeadForm = () => {
             status: lead.status || 'Novo',
             origin: lead.origin || 'Orgânico',
             uc: lead.uc || '',
-            avg_consumption: lead.avgConsumption || lead.avg_consumption || '',
-            estimated_savings: lead.estimatedSavings || lead.estimated_savings || '',
+            avg_consumption: lead.avg_consumption || lead.avgConsumption || '',
+            estimated_savings: lead.estimated_savings || lead.estimatedSavings || '',
             qsa: lead.qsa || '',
-            owner_id: lead.owner_id || lead.ownerId || lead.owner?._id || '',
+            owner_id: lead.owner_id || lead.ownerId || lead.owner?.id || '',
             notes: Array.isArray(lead.notes) 
               ? lead.notes 
               : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : [])
@@ -74,7 +74,6 @@ const LeadForm = () => {
           setFormData(normalizedLead);
         }
 
-        // CARREGA TODOS OS USUÁRIOS (INCLUI ADMIN)
         if (user?.role === 'Admin') {
           try {
             const usersRes = await api.get('/users');
@@ -86,9 +85,9 @@ const LeadForm = () => {
             else if (raw?.data) usersArray = raw.data;
 
             const allUsers = usersArray
-              .filter(u => u && (u._id || u.id))
+              .filter(u => u && (u.id || u._id))
               .map(u => ({
-                _id: u._id || u.id,
+                id: u.id || u._id,
                 name: u.name || u.nome || 'Sem Nome',
                 email: u.email || 'sem@email.com'
               }));
@@ -108,12 +107,11 @@ const LeadForm = () => {
     loadAllData();
   }, [id, isEditMode, user]);
 
-  // SETA owner_id DO CRIADOR
   useEffect(() => {
     if (!isEditMode && user) {
       setFormData(prev => ({
         ...prev,
-        owner_id: user._id || user.id || ''
+        owner_id: user.id || user._id || ''
       }));
     }
   }, [user, isEditMode]);
@@ -137,60 +135,60 @@ const LeadForm = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validate()) return;
+    e.preventDefault();
+    if (!validate()) return;
 
-  setSaving(true);
+    setSaving(true);
 
-  const payload = {
-    name: formData.name.trim(),
-    phone: formData.phone.replace(/\D/g, ''),
-    email: formData.email?.trim() || null,
-    document: formData.document?.trim() || null,
-    address: formData.address?.trim() || null,
-    status: formData.status,
-    origin: formData.origin,
-    uc: formData.uc?.trim() || null,
-    avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
-    estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
-    qsa: formData.qsa?.trim() || null,
-  };
-
-  // SEMPRE ENVIA owner_id SE ESTIVER PREENCHIDO NO FORMULÁRIO
-  if (formData.owner_id && formData.owner_id !== '') {
-    payload.owner_id = formData.owner_id;
-  }
-
-  if (newNote.trim()) {
-    payload.newNote = {
-      text: newNote.trim(),
-      timestamp: Date.now(),
-      user: user?.name || 'Usuário'
+    const payload = {
+      name: formData.name.trim(),
+      phone: formData.phone.replace(/\D/g, ''),
+      email: formData.email?.trim() || null,
+      document: formData.document?.trim() || null,
+      address: formData.address?.trim() || null,
+      status: formData.status,
+      origin: formData.origin,
+      uc: formData.uc?.trim() || null,
+      avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
+      estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
+      qsa: formData.qsa?.trim() || null,
     };
-  } else if (!isEditMode) {
-    payload.newNote = {
-      text: `Lead criado via formulário (Origem: ${formData.origin})`,
-      timestamp: Date.now(),
-      user: user?.name || 'Sistema'
-    };
-  }
 
-  try {
-    if (isEditMode) {
-      await api.put(`/leads/${id}`, payload);
-      setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
-    } else {
-      await api.post('/leads', payload);
-      setToast({ message: 'Lead criado com sucesso!', type: 'success' });
+    // ENVIA owner_id COMO INTEGER
+    if (formData.owner_id && formData.owner_id !== '') {
+      payload.owner_id = parseInt(formData.owner_id, 10);
     }
-    setTimeout(() => navigate('/leads'), 1500);
-  } catch (error) {
-    setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
-  } finally {
-    setSaving(false);
-    setNewNote('');
-  }
-};
+
+    if (newNote.trim()) {
+      payload.newNote = {
+        text: newNote.trim(),
+        timestamp: Date.now(),
+        user: user?.name || 'Usuário'
+      };
+    } else if (!isEditMode) {
+      payload.newNote = {
+        text: `Lead criado via formulário (Origem: ${formData.origin})`,
+        timestamp: Date.now(),
+        user: user?.name || 'Sistema'
+      };
+    }
+
+    try {
+      if (isEditMode) {
+        await api.put(`/leads/${id}`, payload);
+        setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
+      } else {
+        await api.post('/leads', payload);
+        setToast({ message: 'Lead criado com sucesso!', type: 'success' });
+      }
+      setTimeout(() => navigate('/leads'), 1500);
+    } catch (error) {
+      setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
+    } finally {
+      setSaving(false);
+      setNewNote('');
+    }
+  };
 
   const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
   const getWhatsAppLink = () => {
@@ -240,7 +238,7 @@ const LeadForm = () => {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-3xl p-12">
 
-        {/* TRANSFERÊNCIA - ADMIN PODE TRANSFERIR PARA QUALQUER UM */}
+        {/* TRANSFERÊNCIA */}
         {user?.role === 'Admin' && isEditMode && (
           <div className="mb-12 bg-gradient-to-r from-amber-100 to-orange-100 border-4 border-amber-500 rounded-3xl p-10">
             <label className="flex items-center gap-4 text-3xl font-bold text-amber-900 mb-6">
@@ -253,7 +251,7 @@ const LeadForm = () => {
             >
               <option value="">Selecione um usuário</option>
               {users.map(u => (
-                <option key={u._id} value={u._id}>
+                <option key={u.id} value={u.id}>
                   {u.name} ({u.email})
                 </option>
               ))}
@@ -261,7 +259,7 @@ const LeadForm = () => {
           </div>
         )}
 
-        {/* RESTANTE DO FORMULÁRIO... (igual ao anterior, sem alterações) */}
+        {/* RESTANTE DO FORMULÁRIO (SEM MUDANÇAS) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Nome Completo <span className="text-red-500">*</span></label>
