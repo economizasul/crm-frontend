@@ -34,8 +34,7 @@ const LeadCard = ({ lead, onClick }) => (
     className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
     draggable="true"
     onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', lead.id);
-      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('leadId', String(lead.id)); // GARANTE STRING
       e.currentTarget.style.opacity = '0.5';
     }}
     onDragEnd={(e) => {
@@ -134,7 +133,7 @@ const KanbanBoard = () => {
 
       const filteredLeads = user.role === 'Admin'
         ? mappedLeads
-        : mappedLeads.filter(lead => String(lead.owner_id) === String(userId));
+        : mappedLeads.filter(lead => Number(lead.owner_id) === Number(userId));
 
       setLeads(filteredLeads);
     } catch (error) {
@@ -171,7 +170,7 @@ const KanbanBoard = () => {
     setIsModalOpen(false);
     setSelectedLead(null);
     setNewNoteText('');
-    fetchLeads();
+    fetchLeads(); // RECARREGA APÓS FECHAR
   };
 
   const saveLeadChanges = async () => {
@@ -193,7 +192,6 @@ const KanbanBoard = () => {
         qsa: leadData.qsa?.trim() || null,
       };
 
-      // ENVIA owner_id COMO INTEGER
       if (leadData.owner_id && leadData.owner_id !== '') {
         payload.owner_id = parseInt(leadData.owner_id, 10);
       }
@@ -207,7 +205,9 @@ const KanbanBoard = () => {
       }
 
       await api.put(`/leads/${selectedLead.id}`, payload);
-      fetchLeads();
+      
+      // RECARREGA A LISTA
+      await fetchLeads();
 
       setToast({ 
         message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
@@ -225,21 +225,25 @@ const KanbanBoard = () => {
   };
 
   const handleDrop = async (leadId, newStatus) => {
-    const id = String(leadId);
-    const lead = leads.find(l => String(l.id) === id);
+    const id = Number(leadId); // Garante número
+    const lead = leads.find(l => l.id === id);
     if (!lead || lead.status === newStatus) return;
 
     const oldStatus = lead.status;
-    setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: newStatus } : l));
+
+    // Atualiza UI imediatamente
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
 
     try {
       await api.put(`/leads/${id}`, { status: newStatus });
       setToast({ message: `Lead movido para "${newStatus}"!`, type: 'success' });
     } catch (error) {
-      setLeads(prev => prev.map(l => String(l.id) === id ? { ...l, status: oldStatus } : l));
+      // Reverte UI
+      setLeads(prev => prev.map(l => l.id === id ? { ...l, status: oldStatus } : l));
       setToast({ message: 'Erro ao mover lead', type: 'error' });
-      fetchLeads();
     }
+    // SEMPRE RECARREGA
+    fetchLeads();
   };
 
   const getGoogleMapsLink = () => leadData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(leadData.address)}` : null;
@@ -319,6 +323,7 @@ const KanbanBoard = () => {
         })}
       </div>
 
+      {/* MODAL COM TRANSFERÊNCIA */}
       {isModalOpen && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
@@ -350,7 +355,6 @@ const KanbanBoard = () => {
                 </div>
               )}
 
-              {/* RESTANTE DO MODAL (SEM MUDANÇAS) */}
               <div className="grid grid-cols-2 gap-4">
                 <input value={leadData.name} onChange={e => setLeadData(p => ({...p, name: e.target.value}))} placeholder="Nome" className="p-3 border rounded-lg" />
                 <input value={leadData.phone} onChange={e => setLeadData(p => ({...p, phone: e.target.value}))} placeholder="Telefone" className="p-3 border rounded-lg" />
