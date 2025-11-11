@@ -6,10 +6,10 @@ import FilterBar from '../components/FilterBar.jsx';
 import ReportsDashboard from '../components/reports/ReportsDashboard'; // Ajuste o caminho se necessário
 import { FaChartBar } from 'react-icons/fa'; // Mantido para o ícone do título, se desejar
 
-
+// Data Periodo do relatório
 const initialFilters = { 
     startDate: new Date().toISOString().split('T')[0], 
-    endDate: new Date().toISOString().split('T')[0], // Data de hoje
+    endDate: new Date().toISOString().split('T')[0], 
     vendorId: 'all', 
     source: 'all' 
 };
