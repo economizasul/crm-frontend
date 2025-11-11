@@ -7,7 +7,7 @@ import { useAuth } from '../AuthContext.jsx';
 
 const STAGES = {
   'Novo': 'bg-gray-100 text-gray-800 border-gray-300',
-  'Pimeiro Contato': 'bg-blue-100 text-blue-800 border-blue-300',
+  'Primeiro Contato': 'bg-blue-100 text-blue-800 border-blue-300',
   'Retorno Agendado': 'bg-indigo-100 text-indigo-800 border-indigo-300',
   'Em Negociação': 'bg-yellow-100 text-yellow-800 border-yellow-300',
   'Proposta Enviada': 'bg-purple-100 text-purple-800 border-purple-300',
@@ -63,7 +63,7 @@ const formatNoteDate = (timestamp) => {
 
 const KanbanBoard = () => {
   const [leads, setLeads] = useState([]);
-  const [users, setUsers] = useState([]); // NOVO: lista de vendedores
+  const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,22 +80,33 @@ const KanbanBoard = () => {
     origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
   });
 
-  // CARREGA VENDEDORES (SÓ ADMIN VÊ)
+  // CARREGA VENDEDORES (SÓ ADMIN)
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'Admin') return;
     try {
       const res = await api.get('/users');
-      setUsers(res.data.filter(u => u.role !== 'Admin')); // só vendedores
+      const sellers = (res.data || [])
+        .filter(u => u && u.role !== 'Admin' && u._id)
+        .map(u => ({ _id: u._id, name: u.name || 'Sem Nome', email: u.email || 'sem@email.com' }));
+      setUsers(sellers);
     } catch (err) {
       console.error('Erro ao carregar vendedores:', err);
     }
   }, [user]);
 
+  // CARREGA LEADS COM FILTRO CORRETO POR owner_id
   const fetchLeads = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await api.get('/leads');
-      const rawLeads = response.data;
+      const rawLeads = response.data || [];
+
+      const userId = user?._id || user?.id;
+      if (!userId) {
+        setLeads([]);
+        setIsLoading(false);
+        return;
+      }
 
       const mappedLeads = rawLeads.map(lead => ({
         id: lead._id || lead.id,
@@ -103,23 +114,26 @@ const KanbanBoard = () => {
         phone: lead.phone || '',
         email: lead.email || '',
         status: lead.status || 'Novo',
-        owner_id: lead.ownerId || lead.owner_id || lead.owner_id,
-        ownerName: lead.ownerName || 'Desconhecido',
+        // PRIORIZA owner_id → ownerId → _id do owner
+        owner_id: lead.owner_id || lead.ownerId || lead.owner?._id || '',
+        ownerName: lead.ownerName || lead.owner?.name || 'Desconhecido',
         document: lead.document || '',
         uc: lead.uc || '',
-        avgConsumption: lead.avgConsumption || '',
-        estimatedSavings: lead.estimatedSavings || '',
+        avgConsumption: lead.avg_consumption || lead.avgConsumption || '',
+        estimatedSavings: lead.estimated_savings || lead.estimatedSavings || '',
         qsa: lead.qsa || '',
         address: lead.address || '',
         origin: lead.origin || '',
-        notes: Array.isArray(lead.notes) ? lead.notes : [],
+        notes: Array.isArray(lead.notes) 
+          ? lead.notes 
+          : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : []),
         createdAt: lead.createdAt,
       }));
 
-      const userId = String(user?.id || user?._id || '');
-      const filteredLeads = user?.role === 'Admin'
+      // FILTRA CORRETAMENTE PELO _id DO USUÁRIO
+      const filteredLeads = user.role === 'Admin'
         ? mappedLeads
-        : mappedLeads.filter(lead => String(lead.owner_id) === userId);
+        : mappedLeads.filter(lead => String(lead.owner_id) === String(userId));
 
       setLeads(filteredLeads);
     } catch (error) {
@@ -156,7 +170,7 @@ const KanbanBoard = () => {
     setIsModalOpen(false);
     setSelectedLead(null);
     setNewNoteText('');
-    fetchLeads();
+    fetchLeads(); // RECARREGA APÓS FECHAR
   };
 
   const saveLeadChanges = async () => {
@@ -178,7 +192,7 @@ const KanbanBoard = () => {
         qsa: leadData.qsa?.trim() || null,
       };
 
-      // TRANSFERÊNCIA DE TITULARIDADE (SÓ ADMIN)
+      // TRANSFERÊNCIA NO KANBAN (SÓ ADMIN)
       if (user?.role === 'Admin' && leadData.owner_id) {
         payload.owner_id = leadData.owner_id;
       }
@@ -192,16 +206,20 @@ const KanbanBoard = () => {
       }
 
       await api.put(`/leads/${selectedLead.id}`, payload);
+
+      // RECARREGA IMEDIATAMENTE
+      fetchLeads();
+
       setToast({ 
         message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
-          ? 'Lead transferido e atualizado!' 
-          : 'Lead atualizado com sucesso!', 
+          ? 'Lead transferido com sucesso!' 
+          : 'Lead atualizado!', 
         type: 'success' 
       });
       closeLeadModal();
     } catch (error) {
       console.error('Erro ao salvar:', error.response?.data);
-      setToast({ message: error.response?.data?.error || 'Erro ao salvar lead', type: 'error' });
+      setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -262,7 +280,9 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          const statusLeads = leads.filter(l => l.status === status);
+          const statusLeads = leads
+            .filter(l => l.status === status)
+            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()));
           return (
             <div
               key={status}
@@ -300,7 +320,7 @@ const KanbanBoard = () => {
         })}
       </div>
 
-      {/* MODAL COM TRANSFERÊNCIA DE TITULARIDADE */}
+      {/* MODAL COM TRANSFERÊNCIA */}
       {isModalOpen && selectedLead && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
@@ -312,7 +332,7 @@ const KanbanBoard = () => {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* CAMPO DE TRANSFERÊNCIA - SÓ ADMIN VÊ */}
+              {/* TRANSFERÊNCIA NO KANBAN */}
               {user?.role === 'Admin' && (
                 <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
                   <label className="block text-sm font-bold text-amber-800 mb-2">
