@@ -15,8 +15,8 @@ function ProductivityTable({ metrics }) {
 
     // Função auxiliar para formatar valores monetários
     const formatCurrency = (value) => {
-        if (value === undefined || value === null) return 'R$ 0,00';
-        return `R$ ${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+        if (value === undefined || value === null) return 'KW 0,00';
+        return `KW ${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
     };
 
     // Função auxiliar para formatar porcentagens
