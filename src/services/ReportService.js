@@ -2,13 +2,13 @@
 import api from './api';
 
 // ==========================================================
-// DASHBOARD
+// 📊 DASHBOARD PRINCIPAL
 // ==========================================================
 export const fetchDashboardMetrics = async (filters) => {
   try {
-    // Envia os filtros diretamente no corpo, sem o campo "context"
-    const response = await api.post('/reports', { filters });
-    return response.data.data;
+    // Corrigido: agora chama o endpoint correto do backend
+    const response = await api.post('/reports/data', { filters });
+    return response.data?.data || null;
   } catch (error) {
     console.error('Erro ao buscar métricas:', error);
     throw error;
@@ -16,12 +16,12 @@ export const fetchDashboardMetrics = async (filters) => {
 };
 
 // ==========================================================
-// NOTAS ANALÍTICAS
+// 🗒️ NOTAS ANALÍTICAS
 // ==========================================================
 export const fetchAnalyticNotes = async (leadId) => {
   try {
     const response = await api.get(`/reports/notes/${leadId}`);
-    return response.data.data;
+    return response.data?.data || [];
   } catch (error) {
     console.error(`Erro ao buscar notas do Lead ${leadId}:`, error);
     throw error;
@@ -29,7 +29,7 @@ export const fetchAnalyticNotes = async (leadId) => {
 };
 
 // ==========================================================
-// EXPORTAÇÕES
+// 📦 EXPORTAÇÕES (CSV / PDF)
 // ==========================================================
 const getFilenameFromHeader = (response, defaultFilename) => {
   const contentDisposition = response.headers['content-disposition'];
@@ -41,6 +41,7 @@ const getFilenameFromHeader = (response, defaultFilename) => {
   return defaultFilename;
 };
 
+// 🟢 CSV
 export const downloadCsvReport = async (filters) => {
   let url = null;
   try {
@@ -62,6 +63,7 @@ export const downloadCsvReport = async (filters) => {
   }
 };
 
+// 🔵 PDF
 export const downloadPdfReport = async (filters) => {
   let url = null;
   try {
