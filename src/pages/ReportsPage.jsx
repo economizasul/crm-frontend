@@ -3,7 +3,7 @@ import React from 'react';
 import { useReports } from '../hooks/useReports';
 import FilterBar from '../components/FilterBar.jsx';
 import ReportsDashboard from '../components/reports/ReportsDashboard';
-import { FaFileExcel } from 'react-icons/fa'; // Mantém apenas se necessário
+import { motion } from 'framer-motion';
 
 const initialFilters = {
   startDate: new Date().toISOString().split('T')[0],
@@ -26,30 +26,36 @@ function ReportsPage() {
   } = useReports(initialFilters);
 
   return (
-    <div className="min-h-screen bg-[#F7F9FB] text-[#1E293B]">
-      {/* Top container to center content and keep max width */}
+    <div className="min-h-screen bg-[#F7F9FB] text-[#0f172a]">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Title */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-3xl font-extrabold">Relatórios e Métricas</h1>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <h1 className="text-3xl font-extrabold text-[#1A7F3C] mb-4">
+            Relatórios e Métricas
+          </h1>
+        </motion.div>
 
-        {/* ====== Header: filtros (barra com fundo branco e sombra) ====== */}
+        {/* Barra de filtros — usa seu FilterBar existente */}
         <div className="sticky top-6 z-30">
           <div className="bg-white rounded-2xl shadow-md p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Left: FilterBar (reutiliza seu componente) */}
             <div className="flex-1">
               <FilterBar
                 currentFilters={filters}
                 onFilterChange={updateFilter}
                 onApplyFilters={applyFilters}
+                exportToCsv={exportToCsv}
+                exportToPdf={exportToPdf}
+                isExporting={exporting}
                 isLoading={loading}
               />
             </div>
           </div>
         </div>
 
-        {/* Espaço entre header fixo e conteúdo */}
+        {/* Conteúdo do dashboard */}
         <div className="mt-6">
           <ReportsDashboard data={data} loading={loading} error={error} />
         </div>
@@ -58,6 +64,12 @@ function ReportsPage() {
         {!data && !loading && !error && (
           <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm">
             📊 Use a barra de filtros acima e clique em <b>Aplicar Filtros</b> para carregar o relatório.
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl">
+            Erro: {String(error)}
           </div>
         )}
       </div>
