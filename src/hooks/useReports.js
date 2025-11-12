@@ -1,22 +1,11 @@
 // src/hooks/useReports.js
-
-import { useState, useEffect, useCallback } from 'react';
-// Serviço que faz as requisições ao backend (já existe no seu projeto)
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   fetchDashboardMetrics,
   downloadCsvReport,
   downloadPdfReport
 } from '../services/ReportService';
 
-/**
- * useReports
- * Hook para gerenciar filtros, carregamento e exportação do relatório.
- *
- * Correções principais:
- * - updateFilter aceita tanto (key, value) quanto um objeto patch: updateFilter({startDate: '2025-..'})
- * - Normaliza filtros antes de enviar para o backend (vendorId -> ownerId)
- * - Garantia de usar filtros atuais em exportações
- */
 export function useReports(initialFilters = {}) {
   const [data, setData] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
@@ -24,30 +13,19 @@ export function useReports(initialFilters = {}) {
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
 
-  // Normaliza o shape de filtros que o backend espera
-  const normalizeFilters = useCallback((rawFilters = {}) => {
-    // rawFilters pode vir com vendorId (frontend) ou ownerId
-    const nf = {
-      startDate: rawFilters.startDate || null,
-      endDate: rawFilters.endDate || null,
-      source: rawFilters.source || rawFilters.source || 'all',
-      // backend espera ownerId; frontend usa vendorId — prioriza ownerId se existir
-      ownerId: rawFilters.ownerId ?? rawFilters.vendorId ?? 'all'
-    };
-    return nf;
-  }, []);
+  // guarda a referência do último filtro para evitar problemas de closure
+  const filtersRef = useRef(filters);
+  useEffect(() => { filtersRef.current = filters; }, [filters]);
 
-  // Função que busca as métricas — aceita um objeto de filtros (raw)
   const fetchDashboardData = useCallback(async (currentFilters) => {
     setLoading(true);
     setError(null);
     try {
-      const normalized = normalizeFilters(currentFilters || filters);
-      // Chama o serviço que faz a requisição ao backend (POST/GET dependendo da implementação)
-      const metricsData = await fetchDashboardMetrics(normalized);
-
-      // Espera-se que fetchDashboardMetrics retorne o objeto já na forma utilizada pelo frontend,
-      // Ex.: { productivity: {...}, conversionBySource: [...] }
+      // currentFilters pode ser undefined -> usar os filtros atuais
+      const f = currentFilters || filtersRef.current || initialFilters;
+      // chama o serviço que faz a requisição para o backend
+      const metricsData = await fetchDashboardMetrics(f);
+      // espera-se que fetchDashboardMetrics retorne o objeto de métricas (já em formato utilizável)
       setData(metricsData);
     } catch (err) {
       console.error('Erro ao buscar dados do dashboard:', err);
@@ -56,35 +34,36 @@ export function useReports(initialFilters = {}) {
     } finally {
       setLoading(false);
     }
-  }, [filters, normalizeFilters]);
+  }, [initialFilters]);
 
-  // updateFilter: aceita (key, value) ou (patchObject)
+  // updateFilter agora aceita:
+  // - updateFilter('startDate', '2024-01-01')
+  // - updateFilter({ startDate: '2024-01-01', vendorId: '2' })
+  // - updateFilter('vendorId', null) etc.
   const updateFilter = useCallback((a, b) => {
-    if (typeof a === 'object' && a !== null) {
-      // merge patch
+    if (a && typeof a === 'object' && !Array.isArray(a)) {
+      // merge object
       setFilters(prev => ({ ...prev, ...a }));
     } else if (typeof a === 'string') {
       setFilters(prev => ({ ...prev, [a]: b }));
     } else {
-      console.warn('updateFilter recebeu formato inválido:', a, b);
+      console.warn('updateFilter chamada com parâmetros inválidos:', a, b);
     }
   }, []);
 
-  // Aplica filtros (chama a busca com os filtros atuais)
   const applyFilters = useCallback(() => {
-    fetchDashboardData(filters);
-  }, [fetchDashboardData, filters]);
+    fetchDashboardData(filtersRef.current);
+  }, [fetchDashboardData]);
 
-  // Exportação (CSV/PDF) — sempre normaliza filtros antes de enviar
   const exportFile = useCallback(async (format) => {
     setExporting(true);
     setError(null);
     try {
-      const normalized = normalizeFilters(filters);
+      const f = filtersRef.current || initialFilters;
       if (format === 'csv') {
-        await downloadCsvReport(normalized);
+        await downloadCsvReport(f);
       } else if (format === 'pdf') {
-        await downloadPdfReport(normalized);
+        await downloadPdfReport(f);
       } else {
         throw new Error('Formato de exportação desconhecido.');
       }
@@ -94,19 +73,18 @@ export function useReports(initialFilters = {}) {
     } finally {
       setExporting(false);
     }
-  }, [filters, normalizeFilters]);
+  }, [initialFilters]);
 
   const exportToCsv = useCallback(() => exportFile('csv'), [exportFile]);
   const exportToPdf = useCallback(() => exportFile('pdf'), [exportFile]);
 
-  // Carrega os dados na montagem com os filtros iniciais (normalizados internamente)
+  // Carrega os dados na montagem (faz a primeira busca)
   useEffect(() => {
-    // inicializa filtros no estado (merge com initialFilters)
-    setFilters(prev => ({ ...(prev || {}), ...(initialFilters || {}) }));
-    // busca com initialFilters
+    // inicializa filtros com initialFilters e faz primeira busca
+    setFilters(initialFilters);
     fetchDashboardData(initialFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFilters]); // note: fetchDashboardData depende de filters, mas queremos rodar só no mount com initialFilters
+  }, []); // rodar só na montagem
 
   return {
     data,
@@ -117,6 +95,6 @@ export function useReports(initialFilters = {}) {
     updateFilter,
     applyFilters,
     exportToCsv,
-    exportToPdf,
+    exportToPdf
   };
 }
