@@ -9,7 +9,7 @@ import { FaChartBar } from 'react-icons/fa';
 const initialFilters = {
   startDate: new Date().toISOString().split('T')[0],
   endDate: new Date().toISOString().split('T')[0],
-  vendorId: 'all',
+  ownerId: 'all',
   source: 'all'
 };
 
@@ -24,54 +24,24 @@ function ReportsPage() {
     applyFilters,
     exportToCsv,
     exportToPdf,
-    setData, // <-- vamos usar para atualizar caso precise
+    setData,
     setError,
     setLoading
   } = useReports(initialFilters);
 
-  // 🔧 Reescreve a função applyFilters para normalizar o retorno da API
+  // 🔧 Mantemos a função mas agora ela chama a função correta do hook
   const handleApplyFilters = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL || '/api/v1'}/reports?` +
-          new URLSearchParams({
-            ownerId: filters.vendorId !== 'all' ? filters.vendorId : '',
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-            source: filters.source !== 'all' ? filters.source : ''
-          }),
-        { credentials: 'include' }
-      );
-
-      const json = await res.json();
-
-      // 🔍 Normaliza o formato da resposta
-      let payload = json;
-      if (payload && payload.success && payload.data) {
-        payload = payload.data;
-      }
-
-      // Se o backend retorna { productivity: {...}, conversionBySource: [...] }
-      if (payload && payload.productivity) {
-        setData(payload);
-      } else if (payload && Object.keys(payload).length > 0) {
-        // formato antigo
-        setData({ productivity: payload });
-      } else {
-        setError('Nenhum dado encontrado para o período selecionado.');
-        setData(null);
-      }
+      setLoading(true);
+      setError(null);
+      await applyFilters(); // ✅ Chama o hook (POST /reports/data)
     } catch (err) {
-      console.error('Erro ao carregar relatório:', err);
-      setError('Falha ao carregar dados do relatório. Tente novamente.');
-      setData(null);
+      console.error('Erro ao aplicar filtros:', err);
+      setError('Falha ao aplicar filtros. Tente novamente.');
     } finally {
       setLoading(false);
     }
-  }, [filters, setData, setError, setLoading]);
+  }, [applyFilters, setError, setLoading]);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -82,6 +52,7 @@ function ReportsPage() {
       </h1>
 
       {/* Barra de Filtros */}
+      {/* ✅ Comentário movido para fora da prop */}
       <FilterBar
         currentFilters={filters}
         onFilterChange={updateFilter}
