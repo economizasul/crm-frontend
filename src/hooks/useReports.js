@@ -1,93 +1,122 @@
 // src/hooks/useReports.js
 
 import { useState, useEffect, useCallback } from 'react';
-// ⭐️ CORREÇÃO: Importa as funções do serviço em vez de axios e URLs hardcoded
-import { 
-    fetchDashboardMetrics, 
-    downloadCsvReport, 
-    downloadPdfReport 
-} from '../services/ReportService'; 
+// Serviço que faz as requisições ao backend (já existe no seu projeto)
+import {
+  fetchDashboardMetrics,
+  downloadCsvReport,
+  downloadPdfReport
+} from '../services/ReportService';
 
 /**
- * Hook customizado para gerenciar a lógica de busca e estado dos relatórios.
- * @param {Object} initialFilters - Filtros iniciais.
+ * useReports
+ * Hook para gerenciar filtros, carregamento e exportação do relatório.
+ *
+ * Correções principais:
+ * - updateFilter aceita tanto (key, value) quanto um objeto patch: updateFilter({startDate: '2025-..'})
+ * - Normaliza filtros antes de enviar para o backend (vendorId -> ownerId)
+ * - Garantia de usar filtros atuais em exportações
  */
 export function useReports(initialFilters = {}) {
-    const [data, setData] = useState(null);
-    const [filters, setFilters] = useState(initialFilters);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [exporting, setExporting] = useState(false); 
+  const [data, setData] = useState(null);
+  const [filters, setFilters] = useState(initialFilters);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
-    // A função buildQueryString foi removida, pois a lógica agora está no ReportService.
-
-    // Função para buscar os dados do dashboard
-    const fetchDashboardData = useCallback(async (currentFilters) => {
-        setLoading(true);
-        setError(null);
-        try {
-            // ⭐️ USO DO NOVO SERVIÇO: Chama o serviço que faz o POST corretamente.
-            const metricsData = await fetchDashboardMetrics(currentFilters);
-            setData(metricsData);
-            
-        } catch (err) {
-            console.error('Erro ao buscar dados do dashboard:', err);
-            // Mensagem de erro padrão para o usuário
-            setError('Falha ao carregar dados do relatório. Tente novamente.');
-        } finally {
-            setLoading(false);
-        }
-    }, []); 
-
-    // Atualiza um filtro específico
-    const updateFilter = (key, value) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
+  // Normaliza o shape de filtros que o backend espera
+  const normalizeFilters = useCallback((rawFilters = {}) => {
+    // rawFilters pode vir com vendorId (frontend) ou ownerId
+    const nf = {
+      startDate: rawFilters.startDate || null,
+      endDate: rawFilters.endDate || null,
+      source: rawFilters.source || rawFilters.source || 'all',
+      // backend espera ownerId; frontend usa vendorId — prioriza ownerId se existir
+      ownerId: rawFilters.ownerId ?? rawFilters.vendorId ?? 'all'
     };
+    return nf;
+  }, []);
 
-    // Aplica os filtros (geralmente usado por um botão 'Aplicar')
-    const applyFilters = () => {
-        fetchDashboardData(filters);
-    };
+  // Função que busca as métricas — aceita um objeto de filtros (raw)
+  const fetchDashboardData = useCallback(async (currentFilters) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const normalized = normalizeFilters(currentFilters || filters);
+      // Chama o serviço que faz a requisição ao backend (POST/GET dependendo da implementação)
+      const metricsData = await fetchDashboardMetrics(normalized);
 
-    // Lógica unificada para exportação
-    const exportFile = useCallback(async (format) => {
-        setExporting(true);
-        setError(null);
-        try {
-            // ⭐️ USO DO NOVO SERVIÇO: O serviço agora lida com a requisição, blob e download.
-            if (format === 'csv') {
-                await downloadCsvReport(filters);
-            } else if (format === 'pdf') {
-                await downloadPdfReport(filters);
-            } else {
-                 throw new Error('Formato de exportação desconhecido.');
-            }
-        } catch (err) {
-            console.error('Erro na exportação:', err);
-            setError(`Erro ao exportar para ${format.toUpperCase()}.`);
-        } finally {
-            setExporting(false);
-        }
-    }, [filters]);
-    
-    // Funções wrapper para exportação
-    const exportToCsv = () => exportFile('csv');
-    const exportToPdf = () => exportFile('pdf');
-    
-    // Carrega os dados na montagem do componente (usando filtros iniciais)
-    useEffect(() => {
-        fetchDashboardData(initialFilters);
-    }, [fetchDashboardData, initialFilters]); 
+      // Espera-se que fetchDashboardMetrics retorne o objeto já na forma utilizada pelo frontend,
+      // Ex.: { productivity: {...}, conversionBySource: [...] }
+      setData(metricsData);
+    } catch (err) {
+      console.error('Erro ao buscar dados do dashboard:', err);
+      setError('Falha ao carregar dados do relatório. Tente novamente.');
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, normalizeFilters]);
 
-    return {
-        data,
-        filters,
-        loading,
-        error,
-        exporting, 
-        updateFilter,
-        applyFilters,
-        exportToCsv, 
-        exportToPdf, 
-    };
+  // updateFilter: aceita (key, value) ou (patchObject)
+  const updateFilter = useCallback((a, b) => {
+    if (typeof a === 'object' && a !== null) {
+      // merge patch
+      setFilters(prev => ({ ...prev, ...a }));
+    } else if (typeof a === 'string') {
+      setFilters(prev => ({ ...prev, [a]: b }));
+    } else {
+      console.warn('updateFilter recebeu formato inválido:', a, b);
+    }
+  }, []);
+
+  // Aplica filtros (chama a busca com os filtros atuais)
+  const applyFilters = useCallback(() => {
+    fetchDashboardData(filters);
+  }, [fetchDashboardData, filters]);
+
+  // Exportação (CSV/PDF) — sempre normaliza filtros antes de enviar
+  const exportFile = useCallback(async (format) => {
+    setExporting(true);
+    setError(null);
+    try {
+      const normalized = normalizeFilters(filters);
+      if (format === 'csv') {
+        await downloadCsvReport(normalized);
+      } else if (format === 'pdf') {
+        await downloadPdfReport(normalized);
+      } else {
+        throw new Error('Formato de exportação desconhecido.');
+      }
+    } catch (err) {
+      console.error('Erro na exportação:', err);
+      setError(`Erro ao exportar para ${String(format).toUpperCase()}.`);
+    } finally {
+      setExporting(false);
+    }
+  }, [filters, normalizeFilters]);
+
+  const exportToCsv = useCallback(() => exportFile('csv'), [exportFile]);
+  const exportToPdf = useCallback(() => exportFile('pdf'), [exportFile]);
+
+  // Carrega os dados na montagem com os filtros iniciais (normalizados internamente)
+  useEffect(() => {
+    // inicializa filtros no estado (merge com initialFilters)
+    setFilters(prev => ({ ...(prev || {}), ...(initialFilters || {}) }));
+    // busca com initialFilters
+    fetchDashboardData(initialFilters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFilters]); // note: fetchDashboardData depende de filters, mas queremos rodar só no mount com initialFilters
+
+  return {
+    data,
+    filters,
+    loading,
+    error,
+    exporting,
+    updateFilter,
+    applyFilters,
+    exportToCsv,
+    exportToPdf,
+  };
 }
