@@ -1,6 +1,6 @@
 // src/components/FilterBar.jsx
 import React, { useEffect, useState } from 'react';
-import { FaFileCsv, FaFilePdf, FaFilter, FaSync } from 'react-icons/fa';
+import { FaFileCsv, FaFilePdf, FaFilter } from 'react-icons/fa';
 import api from '../services/api';
 
 function FilterBar({
@@ -16,7 +16,7 @@ function FilterBar({
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [error, setError] = useState(null);
 
-  // Carrega vendedores reais
+  // 🔄 Carrega vendedores reais do backend
   useEffect(() => {
     const loadVendors = async () => {
       try {
@@ -26,7 +26,7 @@ function FilterBar({
         if (res.data?.success && Array.isArray(res.data.data)) {
           setVendors([{ id: 'all', name: 'Todos os Vendedores' }, ...res.data.data]);
         } else {
-          throw new Error('Resposta inesperada da API de vendedores');
+          throw new Error('Resposta inesperada da API de vendedores.');
         }
       } catch (err) {
         console.error('Erro ao carregar vendedores:', err);
@@ -49,24 +49,25 @@ function FilterBar({
   return (
     <div className="bg-white p-4 rounded-xl shadow-lg mb-6">
       <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
-        {/* Data inicial */}
+
+        {/* Data Inicial */}
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700">De (Data Inicial)</label>
           <input
             type="date"
-            value={currentFilters.startDate}
-            onChange={(e) => onFilterChange({ startDate: e.target.value })}
+            value={currentFilters.startDate || ''}
+            onChange={(e) => onFilterChange('startDate', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
           />
         </div>
 
-        {/* Data final */}
+        {/* Data Final */}
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700">Até (Data Final)</label>
           <input
             type="date"
-            value={currentFilters.endDate}
-            onChange={(e) => onFilterChange({ endDate: e.target.value })}
+            value={currentFilters.endDate || ''}
+            onChange={(e) => onFilterChange('endDate', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
           />
         </div>
@@ -75,8 +76,8 @@ function FilterBar({
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700">Vendedor</label>
           <select
-            value={currentFilters.vendorId}
-            onChange={(e) => onFilterChange({ vendorId: e.target.value })}
+            value={currentFilters.ownerId || 'all'}
+            onChange={(e) => onFilterChange('ownerId', e.target.value)}
             disabled={loadingVendors}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white"
           >
@@ -95,8 +96,8 @@ function FilterBar({
         <div className="flex-1">
           <label className="block text-sm font-medium text-gray-700">Fonte</label>
           <select
-            value={currentFilters.source}
-            onChange={(e) => onFilterChange({ source: e.target.value })}
+            value={currentFilters.source || 'all'}
+            onChange={(e) => onFilterChange('source', e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white"
           >
             {sources.map((s) => (
