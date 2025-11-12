@@ -3,7 +3,7 @@ import React from 'react';
 import { useReports } from '../hooks/useReports';
 import FilterBar from '../components/FilterBar.jsx';
 import ReportsDashboard from '../components/reports/ReportsDashboard';
-import { FaFileExcel, FaFilter } from 'react-icons/fa';
+import { FaFileExcel } from 'react-icons/fa'; // Mantém apenas se necessário
 
 const initialFilters = {
   startDate: new Date().toISOString().split('T')[0],
@@ -22,21 +22,22 @@ function ReportsPage() {
     updateFilter,
     applyFilters,
     exportToCsv,
+    exportToPdf,
   } = useReports(initialFilters);
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#1E293B]">
-      {/* Container centralizado */}
+      {/* Top container to center content and keep max width */}
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Título */}
+        {/* Title */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-3xl font-extrabold">Relatórios e Métricas</h1>
         </div>
 
-        {/* ====== Header com filtros + ações ====== */}
+        {/* ====== Header: filtros (barra com fundo branco e sombra) ====== */}
         <div className="sticky top-6 z-30">
           <div className="bg-white rounded-2xl shadow-md p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            {/* Filtros */}
+            {/* Left: FilterBar (reutiliza seu componente) */}
             <div className="flex-1">
               <FilterBar
                 currentFilters={filters}
@@ -45,36 +46,15 @@ function ReportsPage() {
                 isLoading={loading}
               />
             </div>
-
-            {/* Botões de ação principais */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={applyFilters}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1A7F3C] hover:bg-[#187034] text-white font-semibold shadow-sm transition-all"
-              >
-                <FaFilter /> Aplicar Filtros
-              </button>
-
-              <div className="inline-flex items-center gap-2 bg-gray-50 p-2 rounded-xl border shadow-sm">
-                <button
-                  onClick={exportToCsv}
-                  disabled={exporting}
-                  title="Exportar Excel"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white hover:bg-gray-100 text-gray-700 border transition-all"
-                >
-                  <FaFileExcel /> Excel
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Conteúdo do Dashboard */}
+        {/* Espaço entre header fixo e conteúdo */}
         <div className="mt-6">
           <ReportsDashboard data={data} loading={loading} error={error} />
         </div>
 
-        {/* Mensagem de instrução */}
+        {/* Mensagem caso não existam dados */}
         {!data && !loading && !error && (
           <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm">
             📊 Use a barra de filtros acima e clique em <b>Aplicar Filtros</b> para carregar o relatório.
