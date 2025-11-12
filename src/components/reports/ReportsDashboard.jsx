@@ -23,14 +23,13 @@ import {
 import { FaChartLine, FaBolt, FaHandshake, FaHourglassHalf } from 'react-icons/fa';
 
 /**
- * ReportsDashboard (layout modernizado / inspirado na imagem)
- * Recebe `data` com a forma esperada pelo useReports.
+ * ReportsDashboard (layout modernizado / tema EconomizaSul)
+ * Compatível com os dados provindos de useReports.
  */
 function ReportsDashboard({ data, loading, error }) {
-  // Estados de loading/erro/sem-dados (mantive mensagens simples)
   if (loading && !data) {
     return (
-      <div className="text-center p-8 text-xl text-indigo-600">
+      <div className="text-center p-8 text-lg text-[#1A7F3C]">
         Carregando métricas do Dashboard...
       </div>
     );
@@ -38,7 +37,7 @@ function ReportsDashboard({ data, loading, error }) {
 
   if (error) {
     return (
-      <div className="text-center p-8 text-xl text-red-600 border border-red-300 bg-red-50 rounded-lg">
+      <div className="text-center p-6 text-lg text-red-600 bg-red-50 rounded-2xl border border-red-200">
         Erro ao carregar dados: {String(error)}
       </div>
     );
@@ -46,16 +45,14 @@ function ReportsDashboard({ data, loading, error }) {
 
   if (!data) {
     return (
-      <div className="text-center p-8 text-xl text-gray-500 border border-gray-300 bg-gray-50 rounded-lg">
+      <div className="text-center p-6 text-lg text-gray-600 bg-gray-50 rounded-2xl border border-gray-200">
         Aplique filtros para carregar o relatório.
       </div>
     );
   }
 
-  // Desestruturação segura
   const { productivity = {}, conversionBySource = [], responseMetrics = {}, activities = [], forecast = {}, lostLeads = [], analyticNotes = [] } = data;
 
-  // Formatadores rápidos
   const formatPercent = (value) => {
     if (value === undefined || value === null) return '0%';
     const n = Number(value);
@@ -72,7 +69,6 @@ function ReportsDashboard({ data, loading, error }) {
     return `${n.toFixed(1).replace('.', ',')} dias`;
   };
 
-  // KPI cards (mantive ícones reutilizáveis)
   const kpiMetrics = [
     {
       title: 'Valor Total (kW)',
@@ -100,7 +96,6 @@ function ReportsDashboard({ data, loading, error }) {
     },
   ];
 
-  // Dados para pequenos gráficos (fallbacks)
   const conversionData = conversionBySource.length
     ? conversionBySource.map((c) => ({ name: c.source || c.name, value: (c.conversionRate || c.rate || 0) * 100 }))
     : [
@@ -126,7 +121,6 @@ function ReportsDashboard({ data, loading, error }) {
         { name: '120', calls: 18, emails: 16, notes: 8 },
       ];
 
-  // Pequenos componentes internos (usar Recharts)
   const ResponseChart = ({ data }) => (
     <div className="h-48">
       <ResponsiveContainer width="100%" height="100%">
@@ -135,8 +129,8 @@ function ReportsDashboard({ data, loading, error }) {
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis tickFormatter={(v) => v} />
           <Tooltip />
-          <Line type="monotone" dataKey="avgRespHours" stroke="#4f46e5" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="replies" stroke="#06b6d4" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="avgRespHours" stroke="#1A7F3C" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="replies" stroke="#E57C23" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -150,134 +144,123 @@ function ReportsDashboard({ data, loading, error }) {
           <XAxis dataKey="name" tick={{ fontSize: 12 }} />
           <YAxis />
           <Tooltip />
-          <Bar dataKey="calls" stackId="a" />
-          <Bar dataKey="emails" stackId="a" />
+          <Bar dataKey="calls" stackId="a" fill="#1A7F3C" />
+          <Bar dataKey="emails" stackId="a" fill="#28A745" />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 
-  // ========== RENDER ==========
   return (
     <div className="space-y-8">
-      {/* ====== KPI Cards ====== */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpiMetrics.map((m, i) => (
-          <KPICard
-            key={i}
-            title={m.title}
-            value={m.value}
-            description={m.description}
-            Icon={m.Icon}
-          />
+          <div key={i} className="transform hover:-translate-y-0.5 transition">
+            <KPICard
+              title={m.title}
+              value={m.value}
+              description={m.description}
+              Icon={m.Icon}
+              // KPICard usa estilos próprios; o container acima aplica shadow/hover
+            />
+          </div>
         ))}
       </div>
 
-      {/* ====== Linha: Tabela Produtividade | Taxa de Resposta | Funil ====== */}
+      {/* Linha: Produtividade (2/3) e Painel direito (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* PRODUTIVIDADE (2/3) */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold">Relatório de Produtividade do Vendedor</h2>
-            <div className="text-sm text-gray-500">Resumo geral</div>
+            <div className="text-sm text-gray-500">Resumo por vendedor</div>
           </div>
           <ProductivityTable metrics={productivity} />
         </div>
 
-        {/* TAXA DE RESPOSTA + FUNIL (1/3) */}
         <div className="space-y-6">
-          <div className="bg-white p-4 rounded-xl shadow-lg">
+          <div className="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition">
             <h3 className="text-md font-medium mb-2">Taxa de Réplica / Tempo de Resposta (Horas)</h3>
             <ResponseChart data={responseSeries} />
           </div>
 
-          <div className="bg-white p-4 rounded-xl shadow-lg">
+          <div className="bg-white p-4 rounded-2xl shadow-md hover:shadow-lg transition">
             <h3 className="text-md font-medium mb-2">Análise de Funil por Origem de Lead</h3>
-            {/* Se você já tem FunnelChart, usamos o componente existente */}
-            {typeof FunnelChart === 'function' ? (
-              <div style={{ height: 220 }}>
-                <FunnelChart data={conversionBySource} />
-              </div>
-            ) : (
-              <div className="text-sm text-gray-500 p-8">Sem componente de funil.</div>
-            )}
+            <div style={{ height: 220 }}>
+              <FunnelChart data={conversionBySource} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ====== Linha: Engajamento (2x) e Forecast (1x) ====== */}
+      {/* Linha: Engajamento e Forecast */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
           <h3 className="text-lg font-semibold mb-4">Relatório de Resposta e Engajamento</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-md p-4 border">
+            <div className="bg-gray-50 rounded-xl p-4 border">
               <p className="text-sm text-gray-600 mb-2">Ações Registradas por Vendedor (Últimas 4 Semanas)</p>
               <ActionsByVendorChart data={actionsSeries} />
             </div>
 
-            <div className="bg-white rounded-md p-4 border">
-              <p className="text-sm text-gray-600 mb-2">Ações Registradas por Vendedor (Últimas 4 Semanas)</p>
+            <div className="bg-gray-50 rounded-xl p-4 border">
+              <p className="text-sm text-gray-600 mb-2">Evolução de Ações</p>
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={actionsSeries} margin={{ top: 6, right: 8, left: -12, bottom: 6 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="calls" stroke="#4f46e5" dot={false} />
-                  <Line type="monotone" dataKey="emails" stroke="#06b6d4" dot={false} />
+                  <Line type="monotone" dataKey="calls" stroke="#1A7F3C" dot={false} />
+                  <Line type="monotone" dataKey="emails" stroke="#28A745" dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
           <h3 className="text-lg font-semibold mb-4">Relatório de Previsão de Vendas (Forecasting)</h3>
           <ForecastCard forecast={forecast} />
         </div>
       </div>
 
-      {/* ====== Linha: Conversão por Fonte (grande) e Resumo Analítico ====== */}
+      {/* Conversão por Fonte e Painel direito (Perdas e Notas) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition">
           <h3 className="text-lg font-semibold mb-4">Conversão por Fonte</h3>
-          <div style={{ height: 260 }}>
+          <div style={{ height: 300 }}>
             <ConversionChart data={conversionBySource} />
           </div>
 
-          {/* Resumo de Produtividade detalhado (abaixo do gráfico) */}
-          <div className="mt-6">
-            <div className="bg-gray-50 rounded-lg p-4 border">
-              <h4 className="font-medium mb-3">Resumo de Produtividade</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-500">Leads Ativos</p>
-                  <p className="font-bold text-lg">{(productivity.leadsActive || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Vendas Concluídas (Qtd)</p>
-                  <p className="font-bold text-lg">{(productivity.totalWonCount || 0).toLocaleString('pt-BR')}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Valor Total de Vendas</p>
-                  <p className="font-bold text-lg">{productivity.totalWonValue ? `R$ ${Number(productivity.totalWonValue).toLocaleString('pt-BR')}` : 'R$ 0,00'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Taxa de Conversão</p>
-                  <p className="font-bold text-lg">{formatPercent(productivity.conversionRate)}</p>
-                </div>
+          <div className="mt-6 bg-gray-50 rounded-xl p-4 border">
+            <h4 className="font-medium mb-2">Resumo de Produtividade</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-500">Leads Ativos</p>
+                <p className="font-bold text-lg">{(productivity.leadsActive || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Vendas Concluídas (Qtd)</p>
+                <p className="font-bold text-lg">{(productivity.totalWonCount || 0).toLocaleString('pt-BR')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Valor Total de Vendas</p>
+                <p className="font-bold text-lg">{productivity.totalWonValue ? `R$ ${Number(productivity.totalWonValue).toLocaleString('pt-BR')}` : 'R$ 0,00'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Taxa de Conversão</p>
+                <p className="font-bold text-lg">{formatPercent(productivity.conversionRate)}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Painel Direito: Perdas + Observações */}
-        <div className="bg-white p-6 rounded-xl shadow-lg space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition space-y-6">
           <h3 className="text-lg font-semibold">Detalhes e Perdas</h3>
           <div>
             <LostReasonsTable data={lostLeads} />
           </div>
-
           <div>
             <AnalyticNotes notes={analyticNotes} />
           </div>
