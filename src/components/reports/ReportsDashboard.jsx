@@ -1,13 +1,15 @@
-// src/components/reports/ReportsDashboard.jsx
+// src/components/reports/ReportsDashboard.jsx (COMPLETO E CORRIGIDO)
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaDollarSign, FaChartLine, FaPercentage, FaTags, FaClock, FaSpinner } from 'react-icons/fa';
+// Ajuste os ícones para refletir as 4 métricas principais filtradas
+import { FaDollarSign, FaChartLine, FaTags, FaClock, FaSpinner } from 'react-icons/fa';
 
+// Componentes assumidos (verifique se os paths estão corretos)
 import ProductivityTable from './ProductivityTable.jsx';
 import FunnelChart from './FunnelChart.jsx'; 
 import LostReasonsTable from './LostReasonsTable.jsx';
-// Assumindo que DailyActivity.jsx existe
 import DailyActivity from './DailyActivity.jsx'; 
+
 
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
     <motion.div 
@@ -27,7 +29,7 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
 
 export default function ReportsDashboard({ data, loading, error }) {
     
-    // 🚨 CORREÇÃO CRÍTICA: Trata o estado de carregamento e ausência de dados imediatamente
+    // 🚨 Trata o estado de carregamento e ausência de dados
     if (loading) {
         return (
             <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm text-center flex justify-center items-center h-48">
@@ -36,56 +38,48 @@ export default function ReportsDashboard({ data, loading, error }) {
             </div>
         );
     }
-
-    // Se não está carregando e não tem dados nem erro, mostra a mensagem padrão
-    if (!data && !error) {
-         return (
-            <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm text-center">
-                📊 Use os filtros e clique em <strong>Aplicar Filtros</strong> para carregar o relatório.
-            </div>
-        );
+    
+    if (!data || error) {
+         return null; 
     }
     
-    // Se há erro, o ReportsPage já deveria ter tratado, mas garantimos
-    if (error) return null; 
-
-    // Destrutura os dados para facilitar o acesso
+    // Usamos 'productivity' para os KPIs DO DASHBOARD PRINCIPAL (que respeitam os filtros)
     const productivity = data.productivity || {};
     
-    // Funções de formatação (reforçadas para evitar quebras)
-    const formatNumber = (value) => (value ?? 0).toLocaleString('pt-BR');
-    const formatPercent = (value) => `${((value ?? 0) * 100).toFixed(2).replace('.', ',')}%`;
-    const formatKw = (value) => `${(value ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} KW`;
+    // Funções de formatação (reforçadas)
+    const formatNumber = (value) => Number(value ?? 0).toLocaleString('pt-BR');
+    const formatPercent = (value) => `${(Number(value ?? 0) * 100).toFixed(2).replace('.', ',')}%`;
+    const formatKw = (value) => `${Number(value ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kW`;
     
-    // Mapeamento dos KPIs principais
+    // Mapeamento dos KPIs principais (usando dados FILTRADOS de productivity)
     const kpis = [
         { 
-            title: "Total de Leads", 
-            value: formatNumber(productivity.totalLeads), 
+            title: "Leads Ativos", 
+            value: formatNumber(productivity.leadsActive), // Leads Ativos (Status != Ganho/Perdido)
             icon: FaTags, 
             colorClass: 'text-indigo-600', 
-            subtext: 'Leads criados no período' 
+            subtext: 'Leads no funil (sem Ganho/Perdido) no período' 
         },
         { 
-            title: "KW Vendido (Total)", 
+            title: "KW Vendido (Período)", 
             value: formatKw(productivity.totalWonValueKW), 
             icon: FaDollarSign, 
             colorClass: 'text-green-600',
-            subtext: `R$ Estimado: R$ ${formatNumber(productivity.totalWonValueSavings)}`
+            subtext: `Vendas Concluídas (Qtd): ${formatNumber(productivity.totalWonCount)}`
         },
         { 
             title: "Taxa de Conversão", 
             value: formatPercent(productivity.conversionRate), 
             icon: FaChartLine, 
             colorClass: 'text-blue-600', 
-            subtext: 'Leads Fechado Ganho / Total Leads' 
+            subtext: `Taxa de Perda: ${formatPercent(productivity.lossRate)}` 
         },
         { 
             title: "Tempo Médio de Fechamento", 
-            value: `${(productivity.avgClosingTimeDays ?? 0).toFixed(1).replace('.', ',')} dias`, 
+            value: `${Number(productivity.avgClosingTimeDays ?? 0).toFixed(1).replace('.', ',')} dias`, 
             icon: FaClock, 
             colorClass: 'text-orange-600',
-            subtext: 'Média para Leads Fechado Ganho'
+            subtext: 'Média para Leads Fechado Ganho no período'
         },
     ];
 
@@ -95,7 +89,7 @@ export default function ReportsDashboard({ data, loading, error }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
         >
-            {/* 1. KPIS PRINCIPAIS */}
+            {/* 1. KPIS PRINCIPAIS (Métricas Filtradas) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                 {kpis.map((kpi) => (
                     <DashboardCard key={kpi.title} {...kpi} />
@@ -110,7 +104,7 @@ export default function ReportsDashboard({ data, loading, error }) {
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="lg:col-span-2"
                 >
-                    {/* Tabela de Produtividade */}
+                    {/* Tabela de Produtividade: Métrica de Produtividade (filtrada) */}
                     <ProductivityTable metrics={productivity} />
                 </motion.div>
                 
@@ -122,7 +116,7 @@ export default function ReportsDashboard({ data, loading, error }) {
                 >
                     {/* Gráfico de Funil */}
                     <h3 className="text-lg font-semibold mb-4 text-gray-700">Funil de Vendas</h3>
-                    <FunnelChart funnelStages={data.funnel} />
+                    <FunnelChart funnelStages={data.funnel} /> 
                 </motion.div>
             </div>
             
@@ -133,14 +127,13 @@ export default function ReportsDashboard({ data, loading, error }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                    <LostReasonsTable lostLeadsAnalysis={data.lostReasons} />
+                    <LostReasonsTable lostLeadsAnalysis={data.lostReasons} /> 
                 </motion.div>
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    {/* Exibe o componente de Atividade Diária (assumindo que existe) */}
                     <DailyActivity dailyActivityData={data.dailyActivity} />
                 </motion.div>
             </div>

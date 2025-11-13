@@ -1,4 +1,4 @@
-// src/components/reports/ProductivityTable.jsx
+// src/components/reports/ProductivityTable.jsx (COMPLETO E CORRIGIDO)
 
 import React from 'react';
 
@@ -13,68 +13,68 @@ function ProductivityTable({ metrics }) {
         return <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>;
     }
 
-    // Função auxiliar para formatar valores em KW
+    // Função auxiliar para formatar valores
+    const formatNumber = (value) => Number(value ?? 0).toLocaleString('pt-BR');
+    
+    // Função auxiliar para formatar KW (com duas casas decimais para precisão)
     const formatKw = (value) => {
         if (value === undefined || value === null) return '0,00 KW';
-        // Formata o número (ex: 12345.67 -> 12.345,67 KW)
-        return `${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
+        return `${parseFloat(value ?? 0).toFixed(2).replace('.', ',').replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.')} KW`;
     };
 
     // Função auxiliar para formatar porcentagens
     const formatPercent = (value) => {
-        if (value === undefined || value === null) return '0%';
-        // Assume que o valor é de 0 a 1 e multiplica por 100, ou ajusta se já for % (0 a 100)
-        let percentage = (value <= 1) ? value * 100 : value;
-        return `${percentage.toFixed(2).replace('.', ',')}%`;
+        if (value === undefined || value === null) return '0,00%';
+        // Multiplica por 100, formata para duas casas decimais e adiciona %
+        return `${(value * 100).toFixed(2).replace('.', ',')}%`;
     };
 
     // Mapeamento das métricas para exibição na tabela
     const metricsDisplay = [
         { 
             label: "Leads Ativos", 
-            value: metrics.leadsActive, 
-            format: (v) => (v ?? 0).toLocaleString('pt-BR'), 
-            description: "Total de leads no funil (status diferente de Ganho/Perdido)." 
+            value: metrics.leadsActive,
+            format: formatNumber,
+            description: "Total de leads que ainda não foram Ganho ou Perdido no período do filtro."
         },
         { 
             label: "Vendas Concluídas (Qtd)", 
-            value: metrics.totalWonCount, 
-            format: (v) => (v ?? 0).toLocaleString('pt-BR'), 
-            description: "Número total de projetos fechados como 'Ganho'." 
+            value: metrics.totalWonCount,
+            format: formatNumber,
+            description: "Número de leads com status 'Ganho' no período."
         },
         { 
             label: "Valor Total (kW)", 
-            value: metrics.totalWonValueKW, 
-            format: formatKw, 
-            description: "Soma da potência (kW) de todos os projetos ganhos." 
+            value: metrics.totalWonValueKW,
+            format: formatKw,
+            description: "Soma do consumo médio (avg_consumption) dos leads 'Ganho' no período."
         },
         { 
             label: "Taxa de Conversão", 
-            value: metrics.conversionRate, 
-            format: formatPercent, 
-            description: "Porcentagem de leads que se tornaram 'Ganho'." 
+            value: metrics.conversionRate,
+            format: formatPercent,
+            description: "Porcentagem de leads 'Ganho' em relação aos leads Ganho + Perdido no período."
         },
         { 
             label: "Taxa de Perda", 
-            value: metrics.lossRate, 
-            format: formatPercent, 
-            description: "Porcentagem de leads que se tornaram 'Perdido'." 
+            value: metrics.lossRate,
+            format: formatPercent,
+            description: "Porcentagem de leads 'Perdido' em relação aos leads Ganho + Perdido no período."
         },
         { 
             label: "Tempo Médio de Fechamento", 
-            value: metrics.avgClosingTimeDays, 
-            format: (v) => (v ?? 0).toFixed(1).replace('.', ',') + ' dias', 
-            description: "Média de dias desde a criação até o status 'Ganho'." 
+            value: metrics.avgClosingTimeDays,
+            format: (value) => `${Number(value ?? 0).toFixed(1).replace('.', ',')} dias`,
+            description: "Média de dias entre created_at e updated_at para leads 'Ganho' no período."
         },
     ];
 
     return (
-        // ESTILIZAÇÃO PADRÃO: p-6, rounded-2xl, shadow-md, border
         <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">Métricas de Produtividade</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">Métricas de Produtividade (Filtradas)</h3>
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead>
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Métrica
