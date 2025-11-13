@@ -1,17 +1,29 @@
-// src/hooks/useReports.js
+// src/hooks/useReports.js (Reescrito para a nova estrutura de dados)
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchDashboardMetrics,
   downloadCsvReport,
-  downloadPdfReport
-} from '../services/ReportService';
+  downloadPdfReport,
+  fetchAnalyticNotes as fetchAnalyticNotesAPI
+} from '../services/ReportService'; // Assumindo que você criou 'fetchAnalyticNotes'
 
 export function useReports(initialFilters = {}) {
-  const [data, setData] = useState(null);
+  // Estado dos dados do Dashboard (Métricas)
+  const [data, setData] = useState(null); 
+  // Estado dos Filtros
   const [filters, setFilters] = useState(initialFilters);
+  
+  // Estado de Carregamento e Erro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
+
+  // Estado para o NOVO Relatório Analítico de Atendimento
+  const [analyticNotes, setAnalyticNotes] = useState(null);
+  const [analyticLoading, setAnalyticLoading] = useState(false);
+  const [analyticError, setAnalyticError] = useState(null);
+  
+  // --- Lógica de Filtros e Busca Principal ---
 
   // Atualiza um ou mais filtros
   const updateFilter = useCallback((key, value) => {
@@ -21,11 +33,12 @@ export function useReports(initialFilters = {}) {
     });
   }, []);
 
-  // Busca dados do dashboard
+  // Busca dados do dashboard (função principal que chama a API)
   const fetchDashboardData = useCallback(async (currentFilters) => {
     setLoading(true);
     setError(null);
     try {
+      // 🚨 MUDANÇA CHAVE: O ReportDataService agora retorna um objeto com todas as métricas
       const metricsData = await fetchDashboardMetrics(currentFilters);
       setData(metricsData);
     } catch (err) {
@@ -37,12 +50,42 @@ export function useReports(initialFilters = {}) {
     }
   }, []);
 
-  // Aplica os filtros manualmente (botão)
+  // Aplica os filtros manualmente (botão 'Aplicar Filtros')
   const applyFilters = useCallback(() => {
     fetchDashboardData(filters);
+    // Limpa o relatório analítico ao aplicar novos filtros no dashboard
+    setAnalyticNotes(null);
   }, [filters, fetchDashboardData]);
 
-  // Exportações
+  // Carrega relatório inicial (no primeiro carregamento)
+  useEffect(() => {
+    // Busca dados iniciais ao montar o componente
+    fetchDashboardData(initialFilters);
+  }, [fetchDashboardData]); 
+
+  // --- Lógica do Relatório Analítico de Atendimento ---
+
+  const fetchAnalyticNotes = useCallback(async ({ leadId = null, stage = null }) => {
+    if (!leadId && !stage) return; // Nada para buscar
+
+    setAnalyticLoading(true);
+    setAnalyticError(null);
+    setAnalyticNotes(null);
+    
+    try {
+      // Chama a nova rota de API
+      const data = await fetchAnalyticNotesAPI(leadId, stage);
+      setAnalyticNotes(data);
+    } catch (err) {
+      console.error('Erro ao buscar notas analíticas:', err);
+      setAnalyticError(`Erro ao carregar o relatório de atendimento. ${err.message}`);
+    } finally {
+      setAnalyticLoading(false);
+    }
+  }, []);
+
+  // --- Lógica de Exportação ---
+
   const exportFile = useCallback(async (format) => {
     setExporting(true);
     setError(null);
@@ -52,6 +95,7 @@ export function useReports(initialFilters = {}) {
       else throw new Error('Formato desconhecido');
     } catch (err) {
       console.error(`Erro na exportação ${format}:`, err);
+      // Aqui você pode melhorar a mensagem de erro para o usuário final.
       setError(`Erro ao exportar para ${format.toUpperCase()}`);
     } finally {
       setExporting(false);
@@ -61,12 +105,10 @@ export function useReports(initialFilters = {}) {
   const exportToCsv = () => exportFile('csv');
   const exportToPdf = () => exportFile('pdf');
 
-  // Carrega relatório inicial (dia atual)
-  useEffect(() => {
-    fetchDashboardData(initialFilters);
-  }, [fetchDashboardData]);
+  // --- Retorno do Hook ---
 
   return {
+    // Dashboard Principal
     data,
     filters,
     loading,
@@ -75,6 +117,12 @@ export function useReports(initialFilters = {}) {
     updateFilter,
     applyFilters,
     exportToCsv,
-    exportToPdf
+    exportToPdf,
+    
+    // Relatório Analítico de Atendimento
+    analyticNotes,
+    analyticLoading,
+    analyticError,
+    fetchAnalyticNotes, // Função para ser chamada pelos componentes do dashboard
   };
 }
