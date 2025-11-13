@@ -5,21 +5,21 @@ import { FaFilter } from 'react-icons/fa';
 
 /**
  * Componente que exibe a distribuição de leads pelo Funil de Vendas.
- * Atualmente um placeholder para futura integração com biblioteca de gráficos.
- * @param {Array} funnelData - Array de objetos representando as fases do funil. (Renomeado para funnelData para consistência com o hook)
+ * @param {Array} funnelStages - Array de objetos representando as fases do funil.
  */
-function FunnelChart({ funnelData: funnelStages }) {
+function FunnelChart({ funnelStages }) {
     
-    if (!funnelStages || funnelStages.length === 0) {
+    // 🟢 CORREÇÃO: Garante que funnelStages é um array
+    if (!funnelStages || !Array.isArray(funnelStages) || funnelStages.length === 0) {
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-96 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full flex items-center justify-center">
                 <p className="text-gray-500">Nenhum dado de funil encontrado.</p>
             </div>
         );
     }
     
-    // Calcula o total de leads (ou kW) no funil para percentuais
-    const totalLeads = funnelStages.reduce((sum, stage) => sum + stage.count, 0);
+    // Calcula o total de leads no funil para percentuais (protege stage.count)
+    const totalLeads = funnelStages.reduce((sum, stage) => sum + (stage.count || 0), 0);
 
     // Mapeamento simples de cores para as etapas
     const stageColors = {
@@ -39,22 +39,23 @@ function FunnelChart({ funnelData: funnelStages }) {
                 Funil de Vendas por Etapa
             </h3>
             
-            <p className="text-sm text-gray-600 mb-4">Total de Leads {totalLeads > 0 ? `(${totalLeads.toLocaleString('pt-BR')})` : ''}</p>
+            <p className="text-sm text-gray-600 mb-4">Total de Leads {totalLeads > 0 ? `(${totalLeads.toLocaleString('pt-BR')})` : '(0)'}</p>
 
             <div className="space-y-4">
                 {funnelStages.map((stage, index) => {
-                    // O backend retorna stageName e count. Assumo que stageName é o nome da fase.
-                    const percentage = totalLeads > 0 ? (stage.count / totalLeads) * 100 : 0;
+                    const count = stage.count || 0; // Protege count
+                    const percentage = totalLeads > 0 ? (count / totalLeads) * 100 : 0;
                     const color = stageColors[stage.stageName] || stageColors['Outros'];
                     
                     return (
-                        <div key={stage.stageName} className="relative">
+                        <div key={stage.stageName || index} className="relative">
                             <div className="flex justify-between items-center mb-1">
                                 <span className="text-sm font-medium text-gray-700">
-                                    {stage.stageName}
+                                    {stage.stageName || 'N/A'}
                                 </span>
                                 <span className="text-sm font-bold text-gray-800">
-                                    {stage.count.toLocaleString('pt-BR')} ({percentage.toFixed(1).replace('.', ',')}%)
+                                    {/* 🟢 Garante que count é usado para formatar */}
+                                    {count.toLocaleString('pt-BR')} ({percentage.toFixed(1).replace('.', ',')}%)
                                 </span>
                             </div>
                             

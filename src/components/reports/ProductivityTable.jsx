@@ -10,84 +10,96 @@ function ProductivityTable({ metrics }) {
     
     // Fallback para garantir que o componente não quebre se não houver dados
     if (!metrics) {
-        return <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>;
+        return (
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                <h3 className="text-xl font-bold mb-4 text-gray-800">Produtividade de Vendas</h3>
+                <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>
+            </div>
+        );
     }
 
-    // Função auxiliar para formatar valores monetários (ajustado para o novo campo KW do backend)
+    // Função auxiliar para formatar valores em kW (Backend retorna 'totalKwWon')
     const formatKw = (value) => {
-        if (value === undefined || value === null) return '0,00 KW';
+        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
+        const num = parseFloat(value ?? 0);
+        if (isNaN(num)) return '0,00 KW';
+        
         // Formata o número (ex: 12345.67 -> 12.345,67 KW)
-        return `${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
+        return `${num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
     };
 
-    // Função auxiliar para formatar porcentagens
+    // Função auxiliar para formatar porcentagens (Backend retorna 0-100)
     const formatPercent = (value) => {
-        if (value === undefined || value === null) return '0%';
-        // Multiplica por 100, formata para duas casas decimais e adiciona %
-        // Nota: O backend já está retornando a conversão em % (0 a 100).
-        // Se o backend retorna 0.85 (85%), use: return `${(value * 100).toFixed(2).replace('.', ',')}%`;
-        // Se o backend retorna 85 (85%), use: 
-        return `${parseFloat(value).toFixed(2).replace('.', ',')}%`;
+        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
+        const num = parseFloat(value ?? 0);
+        if (isNaN(num)) return '0%';
+        
+        // Formata para duas casas decimais e adiciona %
+        return `${num.toFixed(2).replace('.', ',')}%`;
     };
 
-    // Mapeamento das métricas para exibição na tabela
-    // Nota: A estrutura do componente (metrics) deve ser alinhada com os dados do ReportDataService.
+    // Função auxiliar para formatar contagem de leads
+    const formatCount = (value) => {
+        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
+        const num = parseInt(value ?? 0, 10);
+        if (isNaN(num)) return 0;
+        
+        return num.toLocaleString('pt-BR');
+    };
+
+    // Função auxiliar para formatar tempo em dias
+    const formatDays = (value) => {
+        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
+        const num = parseFloat(value ?? 0);
+        if (isNaN(num)) return 'N/A';
+        
+        return `${num.toFixed(1).replace('.', ',')} dias`;
+    };
+
+    // Mapeamento das métricas para exibição na tabela, usando os nomes do ReportDataService (Backend)
     const metricsDisplay = [
         { 
             label: "Leads Ativos", 
-            // O ReportDataService retorna a produtividade como um array. 
-            // Aqui você deve usar productivityData.totalLeadsPeriod ou similar
-            value: metrics.leadsActive, 
-            format: (v) => v ? v.toLocaleString('pt-BR') : 0,
+            value: metrics.activeLeads, // Nome do Backend
+            format: formatCount,
             description: "Total de leads nas fases de Atendimento/Negociação no período."
         },
         { 
             label: "Vendas Concluídas (Qtd)", 
-            value: metrics.totalWonCount, 
-            format: (v) => v ? v.toLocaleString('pt-BR') : 0,
+            value: metrics.totalWonQty, // Nome do Backend
+            format: formatCount,
             description: "Número total de leads movidos para a fase 'Fechado Ganho'."
         },
         { 
             label: "Valor Total de Vendas", 
-            value: metrics.totalWonValue, 
+            value: metrics.totalKwWon, // Nome do Backend
             format: formatKw,
             description: "Valor (kW) total das vendas concluídas."
         },
         { 
-            label: "Taxa de Conversão (Lead -> Venda)", 
-            value: metrics.conversionRate, 
+            label: "Taxa de Conversão (Total)", 
+            value: metrics.conversionRate, // Nome do Backend
             format: formatPercent,
-            description: "Proporção de leads que se converteram em vendas."
+            description: "Proporção de leads (Fechados) que se converteram em vendas."
         },
         { 
             label: "Tempo Médio de Fechamento", 
-            value: metrics.avgClosingTimeDays, 
-            format: (v) => v ? `${v.toFixed(1)} dias` : 'N/A',
-            description: "Média de dias desde o Primeiro Contato até o Fechamento."
+            value: metrics.avgTimeToWinDays, // Nome do Backend
+            format: formatDays,
+            description: "Média de dias desde a criação até o Fechamento Ganho."
         },
         { 
             label: "Taxa de Perda (Churn Rate)", 
-            value: metrics.lossRate, 
+            value: metrics.churnRate, // Nome do Backend
             format: formatPercent,
-            description: "Proporção de leads movidos para a fase 'Perdido'."
+            description: "Proporção de leads movidos para a fase 'Fechado Perdido'."
         },
     ];
 
-    // Se estiver usando o array de vendedores:
-    const vendorData = Array.isArray(metrics) ? metrics : [
-        // Se o componente for reescrito para listar vendedores, esta linha será removida.
-        // Por enquanto, mantenho o mapeamento para não quebrar o layout.
-        { vendorName: 'Geral', ...metricsDisplay.reduce((acc, curr) => ({...acc, [curr.label]: curr.format(curr.value)}), {}) }
-    ];
-
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
             <h3 className="text-xl font-bold mb-4 text-gray-800">Produtividade de Vendas</h3>
             <div className="overflow-x-auto">
-                {/* O componente original que você forneceu estava formatado como uma Tabela de Métricas em vez de Tabela de Vendedores. 
-                    Recomendação: Mantenha esta tabela se ela for apenas o resumo geral. Se for a tabela de vendedores, use um cabeçalho diferente. 
-                    Vou usar o formato que você forneceu.
-                */}
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>

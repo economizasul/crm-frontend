@@ -3,12 +3,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaDollarSign, FaChartLine, FaPercentage, FaTags, FaClock, FaSpinner } from 'react-icons/fa';
 
-// 🚨 ATENÇÃO: Estes componentes DEVEM existir (e agora o DailyActivity.jsx existe!)
+// Componentes importados (Todos devem estar presentes na pasta reports/)
 import SummaryKpis from './SummaryKpis.jsx'; 
 import ProductivityTable from './ProductivityTable.jsx';
 import FunnelChart from './FunnelChart.jsx'; 
 import LostReasonsTable from './LostReasonsTable.jsx';
-import DailyActivity from './DailyActivity.jsx'; 
+import DailyActivity from './DailyActivity.jsx'; // ⚠️ Adicionado para resolver a dependência
 
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
     <motion.div 
@@ -22,102 +22,114 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
             <Icon className={`w-6 h-6 ${colorClass}`} />
         </div>
         <p className="mt-2 text-3xl font-extrabold text-gray-900">{value}</p>
-        {subtext && <p className="mt-1 text-xs text-gray-400">{subtext}</p>}
+        {subtext && <p className="mt-1 text-xs text-gray-500">{subtext}</p>}
     </motion.div>
 );
 
-export default function ReportsDashboard({ data, loading, error, fetchAnalyticNotes }) {
+// Função auxiliar para formatação segura de kW
+const formatKw = (value) => {
+    // 🟢 CORREÇÃO: Garante que o valor é um número (0 se nulo) antes de formatar
+    const num = Number(value ?? 0);
+    return `${num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kW`;
+};
+
+// Função auxiliar para formatação segura de porcentagem (Backend retorna 0-100)
+const formatPercent = (value) => {
+    // 🟢 CORREÇÃO: Garante que o valor é um número (0 se nulo) antes de formatar
+    const num = Number(value ?? 0);
+    return `${num.toFixed(1).replace('.', ',')}%`; 
+};
+
+// Função auxiliar para formatação segura de dias
+const formatDays = (value) => {
+    const num = Number(value ?? 0);
+    return `${num.toFixed(1).replace('.', ',')} dias`;
+};
+
+
+export default function ReportsDashboard({ data, loading, error }) {
     
-    // --- Lógica de Estado ---
     if (loading) {
         return (
-            <div className="mt-8 p-6 text-center text-gray-500">
-                <FaSpinner className="animate-spin w-8 h-8 mx-auto mb-2" />
-                Carregando métricas do relatório...
+            <div className="flex justify-center items-center p-12 bg-white rounded-2xl shadow-md border border-gray-100 min-h-[400px]">
+                <FaSpinner className="w-8 h-8 text-indigo-600 animate-spin" />
+                <span className="ml-3 text-lg text-gray-600">Carregando dados...</span>
             </div>
         );
     }
     
-    if (error || !data || !data.summary) {
-        // Se a busca falhou, ou se não há dados após o carregamento (ex: filtros vazios ou erro no backend)
-        return (
-            <div className="mt-8 p-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-sm text-center">
-                ❌ **Erro ao carregar dados.** O Backend pode estar indisponível ou os filtros não retornaram dados.
-                <br />
-                *Se o erro persistir, verifique os logs de erro 500 no seu Render para o endpoint `/reports/data`.*
-            </div>
-        );
+    if (!data || error) {
+        return null; // Deixa o ReportsPage exibir a mensagem de erro/instrução
     }
-    
-    // --- Formatação de Helpers ---
-    const formatKw = (kw) => Number(kw).toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' kW';
-    const formatPct = (pct) => Number(pct).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + '%';
-    const formatDays = (days) => Number(days).toFixed(1).replace('.', ',') + ' dias';
 
+    // 🟢 Acesso seguro com optional chaining
+    const summary = data?.summary;
+    const productivity = data?.productivity;
+    
     return (
-        <motion.div
+        <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="space-y-8"
+            className="space-y-6"
         >
-            {/* 1. SEÇÃO DE KPIS PRINCIPAIS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* 1. KPIs de Resumo */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <DashboardCard 
-                    title="Total de Leads"
-                    value={data.summary.totalLeads.toLocaleString('pt-BR')}
+                    title="Leads Totais" 
+                    // 🟢 Acesso seguro e formatação
+                    value={(summary?.totalLeads ?? 0).toLocaleString('pt-BR')}
                     icon={FaTags}
-                    colorClass="text-blue-500"
-                    subtext={`${data.summary.activeLeads.toLocaleString('pt-BR')} Leads Ativos`}
                 />
                 <DashboardCard 
-                    title="Vendas (kW)"
-                    value={formatKw(data.summary.totalKwWon)}
+                    title="KW Vendido" 
+                    // 🟢 Acesso seguro e formatação
+                    value={formatKw(summary?.totalKwWon)}
                     icon={FaDollarSign}
                     colorClass="text-green-600"
-                    subtext={`${data.summary.wonLeadsQty} Vendas Concluídas`}
                 />
                 <DashboardCard 
-                    title="Taxa de Conversão"
-                    value={formatPct(data.summary.conversionRate)}
+                    title="Taxa de Conversão" 
+                    // 🟢 Acesso seguro e formatação
+                    value={formatPercent(summary?.conversionRate)}
                     icon={FaPercentage}
-                    colorClass="text-yellow-500"
-                    subtext={`Taxa de Perda: ${formatPct(data.summary.churnRate)}`}
+                    colorClass="text-teal-600"
                 />
                 <DashboardCard 
-                    title="T. Médio Fechamento"
-                    value={formatDays(data.summary.avgTimeToWinDays)}
+                    title="Tempo Médio Fechamento" 
+                    // 🟢 Acesso seguro e formatação
+                    value={formatDays(summary?.avgTimeToWinDays)}
                     icon={FaClock}
-                    colorClass="text-purple-500"
-                    subtext={`Previsão: ${formatKw(data.forecasting.forecastedKwWeighted)}`}
+                    colorClass="text-orange-600"
                 />
             </div>
-            
-            {/* 2. PRODUTIVIDADE E FUNIL */}
+
+            {/* 2. TABELA DE PRODUTIVIDADE E FUNIL */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}
-                    className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md border border-gray-100"
+                    className="lg:col-span-2"
                 >
                     {/* Tabela de Produtividade */}
                     <ProductivityTable 
-                        productivityData={data.productivity} 
-                        // onVendorClick={(vendorId) => fetchAnalyticNotes({ leadId: null, stage: null, vendorId })}
-                    /> 
+                        // 🟢 Passa os dados de forma segura
+                        metrics={productivity}
+                    />
                 </motion.div>
                 
                 <motion.div 
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-md border border-gray-100"
+                    className="lg:col-span-1"
                 >
                     {/* Gráfico de Funil */}
                     <FunnelChart 
-                        funnelData={data.funnel} 
-                        // onStageClick={(stage) => fetchAnalyticNotes({ stage })}
+                        // 🟢 Passa os dados de forma segura
+                        funnelStages={data?.funnel} 
                     />
                 </motion.div>
             </div>
@@ -129,16 +141,24 @@ export default function ReportsDashboard({ data, loading, error, fetchAnalyticNo
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                    <LostReasonsTable lostReasonsData={data.lostReasons} />
+                    <LostReasonsTable 
+                        // 🟢 Passa os dados de forma segura
+                        lostReasonsData={data?.lostReasons} 
+                    />
                 </motion.div>
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    <DailyActivity dailyActivityData={data.dailyActivity} />
+                    {/* Componente DailyActivity */}
+                    <DailyActivity 
+                        // 🟢 Passa os dados de forma segura
+                        dailyActivityData={data?.dailyActivity}
+                    />
                 </motion.div>
             </div>
+            {/* O SummaryKpis não é mais necessário, pois os KPIs foram movidos para o Dashboard */}
         </motion.div>
     );
 }

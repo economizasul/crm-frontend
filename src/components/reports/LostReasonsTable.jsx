@@ -5,17 +5,17 @@ import { FaTimesCircle } from 'react-icons/fa';
 
 /**
  * Componente de Tabela que exibe a análise dos motivos de perda (Churn).
- * @param {Object} lostReasonsData - Objeto contendo a análise dos motivos de perda (renomeado para consistência com o hook).
+ * @param {Object} lostReasonsData - Objeto contendo a análise dos motivos de perda.
  */
 function LostReasonsTable({ lostReasonsData }) {
     
-    // O backend retorna um objeto { reasons: [], totalLost: number } ou { lostReasons: [] }
-    const reasons = lostReasonsData?.reasons || lostReasonsData || [];
-    const totalLost = lostReasonsData?.totalLost || reasons.reduce((sum, item) => sum + item.count, 0);
+    // 🟢 CORREÇÃO: Garante acesso seguro a reasons e totalLost, com fallback
+    const reasons = lostReasonsData?.reasons || [];
+    const totalLost = lostReasonsData?.totalLost || 0;
     
-    if (!lostReasonsData || totalLost === 0) {
+    if (totalLost === 0) {
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
                 <h3 className="text-lg font-semibold mb-4 text-gray-700 flex items-center">
                     <FaTimesCircle className="mr-2 text-red-600" />
                     Análise de Motivos de Perda
@@ -29,6 +29,7 @@ function LostReasonsTable({ lostReasonsData }) {
     
     // Função auxiliar para formatar porcentagens
     const formatPercent = (value) => {
+        // 🟢 CORREÇÃO: Garante que o valor e o totalLost são seguros
         if (value === undefined || value === null || totalLost === 0) return '0%';
         // Calcula a porcentagem do total e formata
         const percentage = (value / totalLost) * 100;
@@ -59,12 +60,13 @@ function LostReasonsTable({ lostReasonsData }) {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                         {reasons.map((item, index) => (
-                            <tr key={item.reason} className="hover:bg-red-50/50">
+                            <tr key={item.reason || index} className="hover:bg-red-50/50">
                                 <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                                     {item.reason || 'Motivo Não Especificado'}
                                 </td>
                                 <td className="px-6 py-3 whitespace-nowrap text-sm text-right text-gray-700">
-                                    {item.count.toLocaleString('pt-BR')}
+                                    {/* 🟢 Garante que item.count existe para formatar */}
+                                    {(item.count ?? 0).toLocaleString('pt-BR')}
                                 </td>
                                 <td className="px-6 py-3 whitespace-nowrap text-sm font-semibold text-right text-red-600">
                                     {formatPercent(item.count)}
