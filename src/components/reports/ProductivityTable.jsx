@@ -10,95 +10,68 @@ function ProductivityTable({ metrics }) {
     
     // Fallback para garantir que o componente não quebre se não houver dados
     if (!metrics) {
-        return (
-            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                <h3 className="text-xl font-bold mb-4 text-gray-800">Produtividade de Vendas</h3>
-                <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>
-            </div>
-        );
+        return <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>;
     }
 
-    // Função auxiliar para formatar valores em kW (Backend retorna 'totalKwWon')
+    // Função auxiliar para formatar valores em KW
     const formatKw = (value) => {
-        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
-        const num = parseFloat(value ?? 0);
-        if (isNaN(num)) return '0,00 KW';
-        
+        if (value === undefined || value === null) return '0,00 KW';
         // Formata o número (ex: 12345.67 -> 12.345,67 KW)
-        return `${num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
+        return `${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
     };
 
-    // Função auxiliar para formatar porcentagens (Backend retorna 0-100)
+    // Função auxiliar para formatar porcentagens
     const formatPercent = (value) => {
-        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
-        const num = parseFloat(value ?? 0);
-        if (isNaN(num)) return '0%';
-        
-        // Formata para duas casas decimais e adiciona %
-        return `${num.toFixed(2).replace('.', ',')}%`;
+        if (value === undefined || value === null) return '0%';
+        // Assume que o valor é de 0 a 1 e multiplica por 100, ou ajusta se já for % (0 a 100)
+        let percentage = (value <= 1) ? value * 100 : value;
+        return `${percentage.toFixed(2).replace('.', ',')}%`;
     };
 
-    // Função auxiliar para formatar contagem de leads
-    const formatCount = (value) => {
-        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
-        const num = parseInt(value ?? 0, 10);
-        if (isNaN(num)) return 0;
-        
-        return num.toLocaleString('pt-BR');
-    };
-
-    // Função auxiliar para formatar tempo em dias
-    const formatDays = (value) => {
-        // 🟢 CORREÇÃO: Garante que o valor é um número ou 0
-        const num = parseFloat(value ?? 0);
-        if (isNaN(num)) return 'N/A';
-        
-        return `${num.toFixed(1).replace('.', ',')} dias`;
-    };
-
-    // Mapeamento das métricas para exibição na tabela, usando os nomes do ReportDataService (Backend)
+    // Mapeamento das métricas para exibição na tabela
     const metricsDisplay = [
         { 
             label: "Leads Ativos", 
-            value: metrics.activeLeads, // Nome do Backend
-            format: formatCount,
-            description: "Total de leads nas fases de Atendimento/Negociação no período."
+            value: metrics.leadsActive, 
+            format: (v) => (v ?? 0).toLocaleString('pt-BR'), 
+            description: "Total de leads no funil (status diferente de Ganho/Perdido)." 
         },
         { 
             label: "Vendas Concluídas (Qtd)", 
-            value: metrics.totalWonQty, // Nome do Backend
-            format: formatCount,
-            description: "Número total de leads movidos para a fase 'Fechado Ganho'."
+            value: metrics.totalWonCount, 
+            format: (v) => (v ?? 0).toLocaleString('pt-BR'), 
+            description: "Número total de projetos fechados como 'Ganho'." 
         },
         { 
-            label: "Valor Total de Vendas", 
-            value: metrics.totalKwWon, // Nome do Backend
-            format: formatKw,
-            description: "Valor (kW) total das vendas concluídas."
+            label: "Valor Total (kW)", 
+            value: metrics.totalWonValueKW, 
+            format: formatKw, 
+            description: "Soma da potência (kW) de todos os projetos ganhos." 
         },
         { 
-            label: "Taxa de Conversão (Total)", 
-            value: metrics.conversionRate, // Nome do Backend
-            format: formatPercent,
-            description: "Proporção de leads (Fechados) que se converteram em vendas."
+            label: "Taxa de Conversão", 
+            value: metrics.conversionRate, 
+            format: formatPercent, 
+            description: "Porcentagem de leads que se tornaram 'Ganho'." 
+        },
+        { 
+            label: "Taxa de Perda", 
+            value: metrics.lossRate, 
+            format: formatPercent, 
+            description: "Porcentagem de leads que se tornaram 'Perdido'." 
         },
         { 
             label: "Tempo Médio de Fechamento", 
-            value: metrics.avgTimeToWinDays, // Nome do Backend
-            format: formatDays,
-            description: "Média de dias desde a criação até o Fechamento Ganho."
-        },
-        { 
-            label: "Taxa de Perda (Churn Rate)", 
-            value: metrics.churnRate, // Nome do Backend
-            format: formatPercent,
-            description: "Proporção de leads movidos para a fase 'Fechado Perdido'."
+            value: metrics.avgClosingTimeDays, 
+            format: (v) => (v ?? 0).toFixed(1).replace('.', ',') + ' dias', 
+            description: "Média de dias desde a criação até o status 'Ganho'." 
         },
     ];
 
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
-            <h3 className="text-xl font-bold mb-4 text-gray-800">Produtividade de Vendas</h3>
+        // ESTILIZAÇÃO PADRÃO: p-6, rounded-2xl, shadow-md, border
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Métricas de Produtividade</h3>
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
