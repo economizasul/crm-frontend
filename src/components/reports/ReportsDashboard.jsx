@@ -3,20 +3,21 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FaDollarSign, FaChartLine, FaPercentage, FaTags, FaClock, FaSpinner } from 'react-icons/fa';
 
-// 🚨 ATENÇÃO: Estes componentes DEVEM existir (e agora o DailyActivity.jsx existe!)
+// Componentes do Dashboard
 import ProductivityTable from './ProductivityTable.jsx';
 import FunnelChart from './FunnelChart.jsx'; 
 import LostReasonsTable from './LostReasonsTable.jsx';
-// Importe DailyActivity se você o tiver, ou mantenha o comentário
-// import DailyActivity from './DailyActivity.jsx'; 
+import DailyActivity from './DailyActivity.jsx'; 
+import SummaryKpis from './SummaryKpis.jsx'; // Mantido como placeholder
 
-// Componente Card de KPI (ajustado com arredondamento '2xl')
+/**
+ * Cartão de KPI Reutilizável
+ */
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
     <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, type: 'spring', stiffness: 100 }}
-        // ESTILIZAÇÃO PADRÃO: p-5, rounded-2xl, shadow-md, border
         className="bg-white p-5 rounded-2xl shadow-md border border-gray-100"
     >
         <div className="flex items-center justify-between">
@@ -28,90 +29,111 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
     </motion.div>
 );
 
-
-const ReportsDashboard = ({ data, loading, error }) => {
+/**
+ * Componente principal que renderiza o dashboard inteiro.
+ */
+export default function ReportsDashboard({ data, loading, error }) {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64 bg-white p-6 rounded-2xl shadow-md">
-                <FaSpinner className="animate-spin w-8 h-8 text-indigo-500 mr-2" />
-                <span className="text-lg text-gray-700">Carregando métricas...</span>
+            <div className="flex justify-center items-center h-96">
+                <FaSpinner className="animate-spin text-5xl text-indigo-600" />
+                <p className="ml-4 text-gray-600 text-lg">A carregar dados do relatório...</p>
             </div>
         );
     }
     
-    if (!data || error) {
-        return null; // O ReportsPage lida com a mensagem de erro/vazio
-    }
+    if (!data) return null;
+
+    // Desestrutura os dados para uso simplificado
+    const { productivity, funnel, lostReasons } = data;
     
-    // Dados de Produtividade (Simplificados para evitar quebras)
-    const prod = data.productivity || {};
+    // Funções de formatação
+    const formatPercent = (value) => `${(value * 100).toFixed(1).replace('.', ',')}%`;
+    const formatKwValue = (value) => `${Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} KW`;
+    const formatDays = (value) => `${Number(value).toFixed(1).replace('.', ',')} dias`;
 
     return (
-        // Espaçamento vertical entre as linhas de componentes
-        <div className="space-y-6"> 
+        <div className="space-y-6">
             
-            {/* 1. KPIs de Resumo */}
-            {/* Grid com 2 colunas em telas pequenas, e 4 colunas em telas grandes, para melhor distribuição dos cartões */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                <DashboardCard title="Total Leads" value={(prod.totalLeads ?? 0).toLocaleString('pt-BR')} icon={FaTags} colorClass="text-indigo-600" />
-                <DashboardCard title="Fechados (Qtd)" value={(prod.totalWonCount ?? 0).toLocaleString('pt-BR')} icon={FaChartLine} colorClass="text-green-600" />
-                <DashboardCard title="Valor Fechado (KW)" value={`${Number(prod.totalWonValueKW ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kW`} icon={FaDollarSign} colorClass="text-green-600" />
-                <DashboardCard title="Conversão" value={(prod.conversionRate * 100).toFixed(1).replace('.', ',') + '%'} icon={FaPercentage} colorClass="text-blue-600" />
-                <DashboardCard title="Perda (Taxa)" value={(prod.lossRate * 100).toFixed(1).replace('.', ',') + '%'} icon={FaPercentage} colorClass="text-red-500" />
-                <DashboardCard title="Tempo Médio (dias)" value={(prod.avgClosingTimeDays ?? 0).toFixed(1).replace('.', ',')} icon={FaClock} colorClass="text-yellow-600" />
+            {/* 1. LINHA DE KPIS DE RESUMO */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <DashboardCard 
+                    title="Leads Ativos" 
+                    value={productivity.leadsActive.toLocaleString('pt-BR')} 
+                    icon={FaTags}
+                    colorClass="text-indigo-600"
+                    subtext="Status != Ganho/Perdido"
+                />
+                <DashboardCard 
+                    title="Vendas Concluídas (KW)" 
+                    value={formatKwValue(productivity.totalWonValueKW)}
+                    icon={FaDollarSign}
+                    colorClass="text-green-600"
+                    subtext={`${productivity.totalWonCount} negócios fechados`}
+                />
+                <DashboardCard 
+                    title="Taxa de Conversão" 
+                    value={formatPercent(productivity.conversionRate)}
+                    icon={FaPercentage}
+                    colorClass="text-teal-600"
+                    subtext="Total Ganho / Total Criado"
+                />
+                <DashboardCard 
+                    title="Tempo Médio de Fechamento" 
+                    value={formatDays(productivity.avgClosingTimeDays)}
+                    icon={FaClock}
+                    colorClass="text-yellow-600"
+                    subtext="Do início ao Ganho"
+                />
             </div>
 
-            {/* 2. PRODUTIVIDADE E FUNIL */}
-            {/* Grid com 3 colunas em telas grandes (2/3 + 1/3) */}
+            {/* 2. TABELA DE PRODUTIVIDADE E FUNIL */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Tabela de Produtividade (ocupa 2 colunas) */}
                 <motion.div 
-                    // Ocupa 2 de 3 colunas em telas grandes
-                    className="lg:col-span-2" 
-                    initial={{ opacity: 0, x: -10 }} 
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="lg:col-span-2"
                 >
-                    <ProductivityTable metrics={prod} />
+                    <ProductivityTable metrics={productivity} />
                 </motion.div>
                 
+                {/* Gráfico de Funil (ocupa 1 coluna) */}
                 <motion.div 
-                    // Ocupa 1 de 3 colunas em telas grandes
-                    className="lg:col-span-1"
                     initial={{ opacity: 0, x: 10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
+                    className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-md border border-gray-100"
                 >
-                    {/* O componente FunnelChart já deve ter o background/shadow interno */}
-                    <FunnelChart funnelStages={data.funnel} />
+                    <FunnelChart funnelStages={funnel} />
                 </motion.div>
             </div>
             
             {/* 3. ANÁLISE DE CHURN E ATIVIDADE */}
-            {/* Grid com 2 colunas em telas grandes (1/2 + 1/2) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Tabela de Motivos de Perda (ocupa 1 coluna) */}
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                    <LostReasonsTable lostLeadsAnalysis={data.lostReasons} />
+                    {/* 🟢 CORRIGIDO: Propriedade ajustada para lostLeadsAnalysis */}
+                    <LostReasonsTable lostLeadsAnalysis={lostReasons} />
                 </motion.div>
                 
+                {/* Gráfico de Atividade Diária (usando o componente que você confirmou) */}
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                    {/* Se você tiver o DailyActivity, descomente e use aqui. Caso contrário, substitua por outro componente. */}
-                    {/* <DailyActivity dailyActivityData={data.dailyActivity} /> */}
-                    <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-64 flex items-center justify-center">
-                        <p className="text-gray-500">Gráfico de Atividade Diária (DailyActivity.jsx)</p>
-                    </div>
+                    {/* Nota: dailyActivityData virá null até ser implementado no backend */}
+                    <DailyActivity dailyActivityData={data.dailyActivity} />
                 </motion.div>
             </div>
+            
         </div>
     );
-};
-
-export default ReportsDashboard;
+}
