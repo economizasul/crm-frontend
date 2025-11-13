@@ -1,9 +1,9 @@
 // src/components/reports/ReportsDashboard.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaDollarSign, FaChartLine, FaPercentage, FaTags, FaSpinner } from 'react-icons/fa';
+import { FaDollarSign, FaChartLine, FaPercentage, FaTags, FaClock, FaSpinner } from 'react-icons/fa';
 
-// 🚨 ATENÇÃO: Você DEVE criar estes arquivos na pasta src/components/reports/
+// 🚨 ATENÇÃO: Estes componentes DEVEM existir (e agora o DailyActivity.jsx existe!)
 import SummaryKpis from './SummaryKpis.jsx'; 
 import ProductivityTable from './ProductivityTable.jsx';
 import FunnelChart from './FunnelChart.jsx'; 
@@ -38,14 +38,13 @@ export default function ReportsDashboard({ data, loading, error, fetchAnalyticNo
         );
     }
     
-    // O erro será exibido pelo ReportsPage.jsx (componente pai), mas tratamos aqui também.
     if (error || !data || !data.summary) {
-        // Retorna um placeholder amigável se o carregamento falhou ou os dados estão vazios
+        // Se a busca falhou, ou se não há dados após o carregamento (ex: filtros vazios ou erro no backend)
         return (
             <div className="mt-8 p-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-sm text-center">
                 ❌ **Erro ao carregar dados.** O Backend pode estar indisponível ou os filtros não retornaram dados.
                 <br />
-                *Verifique os logs de erro 500 no seu Render para o endpoint `/reports/data`.*
+                *Se o erro persistir, verifique os logs de erro 500 no seu Render para o endpoint `/reports/data`.*
             </div>
         );
     }
@@ -102,10 +101,10 @@ export default function ReportsDashboard({ data, loading, error, fetchAnalyticNo
                     transition={{ duration: 0.5, delay: 0.1 }}
                     className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md border border-gray-100"
                 >
-                    {/* Tabela de Produtividade: Usa fetchAnalyticNotes ao clicar em um vendedor */}
+                    {/* Tabela de Produtividade */}
                     <ProductivityTable 
                         productivityData={data.productivity} 
-                        // Exemplo: onVendorClick={(vendorId) => fetchAnalyticNotes({ leadId: null, stage: null, vendorId })}
+                        // onVendorClick={(vendorId) => fetchAnalyticNotes({ leadId: null, stage: null, vendorId })}
                     /> 
                 </motion.div>
                 
@@ -115,10 +114,10 @@ export default function ReportsDashboard({ data, loading, error, fetchAnalyticNo
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-md border border-gray-100"
                 >
-                    {/* Gráfico de Funil: Usa fetchAnalyticNotes ao clicar em uma fase */}
+                    {/* Gráfico de Funil */}
                     <FunnelChart 
                         funnelData={data.funnel} 
-                        // Exemplo: onStageClick={(stage) => fetchAnalyticNotes({ stage })}
+                        // onStageClick={(stage) => fetchAnalyticNotes({ stage })}
                     />
                 </motion.div>
             </div>
