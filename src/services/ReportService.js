@@ -1,32 +1,40 @@
 // src/services/ReportService.js
 import api from './api';
-// Você deve garantir que o arquivo './api' (Axios) exista
+// Assumindo que o './api' é a sua instância configurada do Axios
 
 // ==========================================================
 // 📊 DASHBOARD PRINCIPAL
 // ==========================================================
 export const fetchDashboardMetrics = async (filters) => {
   try {
-    // Chamada POST para passar filtros no corpo (melhor para datas)
+    // Usa POST para enviar filtros no corpo. O backend espera { filters: {...} }
     const response = await api.post('/reports/data', { filters }); 
+    
+    if (!response.data || !response.data.success) {
+      // Trata caso a API retorne um sucesso: false
+      throw new Error(response.data?.message || 'Resposta de API de relatórios falhou.');
+    }
+    
     return response.data?.data || null;
   } catch (error) {
     console.error('Erro ao buscar métricas:', error);
-    throw error;
+    // Propaga o erro para o useReports, que exibe a mensagem de falha na tela.
+    throw error; 
   }
 };
 
 // ==========================================================
-// 🗒️ NOTAS ANALÍTICAS (NOVO)
+// 🗒️ NOTAS ANALÍTICAS (Relatório Analítico de Atendimento)
 // ==========================================================
 export const fetchAnalyticNotes = async (leadId, stage) => {
-    // A rota /reports/analytic é tratada pelo ReportController
     let url = '/reports/analytic';
     const params = {};
 
     if (leadId) {
+        // Busca notas de um lead específico: /reports/analytic/lead/123
         url = `/reports/analytic/lead/${leadId}`;
     } else if (stage) {
+        // Busca leads ativos em uma fase: /reports/analytic/stage?stage=Proposta Enviada
         url = `/reports/analytic/stage`;
         params.stage = stage;
     } else {
@@ -52,7 +60,6 @@ export const fetchAnalyticNotes = async (leadId, stage) => {
 const getFilenameFromHeader = (response, defaultFilename) => {
   const contentDisposition = response.headers['content-disposition'];
   if (contentDisposition) {
-    // Suporta nomes de arquivo com UTF-8 e nomes padrão
     const match = contentDisposition.match(/filename\*?=UTF-8''(.+?)(?:;|$)|filename="(.+?)"/i);
     if (match && match[1]) {
       return decodeURIComponent(match[1]);
