@@ -1,11 +1,11 @@
-// src/hooks/useReports.js (Reescrito para a nova estrutura de dados)
+// src/hooks/useReports.js
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchDashboardMetrics,
   downloadCsvReport,
   downloadPdfReport,
-  fetchAnalyticNotes as fetchAnalyticNotesAPI
-} from '../services/ReportService'; // Assumindo que você criou 'fetchAnalyticNotes'
+  fetchAnalyticNotes as fetchAnalyticNotesAPI // Renomeado para evitar conflito
+} from '../services/ReportService';
 
 export function useReports(initialFilters = {}) {
   // Estado dos dados do Dashboard (Métricas)
@@ -38,7 +38,7 @@ export function useReports(initialFilters = {}) {
     setLoading(true);
     setError(null);
     try {
-      // 🚨 MUDANÇA CHAVE: O ReportDataService agora retorna um objeto com todas as métricas
+      // O ReportDataService.getAllDashboardData retorna um objeto com todas as métricas
       const metricsData = await fetchDashboardMetrics(currentFilters);
       setData(metricsData);
     } catch (err) {
@@ -70,10 +70,10 @@ export function useReports(initialFilters = {}) {
 
     setAnalyticLoading(true);
     setAnalyticError(null);
-    setAnalyticNotes(null);
+    setAnalyticNotes(null); // Limpa resultados anteriores
     
     try {
-      // Chama a nova rota de API
+      // Chama a nova função de API com as devidas checagens de parâmetros
       const data = await fetchAnalyticNotesAPI(leadId, stage);
       setAnalyticNotes(data);
     } catch (err) {
@@ -82,6 +82,11 @@ export function useReports(initialFilters = {}) {
     } finally {
       setAnalyticLoading(false);
     }
+  }, []);
+
+  // Limpa o estado do relatório analítico
+  const clearAnalyticNotes = useCallback(() => {
+    setAnalyticNotes(null);
   }, []);
 
   // --- Lógica de Exportação ---
@@ -95,7 +100,6 @@ export function useReports(initialFilters = {}) {
       else throw new Error('Formato desconhecido');
     } catch (err) {
       console.error(`Erro na exportação ${format}:`, err);
-      // Aqui você pode melhorar a mensagem de erro para o usuário final.
       setError(`Erro ao exportar para ${format.toUpperCase()}`);
     } finally {
       setExporting(false);
@@ -123,6 +127,7 @@ export function useReports(initialFilters = {}) {
     analyticNotes,
     analyticLoading,
     analyticError,
-    fetchAnalyticNotes, // Função para ser chamada pelos componentes do dashboard
+    fetchAnalyticNotes, // Função para ser chamada pelos componentes
+    clearAnalyticNotes, // Função para fechar o modal ou painel de análise
   };
 }

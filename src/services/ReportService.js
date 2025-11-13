@@ -1,13 +1,14 @@
 // src/services/ReportService.js
 import api from './api';
+// Você deve garantir que o arquivo './api' (Axios) exista
 
 // ==========================================================
 // 📊 DASHBOARD PRINCIPAL
 // ==========================================================
 export const fetchDashboardMetrics = async (filters) => {
   try {
-    // Corrigido: agora chama o endpoint correto do backend
-    const response = await api.post('/reports/data', { filters });
+    // Chamada POST para passar filtros no corpo (melhor para datas)
+    const response = await api.post('/reports/data', { filters }); 
     return response.data?.data || null;
   } catch (error) {
     console.error('Erro ao buscar métricas:', error);
@@ -16,16 +17,33 @@ export const fetchDashboardMetrics = async (filters) => {
 };
 
 // ==========================================================
-// 🗒️ NOTAS ANALÍTICAS
+// 🗒️ NOTAS ANALÍTICAS (NOVO)
 // ==========================================================
-export const fetchAnalyticNotes = async (leadId) => {
-  try {
-    const response = await api.get(`/reports/notes/${leadId}`);
-    return response.data?.data || [];
-  } catch (error) {
-    console.error(`Erro ao buscar notas do Lead ${leadId}:`, error);
-    throw error;
-  }
+export const fetchAnalyticNotes = async (leadId, stage) => {
+    // A rota /reports/analytic é tratada pelo ReportController
+    let url = '/reports/analytic';
+    const params = {};
+
+    if (leadId) {
+        url = `/reports/analytic/lead/${leadId}`;
+    } else if (stage) {
+        url = `/reports/analytic/stage`;
+        params.stage = stage;
+    } else {
+        throw new Error('É necessário fornecer leadId ou stage para o Relatório Analítico.');
+    }
+    
+    try {
+        const response = await api.get(url, { params });
+
+        if (response.data && response.data.success) {
+            return response.data.data;
+        }
+        throw new Error('Resposta inesperada da API de Análise de Atendimento.');
+    } catch (error) {
+        console.error('Erro ao buscar notas analíticas:', error);
+        throw error;
+    }
 };
 
 // ==========================================================
@@ -34,9 +52,13 @@ export const fetchAnalyticNotes = async (leadId) => {
 const getFilenameFromHeader = (response, defaultFilename) => {
   const contentDisposition = response.headers['content-disposition'];
   if (contentDisposition) {
+    // Suporta nomes de arquivo com UTF-8 e nomes padrão
     const match = contentDisposition.match(/filename\*?=UTF-8''(.+?)(?:;|$)|filename="(.+?)"/i);
-    if (match && match[1]) return decodeURIComponent(match[1]);
-    if (match && match[2]) return match[2];
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    } else if (match && match[2]) {
+      return match[2];
+    }
   }
   return defaultFilename;
 };
@@ -45,6 +67,7 @@ const getFilenameFromHeader = (response, defaultFilename) => {
 export const downloadCsvReport = async (filters) => {
   let url = null;
   try {
+    // Usa POST para enviar filtros no corpo
     const response = await api.post('/reports/export/csv', { filters }, { responseType: 'blob' });
     const filename = getFilenameFromHeader(response, 'relatorio_leads.csv');
 
@@ -67,6 +90,7 @@ export const downloadCsvReport = async (filters) => {
 export const downloadPdfReport = async (filters) => {
   let url = null;
   try {
+    // Usa POST para enviar filtros no corpo
     const response = await api.post('/reports/export/pdf', { filters }, { responseType: 'blob' });
     const filename = getFilenameFromHeader(response, 'relatorio_resumo.pdf');
 
