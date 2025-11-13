@@ -1,22 +1,24 @@
 // src/components/reports/FunnelChart.jsx
 
 import React from 'react';
+import { FaFilter } from 'react-icons/fa';
 
 /**
  * Componente que exibe a distribuição de leads pelo Funil de Vendas.
  * Atualmente um placeholder para futura integração com biblioteca de gráficos.
- * @param {Array} funnelStages - Array de objetos representando as fases do funil.
+ * @param {Array} funnelData - Array de objetos representando as fases do funil. (Renomeado para funnelData para consistência com o hook)
  */
-function FunnelChart({ funnelStages }) {
+function FunnelChart({ funnelData: funnelStages }) {
     
     if (!funnelStages || funnelStages.length === 0) {
         return (
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100 h-96 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-96 flex items-center justify-center">
                 <p className="text-gray-500">Nenhum dado de funil encontrado.</p>
             </div>
         );
     }
     
+    // Calcula o total de leads (ou kW) no funil para percentuais
     const totalLeads = funnelStages.reduce((sum, stage) => sum + stage.count, 0);
 
     // Mapeamento simples de cores para as etapas
@@ -31,13 +33,17 @@ function FunnelChart({ funnelStages }) {
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
-            <h3 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2">Funil de Vendas por Etapa</h3>
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
+            <h3 className="text-xl font-bold mb-6 text-gray-800 border-b pb-2 flex items-center">
+                <FaFilter className="mr-2 text-orange-500" />
+                Funil de Vendas por Etapa
+            </h3>
             
             <p className="text-sm text-gray-600 mb-4">Total de Leads {totalLeads > 0 ? `(${totalLeads.toLocaleString('pt-BR')})` : ''}</p>
 
             <div className="space-y-4">
                 {funnelStages.map((stage, index) => {
+                    // O backend retorna stageName e count. Assumo que stageName é o nome da fase.
                     const percentage = totalLeads > 0 ? (stage.count / totalLeads) * 100 : 0;
                     const color = stageColors[stage.stageName] || stageColors['Outros'];
                     
@@ -65,7 +71,7 @@ function FunnelChart({ funnelStages }) {
             </div>
 
             <p className="text-xs text-gray-500 mt-6 pt-4 border-t">
-                * Este é um modelo de visualização que pode ser substituído por um gráfico real (ex: Funnel Chart do Recharts) futuramente.
+                * Modelo de visualização que pode ser substituído por um gráfico real futuramente.
             </p>
         </div>
     );

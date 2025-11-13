@@ -1,17 +1,25 @@
 // src/components/reports/LostReasonsTable.jsx
 
 import React from 'react';
+import { FaTimesCircle } from 'react-icons/fa';
 
 /**
  * Componente de Tabela que exibe a análise dos motivos de perda (Churn).
- * @param {Object} lostLeadsAnalysis - Objeto contendo a análise dos motivos de perda.
+ * @param {Object} lostReasonsData - Objeto contendo a análise dos motivos de perda (renomeado para consistência com o hook).
  */
-function LostReasonsTable({ lostLeadsAnalysis }) {
+function LostReasonsTable({ lostReasonsData }) {
     
-    if (!lostLeadsAnalysis || lostLeadsAnalysis.totalLost === 0) {
+    // O backend retorna um objeto { reasons: [], totalLost: number } ou { lostReasons: [] }
+    const reasons = lostReasonsData?.reasons || lostReasonsData || [];
+    const totalLost = lostReasonsData?.totalLost || reasons.reduce((sum, item) => sum + item.count, 0);
+    
+    if (!lostReasonsData || totalLost === 0) {
         return (
-            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
-                <h3 className="text-lg font-semibold mb-4 text-gray-700">Análise de Motivos de Perda</h3>
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+                <h3 className="text-lg font-semibold mb-4 text-gray-700 flex items-center">
+                    <FaTimesCircle className="mr-2 text-red-600" />
+                    Análise de Motivos de Perda
+                </h3>
                 <div className="text-gray-500 p-8 text-center">
                     Nenhum lead perdido no período selecionado.
                 </div>
@@ -19,8 +27,6 @@ function LostReasonsTable({ lostLeadsAnalysis }) {
         );
     }
     
-    const { reasons, totalLost } = lostLeadsAnalysis;
-
     // Função auxiliar para formatar porcentagens
     const formatPercent = (value) => {
         if (value === undefined || value === null || totalLost === 0) return '0%';
@@ -30,8 +36,11 @@ function LostReasonsTable({ lostLeadsAnalysis }) {
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md border border-gray-100">
-            <h3 className="text-lg font-semibold mb-4 text-gray-700">Análise de Motivos de Perda (Total: {totalLost})</h3>
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 h-full">
+            <h3 className="text-lg font-semibold mb-4 text-gray-700 flex items-center">
+                <FaTimesCircle className="mr-2 text-red-600" />
+                Análise de Motivos de Perda (Total: {totalLost.toLocaleString('pt-BR')})
+            </h3>
             
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">

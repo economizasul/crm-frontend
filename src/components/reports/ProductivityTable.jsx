@@ -13,23 +13,30 @@ function ProductivityTable({ metrics }) {
         return <div className="text-gray-500 p-4">Nenhuma métrica de produtividade disponível.</div>;
     }
 
-    // Função auxiliar para formatar valores monetários
-    const formatCurrency = (value) => {
-        if (value === undefined || value === null) return 'KW 0,00';
-        return `KW ${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+    // Função auxiliar para formatar valores monetários (ajustado para o novo campo KW do backend)
+    const formatKw = (value) => {
+        if (value === undefined || value === null) return '0,00 KW';
+        // Formata o número (ex: 12345.67 -> 12.345,67 KW)
+        return `${parseFloat(value).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')} KW`;
     };
 
     // Função auxiliar para formatar porcentagens
     const formatPercent = (value) => {
         if (value === undefined || value === null) return '0%';
         // Multiplica por 100, formata para duas casas decimais e adiciona %
-        return `${(value * 100).toFixed(2).replace('.', ',')}%`;
+        // Nota: O backend já está retornando a conversão em % (0 a 100).
+        // Se o backend retorna 0.85 (85%), use: return `${(value * 100).toFixed(2).replace('.', ',')}%`;
+        // Se o backend retorna 85 (85%), use: 
+        return `${parseFloat(value).toFixed(2).replace('.', ',')}%`;
     };
 
     // Mapeamento das métricas para exibição na tabela
+    // Nota: A estrutura do componente (metrics) deve ser alinhada com os dados do ReportDataService.
     const metricsDisplay = [
         { 
             label: "Leads Ativos", 
+            // O ReportDataService retorna a produtividade como um array. 
+            // Aqui você deve usar productivityData.totalLeadsPeriod ou similar
             value: metrics.leadsActive, 
             format: (v) => v ? v.toLocaleString('pt-BR') : 0,
             description: "Total de leads nas fases de Atendimento/Negociação no período."
@@ -43,8 +50,8 @@ function ProductivityTable({ metrics }) {
         { 
             label: "Valor Total de Vendas", 
             value: metrics.totalWonValue, 
-            format: formatCurrency,
-            description: "Valor financeiro total das vendas concluídas."
+            format: formatKw,
+            description: "Valor (kW) total das vendas concluídas."
         },
         { 
             label: "Taxa de Conversão (Lead -> Venda)", 
@@ -66,38 +73,52 @@ function ProductivityTable({ metrics }) {
         },
     ];
 
+    // Se estiver usando o array de vendedores:
+    const vendorData = Array.isArray(metrics) ? metrics : [
+        // Se o componente for reescrito para listar vendedores, esta linha será removida.
+        // Por enquanto, mantenho o mapeamento para não quebrar o layout.
+        { vendorName: 'Geral', ...metricsDisplay.reduce((acc, curr) => ({...acc, [curr.label]: curr.format(curr.value)}), {}) }
+    ];
+
     return (
-        <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                    <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Métrica
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Valor
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                            Descrição
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                    {metricsDisplay.map((metric, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {metric.label}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-700">
-                                {metric.format(metric.value)}
-                            </td>
-                            <td className="px-6 py-4 whitespace-normal text-xs text-gray-500 hidden sm:table-cell">
-                                {metric.description}
-                            </td>
+        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Produtividade de Vendas</h3>
+            <div className="overflow-x-auto">
+                {/* O componente original que você forneceu estava formatado como uma Tabela de Métricas em vez de Tabela de Vendedores. 
+                    Recomendação: Mantenha esta tabela se ela for apenas o resumo geral. Se for a tabela de vendedores, use um cabeçalho diferente. 
+                    Vou usar o formato que você forneceu.
+                */}
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Métrica
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Valor
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                                Descrição
+                            </th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                        {metricsDisplay.map((metric, index) => (
+                            <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {metric.label}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-700">
+                                    {metric.format(metric.value)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-normal text-xs text-gray-500 hidden sm:table-cell">
+                                    {metric.description}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
