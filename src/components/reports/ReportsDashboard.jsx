@@ -9,7 +9,7 @@ import LostReasonsTable from './LostReasonsTable.jsx';
 import DailyActivity from './DailyActivity.jsx';
 
 // novo mapa
-import GeoMap from './GeoMap.js';
+import GeoMap from './GeoMap.jsx';
 
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
   <motion.div
