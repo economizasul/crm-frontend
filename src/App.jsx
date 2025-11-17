@@ -12,18 +12,19 @@ import LeadSearch from './pages/LeadSearch.jsx';
 import LeadForm from './pages/LeadForm.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import Configuracoes from './pages/Configuracoes.jsx';
-import FullMap from './pages/FullMap.jsx'; // ← IMPORTAÇÃO DO FULL MAP
+
+// 🔥 CORREÇÃO AQUI — IMPORTANDO DO LOCAL CERTO
+import FullMap from './components/reports/FullMap.jsx';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isAuthReady } = useAuth();
 
-  if (!isAuthReady) {
+  if (!isAuthReady)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <span>Carregando...</span>
       </div>
     );
-  }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
@@ -32,11 +33,9 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
-        {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Rotas protegidas */}
         <Route
           path="/"
           element={
@@ -55,11 +54,10 @@ function App() {
           <Route path="reports" element={<ReportsPage />} />
           <Route path="settings" element={<Configuracoes />} />
 
-          {/* NOVA ROTA PARA MAPA EM TELA CHEIA */}
-          <Route path="fullmap" element={<FullMap />} />
+          {/* 🔥 NOVA ROTA PARA MAPA EM TELA CHEIA */}
+          <Route path="full-map" element={<FullMap />} />
         </Route>
 
-        {/* Redirecionamento padrão */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AuthProvider>
