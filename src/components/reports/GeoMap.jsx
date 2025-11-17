@@ -1,4 +1,4 @@
-// src/components/reports/GeoMap.js
+// src/components/reports/GeoMap.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON, CircleMarker, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
