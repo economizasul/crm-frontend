@@ -3,7 +3,6 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Correção de ícones do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -24,7 +23,6 @@ const coresRegioes = {
   "Outros": { claro: "#E0E0E0", forte: "#666666" }
 };
 
-// Mapeamento simples de algumas cidades importantes → região (pode crescer depois)
 const cidadeParaRegiao = {
   "Curitiba": "Metropolitana de Curitiba",
   "Londrina": "Norte Pioneiro",
@@ -34,14 +32,13 @@ const cidadeParaRegiao = {
   "Foz do Iguaçu": "Oeste",
   "Guarapuava": "Centro-Sul",
   "São José dos Pinhais": "Metropolitana de Curitiba",
-  "Colombo": "Metropolitana de Curitiba",
-  "Paranaguá": "Metropolitana de Curitiba",
 };
 
-export default function ParanaMap({ leadsGanho = [] }) {
+export default function ParanaMap({ leadsGanho = [], onRegiaoClick, regiaoAtiva }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersGroup = useRef(L.layerGroup());
+  const regioesLayer = useRef(L.layerGroup());
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
@@ -50,19 +47,14 @@ export default function ParanaMap({ leadsGanho = [] }) {
       center: [-24.5, -51.5],
       zoom: 7.5,
       zoomControl: true,
-      scrollWheelZoom: true,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapInstance.current);
 
-    // Usa o seu arquivo que já está no public/geo/parana.json
     fetch('/geo/parana.json')
-      .then(r => {
-        if (!r.ok) throw new Error('Arquivo parana.json não encontrado');
-        return r.json();
-      })
+      .then(r => r.json())
       .then(data => {
         L.geoJSON(data, {
           style: () => ({
@@ -73,11 +65,9 @@ export default function ParanaMap({ leadsGanho = [] }) {
             fillOpacity: 0.3,
           }),
         }).addTo(mapInstance.current);
-      })
-      .catch(err => {
-        console.warn("Mapa de fundo não carregou (continua funcionando):", err);
       });
 
+    regioesLayer.current.addTo(mapInstance.current);
     markersGroup.current.addTo(mapInstance.current);
 
     return () => {
@@ -88,20 +78,17 @@ export default function ParanaMap({ leadsGanho = [] }) {
 
   // Atualiza pins
   useEffect(() => {
-    if (!mapInstance.current || !markersGroup.current) return;
-
+    if (!mapInstance.current) return;
     markersGroup.current.clearLayers();
+    regioesLayer.current.clearLayers();
 
     const agrupados = {};
     leadsGanho.forEach(lead => {
       if (!lead.lat || !lead.lng) return;
-
       const key = `${lead.lat.toFixed(6)},${lead.lng.toFixed(6)}`;
       if (!agrupados[key]) {
-        const cidadeNormalizada = (lead.cidade || "").trim().toLowerCase();
-        const regiao = Object.keys(cidadeParaRegiao).find(c =>
-          cidadeNormalizada.includes(c.toLowerCase())
-        );
+        const cidadeNorm = (lead.cidade || "").toLowerCase();
+        const regiao = Object.keys(cidadeParaRegiao).find(c => cidadeNorm.includes(c.toLowerCase()));
         agrupados[key] = {
           lat: lead.lat,
           lng: lead.lng,
@@ -121,48 +108,39 @@ export default function ParanaMap({ leadsGanho = [] }) {
 
       const icon = L.divIcon({
         className: "custom-pin",
-        html: `
-          <div style="
-            background:${cor};
-            color:white;
-            width:${tamanho}px;
-            height:${tamanho}px;
-            border-radius:50%;
-            border:4px solid white;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-weight:bold;
-            font-size:${item.count > 99 ? '14px' : '17px'};
-            box-shadow:0 4px 15px rgba(0,0,0,0.4);
-          ">
-            ${item.count}
-          </div>
-        `,
+        html: `<div style="background:${cor};color:white;width:${tamanho}px;height:${tamanho}px;border-radius:50%;border:4px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:${item.count > 99 ? '14px' : '17px'};box-shadow:0 4px 15px rgba(0,0,0,0.4);">${item.count}</div>`,
         iconSize: [tamanho, tamanho],
         iconAnchor: [tamanho / 2, tamanho / 2],
       });
 
       const marker = L.marker([item.lat, item.lng], { icon });
-
-      const linksHtml = item.links.map((link, i) =>
-        `<a href="${link}" target="_blank" class="block text-blue-600 hover:underline text-sm mt-1">Cliente ${i + 1}</a>`
-      ).join('');
+      const linksHtml = item.links.map((l, i) => `<a href="${l}" target="_blank" class="block text-blue-600 hover:underline text-sm mt-1">Cliente ${i + 1}</a>`).join('');
 
       marker.bindPopup(`
-        <div style="font-family:system-ui; min-width:230px;">
+        <div style="font-family:system-ui;min-width:230px;">
           <div class="font-bold text-lg">${item.cidade}</div>
           <div class="text-sm text-gray-600">${item.regiao}</div>
-          <div class="mt-3 font-semibold text-green-600">
-            ${item.count} cliente${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}
-          </div>
+          <div class="mt-3 font-semibold text-green-600">${item.count} cliente${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}</div>
           <div class="mt-3">${linksHtml}</div>
         </div>
       `);
 
       marker.addTo(markersGroup.current);
+
+      // Cria polígono invisível clicável da região (simulação)
+      if (onRegiaoClick && item.regiao) {
+        const circle = L.circle([item.lat, item.lng], {
+          radius: 50000,
+          fillOpacity: 0,
+          color: "transparent",
+        }).addTo(regioesLayer.current);
+
+        circle.on('click', () => {
+          onRegiaoClick(item.regiao);
+        });
+      }
     });
-  }, [leadsGanho]);
+  }, [leadsGanho, onRegiaoClick]);
 
   return (
     <div className="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-50">
