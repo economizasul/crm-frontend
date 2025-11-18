@@ -4,28 +4,67 @@ import {
   fetchDashboardMetrics,
   downloadCsvReport,
   downloadPdfReport,
-  fetchAnalyticNotes as fetchAnalyticNotesAPI // Renomeado para evitar conflito
+  fetchAnalyticNotes as fetchAnalyticNotesAPI
 } from '../services/ReportService';
 
+/* ============================================================================
+   FUNÇÃO DE FORMATAÇÃO – adapta os dados crus da API
+   ============================================================================ */
+
+function formatDashboardData(raw) {
+  if (!raw) return null;
+
+  return {
+    /* RESUMO GLOBAL (cards superiores) */
+    globalSummary: {
+      totalLeads: raw.totalLeadsHistory?.total || 0,
+      totalWonValueKW: raw.totalKwHistory?.totalKw || 0,
+      conversionRate: raw.conversionRateHistory?.rate || 0,
+      avgClosingTimeDays: raw.avgClosingTimeHistory?.avgDays || 0,
+    },
+
+    /* PRODUTIVIDADE POR VENDEDOR */
+    productivity: {
+      sellers: raw.productivityBySeller || [],
+      totalLeads: raw.totalLeadsHistory?.total || 0,
+      totalWonValueKW: raw.totalKwHistory?.totalKw || 0,
+    },
+
+    /* ATIVIDADE DIÁRIA */
+    dailyActivity: raw.activityDaily || [],
+
+    /* MOTIVOS DE PERDA */
+    lostReasons: raw.lostReasons || [],
+
+    /* FILTROS RETORNADOS PELA API */
+    filters: raw.filters || {},
+  };
+}
+
+/* ============================================================================
+   HOOK PRINCIPAL
+   ============================================================================ */
+
 export function useReports(initialFilters = {}) {
-  // Estado dos dados do Dashboard (Métricas)
-  const [data, setData] = useState(null); 
-  // Estado dos Filtros
+
+  // Dashboard
+  const [data, setData] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
-  
-  // Estado de Carregamento e Erro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Exportação
   const [exporting, setExporting] = useState(false);
 
-  // Estado para o NOVO Relatório Analítico de Atendimento
+  // Relatório Analítico de Atendimento
   const [analyticNotes, setAnalyticNotes] = useState(null);
   const [analyticLoading, setAnalyticLoading] = useState(false);
   const [analyticError, setAnalyticError] = useState(null);
-  
-  // --- Lógica de Filtros e Busca Principal ---
 
-  // Atualiza um ou mais filtros
+  /* ============================================================================
+     Atualiza filtros
+     ============================================================================ */
+
   const updateFilter = useCallback((key, value) => {
     setFilters((prev) => {
       if (typeof key === 'object') return { ...prev, ...key };
@@ -33,74 +72,87 @@ export function useReports(initialFilters = {}) {
     });
   }, []);
 
-  // Busca dados do dashboard (função principal que chama a API)
+  /* ============================================================================
+     Carrega dados principais do Dashboard
+     ============================================================================ */
+
   const fetchDashboardData = useCallback(async (currentFilters) => {
     setLoading(true);
     setError(null);
+
     try {
-      // O ReportDataService.getAllDashboardData retorna um objeto com todas as métricas
-      const metricsData = await fetchDashboardMetrics(currentFilters);
-      setData(metricsData);
+      const rawData = await fetchDashboardMetrics(currentFilters);
+
+      const formatted = formatDashboardData(rawData);
+
+      setData(formatted);
     } catch (err) {
       console.error('Erro ao buscar dados do dashboard:', err);
-      setError('Falha ao carregar dados do relatório. Tente novamente.');
+      setError('Falha ao carregar dados do relatório.');
       setData(null);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Aplica os filtros manualmente (botão 'Aplicar Filtros')
+  /* ============================================================================
+     Botão Aplicar Filtros
+     ============================================================================ */
+
   const applyFilters = useCallback(() => {
     fetchDashboardData(filters);
-    // Limpa o relatório analítico ao aplicar novos filtros no dashboard
     setAnalyticNotes(null);
   }, [filters, fetchDashboardData]);
 
-  // Carrega relatório inicial (no primeiro carregamento)
-  useEffect(() => {
-    // Busca dados iniciais ao montar o componente
-    fetchDashboardData(initialFilters);
-  }, [fetchDashboardData]); 
+  /* ============================================================================
+     Carregamento inicial
+     ============================================================================ */
 
-  // --- Lógica do Relatório Analítico de Atendimento ---
+  useEffect(() => {
+    fetchDashboardData(initialFilters);
+  }, [fetchDashboardData]);
+
+  /* ============================================================================
+     RELATÓRIO ANALÍTICO DE ATENDIMENTO (Modal / Offcanvas)
+     ============================================================================ */
 
   const fetchAnalyticNotes = useCallback(async ({ leadId = null, stage = null }) => {
-    if (!leadId && !stage) return; // Nada para buscar
+    if (!leadId && !stage) return;
 
     setAnalyticLoading(true);
     setAnalyticError(null);
-    setAnalyticNotes(null); // Limpa resultados anteriores
-    
+    setAnalyticNotes(null);
+
     try {
-      // Chama a nova função de API com as devidas checagens de parâmetros
       const data = await fetchAnalyticNotesAPI(leadId, stage);
       setAnalyticNotes(data);
     } catch (err) {
       console.error('Erro ao buscar notas analíticas:', err);
-      setAnalyticError(`Erro ao carregar o relatório de atendimento. ${err.message}`);
+      setAnalyticError('Erro ao carregar o relatório de atendimento.');
     } finally {
       setAnalyticLoading(false);
     }
   }, []);
 
-  // Limpa o estado do relatório analítico
   const clearAnalyticNotes = useCallback(() => {
     setAnalyticNotes(null);
   }, []);
 
-  // --- Lógica de Exportação ---
+  /* ============================================================================
+     EXPORTAÇÕES (CSV / PDF)
+     ============================================================================ */
 
   const exportFile = useCallback(async (format) => {
     setExporting(true);
     setError(null);
+
     try {
       if (format === 'csv') await downloadCsvReport(filters);
       else if (format === 'pdf') await downloadPdfReport(filters);
       else throw new Error('Formato desconhecido');
     } catch (err) {
-      console.error(`Erro na exportação ${format}:`, err);
-      setError(`Erro ao exportar para ${format.toUpperCase()}`);
+      console.error(`Erro ao exportar ${format}:`, err);
+      setError(`Erro ao exportar ${format.toUpperCase()}`);
     } finally {
       setExporting(false);
     }
@@ -109,25 +161,31 @@ export function useReports(initialFilters = {}) {
   const exportToCsv = () => exportFile('csv');
   const exportToPdf = () => exportFile('pdf');
 
-  // --- Retorno do Hook ---
+  /* ============================================================================
+     RETORNO DO HOOK
+     ============================================================================ */
 
   return {
-    // Dashboard Principal
+    // Dashboard
     data,
     filters,
     loading,
     error,
-    exporting,
+
+    // Ações
     updateFilter,
     applyFilters,
+
+    // Exportações
+    exporting,
     exportToCsv,
     exportToPdf,
-    
-    // Relatório Analítico de Atendimento
+
+    // Relatório Analítico
     analyticNotes,
     analyticLoading,
     analyticError,
-    fetchAnalyticNotes, // Função para ser chamada pelos componentes
-    clearAnalyticNotes, // Função para fechar o modal ou painel de análise
+    fetchAnalyticNotes,
+    clearAnalyticNotes,
   };
 }
