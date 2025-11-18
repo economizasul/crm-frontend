@@ -1,10 +1,107 @@
+/* src/App.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================
+   ROOT & LAYOUT BÁSICO
+   ======================== */
 #root {
-  max-width: 1280px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 0;
+  text-align: left;
+  min-height: 100vh;
 }
 
+/* Remove o padding antigo que estava limitando o layout */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================
+   TEMA DARK MODE PERFEITO
+   ======================== */
+.dark {
+  color-scheme: dark;
+}
+
+/* Fundo principal suave no dark mode (igual ao Notion, GitHub, Vercel) */
+.dark body {
+  background-color: #0f172a; /* Azul-escuro premium */
+}
+
+/* Fundo alternativo para páginas internas (mais claro, mas ainda dark) */
+.dark .bg-gray-50 {
+  background-color: #1e293b !important; /* slate-800 */
+}
+
+/* Cards e containers no dark mode */
+.dark .bg-white {
+  background-color: #1e293b !important; /* slate-800 */
+  border-color: #334155 !important; /* slate-700 */
+}
+
+.dark .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+.dark .text-gray-900 {
+  color: #f1f5f9 !important; /* slate-100 */
+}
+
+.dark .text-gray-600 {
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+.dark .text-gray-500 {
+  color: #64748b !important; /* slate-500 */
+}
+
+.dark .text-gray-400 {
+  color: #94a3b8 !important;
+}
+
+/* Inputs e selects no dark mode */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Scrollbar personalizada no dark mode (opcional, mas linda) */
+.dark::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.dark::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ========================
+   ANIMAÇÕES ANTIGAS (mantidas por compatibilidade)
+   ======================== */
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -19,12 +116,8 @@
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -39,4 +132,13 @@
 
 .read-the-docs {
   color: #788;
+}
+
+/* ========================
+   TRANSITION GLOBAL SUAVE
+   ======================== */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
