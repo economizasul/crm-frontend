@@ -24,18 +24,18 @@ const formatNumber = (value) => Number(value ?? 0).toLocaleString('pt-BR');
 
 export default function ReportsPage() {
   const {
-    data,
-    filters,
-    loading,
-    error,
-    exporting,
+    data = {},          // ✅ valor default seguro
+    filters = initialFilters,
+    loading = false,
+    error = null,
+    exporting = false,
     updateFilter,
     applyFilters,
     exportToCsv,
     exportToPdf,
   } = useReports(initialFilters);
 
-  const summary = data?.globalSummary;
+  const summary = data?.globalSummary || {};
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#0F172A]">
@@ -99,12 +99,14 @@ export default function ReportsPage() {
           <ReportsDashboard data={data} loading={loading} error={error} />
         </div>
 
-        {!data && !loading && !error && (
+        {/* Placeholder quando não há dados */}
+        {!loading && !error && (!data || Object.keys(data).length === 0) && (
           <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm text-center">
             📊 Use os filtros acima e clique em <strong>Aplicar Filtros</strong> para carregar o relatório.
           </div>
         )}
 
+        {/* Erro */}
         {error && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-sm">
             ❌ Erro ao carregar o relatório: {error}
