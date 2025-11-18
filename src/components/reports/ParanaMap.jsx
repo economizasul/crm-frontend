@@ -3,10 +3,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Arquivo GeoJSON das mesorregiões do Paraná
-import paranaRegioes from '../assets/geojson/parana-regioes.geojson';
-
-// Correção de ícones do Leaflet no React/Vite
+// Correção de ícones do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -14,7 +11,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Cores por mesorregião (claro = fundo, forte = pins)
 const coresRegioes = {
   "Norte Pioneiro": { claro: "#ADD8E6", forte: "#0066CC" },
   "Noroeste": { claro: "#DDA0DD", forte: "#9932CC" },
@@ -28,12 +24,25 @@ const coresRegioes = {
   "Outros": { claro: "#E0E0E0", forte: "#666666" }
 };
 
+// Mapeamento simples de algumas cidades importantes → região (pode crescer depois)
+const cidadeParaRegiao = {
+  "Curitiba": "Metropolitana de Curitiba",
+  "Londrina": "Norte Pioneiro",
+  "Maringá": "Noroeste",
+  "Ponta Grossa": "Centro Oriental Paranaense",
+  "Cascavel": "Oeste",
+  "Foz do Iguaçu": "Oeste",
+  "Guarapuava": "Centro-Sul",
+  "São José dos Pinhais": "Metropolitana de Curitiba",
+  "Colombo": "Metropolitana de Curitiba",
+  "Paranaguá": "Metropolitana de Curitiba",
+};
+
 export default function ParanaMap({ leadsGanho = [] }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersGroup = useRef(L.layerGroup());
 
-  // Inicializa o mapa uma única vez
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
@@ -42,41 +51,31 @@ export default function ParanaMap({ leadsGanho = [] }) {
       zoom: 7.5,
       zoomControl: true,
       scrollWheelZoom: true,
-      doubleClickZoom: true,
-      touchZoom: true,
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapInstance.current);
 
-    // Carrega as regiões do Paraná
-    fetch(paranaRegioes)
-      .then(r => r.json())
-      .then(geojson => {
-        L.geoJSON(geojson, {
-          style: (feature) => {
-            const regiao = feature.properties.NOME_MESO || "Outros";
-            const cor = coresRegioes[regiao] || coresRegioes["Outros"];
-            return {
-              fillColor: cor.claro,
-              weight: 2.5,
-              opacity: 1,
-              color: "#ffffff",
-              fillOpacity: 0.65,
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const regiao = feature.properties.NOME_MESO || "Desconhecida";
-            const count = leadsGanho.filter(l => l.regiao === regiao).length;
-            layer.bindTooltip(`<strong>${regiao}</strong><br>${count} cliente${count !== 1 ? 's' : ''} ganho${count !== 1 ? 's' : ''}`, {
-              permanent: false,
-              direction: 'center'
-            });
-            layer.bindPopup(`<div class="font-semibold text-lg">${regiao}</div><div class="mt-1">Leads Ganho: <strong>${count}</strong></div>`);
-          }
+    // Usa o seu arquivo que já está no public/geo/parana.json
+    fetch('/geo/parana.json')
+      .then(r => {
+        if (!r.ok) throw new Error('Arquivo parana.json não encontrado');
+        return r.json();
+      })
+      .then(data => {
+        L.geoJSON(data, {
+          style: () => ({
+            fillColor: "#e5e7eb",
+            weight: 1,
+            opacity: 1,
+            color: "#9ca3af",
+            fillOpacity: 0.3,
+          }),
         }).addTo(mapInstance.current);
+      })
+      .catch(err => {
+        console.warn("Mapa de fundo não carregou (continua funcionando):", err);
       });
 
     markersGroup.current.addTo(mapInstance.current);
@@ -87,24 +86,27 @@ export default function ParanaMap({ leadsGanho = [] }) {
     };
   }, []);
 
-  // Atualiza pins quando leadsGanho mudar
+  // Atualiza pins
   useEffect(() => {
     if (!mapInstance.current || !markersGroup.current) return;
 
-    // Limpa pins antigos
     markersGroup.current.clearLayers();
 
-    // Agrupa por coordenadas exatas (mesmo endereço = mesma posição)
     const agrupados = {};
     leadsGanho.forEach(lead => {
       if (!lead.lat || !lead.lng) return;
+
       const key = `${lead.lat.toFixed(6)},${lead.lng.toFixed(6)}`;
       if (!agrupados[key]) {
+        const cidadeNormalizada = (lead.cidade || "").trim().toLowerCase();
+        const regiao = Object.keys(cidadeParaRegiao).find(c =>
+          cidadeNormalizada.includes(c.toLowerCase())
+        );
         agrupados[key] = {
           lat: lead.lat,
           lng: lead.lng,
           cidade: lead.cidade || "Cidade não informada",
-          regiao: lead.regiao || "Outros",
+          regiao: regiao ? cidadeParaRegiao[regiao] : "Outros",
           links: [],
           count: 0
         };
@@ -113,29 +115,26 @@ export default function ParanaMap({ leadsGanho = [] }) {
       agrupados[key].links.push(lead.google_maps_link);
     });
 
-    // Cria os pins agrupados
     Object.values(agrupados).forEach(item => {
       const cor = coresRegioes[item.regiao]?.forte || "#ff7800";
-
-      const tamanho = item.count === 1 ? 32 : item.count < 5 ? 40 : item.count < 10 ? 48 : 56;
+      const tamanho = item.count === 1 ? 34 : item.count < 5 ? 42 : item.count < 10 ? 50 : 58;
 
       const icon = L.divIcon({
-        className: "custom-div-icon",
+        className: "custom-pin",
         html: `
           <div style="
-            background: ${cor};
-            color: white;
-            width: ${tamanho}px;
-            height: ${tamanho}px;
-            border-radius: 50%;
-            border: 4px solid white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: ${item.count > 99 ? '14px' : '16px'};
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+            background:${cor};
+            color:white;
+            width:${tamanho}px;
+            height:${tamanho}px;
+            border-radius:50%;
+            border:4px solid white;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:bold;
+            font-size:${item.count > 99 ? '14px' : '17px'};
+            box-shadow:0 4px 15px rgba(0,0,0,0.4);
           ">
             ${item.count}
           </div>
@@ -146,34 +145,28 @@ export default function ParanaMap({ leadsGanho = [] }) {
 
       const marker = L.marker([item.lat, item.lng], { icon });
 
-      const linksHtml = item.links.map(link => 
-        `<a href="${link}" target="_blank" class="text-blue-600 hover:underline text-sm">Cliente ${item.links.indexOf(link) + 1}</a>`
-      ).join('<br>');
+      const linksHtml = item.links.map((link, i) =>
+        `<a href="${link}" target="_blank" class="block text-blue-600 hover:underline text-sm mt-1">Cliente ${i + 1}</a>`
+      ).join('');
 
       marker.bindPopup(`
-        <div style="min-width: 220px; font-family: system-ui;">
+        <div style="font-family:system-ui; min-width:230px;">
           <div class="font-bold text-lg">${item.cidade}</div>
-          <div class="text-sm text-gray-600 mt-1">${item.regiao}</div>
-          <div class="mt-3 font-semibold">
+          <div class="text-sm text-gray-600">${item.regiao}</div>
+          <div class="mt-3 font-semibold text-green-600">
             ${item.count} cliente${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}
           </div>
-          <div class="mt-3 space-y-1">
-            ${linksHtml}
-          </div>
+          <div class="mt-3">${linksHtml}</div>
         </div>
-      `, { maxWidth: 300 });
+      `);
 
       marker.addTo(markersGroup.current);
     });
   }, [leadsGanho]);
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden shadow-lg border border-gray-200">
-      <div 
-        ref={mapRef} 
-        className="w-full h-full" 
-        style={{ minHeight: "580px" }}
-      />
+    <div className="w-full h-full rounded-xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-50">
+      <div ref={mapRef} className="w-full h-full" style={{ minHeight: "600px" }} />
     </div>
   );
 }
