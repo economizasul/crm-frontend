@@ -109,29 +109,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   return (
     <div className="space-y-8 p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
 
-      {/* FILTRO VENDEDOR */}
-      <motion.div
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-800 dark:to-purple-900 p-6 rounded-2xl shadow-2xl"
-      >
-        <label className="text-lg font-bold flex items-center gap-3 text-white">
-          <FaUserTie className="text-2xl" /> Filtrar por Vendedor
-        </label>
-        <select
-          value={vendedorSelecionado}
-          onChange={(e) => setVendedorSelecionado(e.target.value)}
-          className="mt-4 w-full max-w-md p-4 rounded-xl bg-white/20 text-white border border-white/30 focus:ring-4 focus:ring-white/50 outline-none"
-        >
-          <option value="todos">Todos os Vendedores ({leadsMapa.length})</option>
-          {vendedores.map(v => (
-            <option key={v.id} value={v.id} className="text-gray-800 dark:text-gray-200">
-              {v.name} ({leadsMapa.filter(l => l.vendedor_id === v.id).length})
-            </option>
-          ))}
-        </select>
-      </motion.div>
-
       {/* FILTRO REGIÃO */}
       <AnimatePresence>
         {regiaoSelecionada && (
