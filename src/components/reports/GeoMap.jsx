@@ -1,38 +1,46 @@
 // src/components/reports/GeoMap.jsx
-import React, { useEffect } from "react";
-import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from "react-leaflet";
-import L from "leaflet";
+import React from "react";
+import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 // ============================================================================
 // COMPONENTE INTERNO — RENDERIZA OS MARCADORES
 // ============================================================================
+
 function MarkersLayer({ locations, calcRadius }) {
+  // Filtra apenas locais com lat e lng válidos
+  const validLocations = (locations || []).filter(
+    (loc) =>
+      loc &&
+      loc.lat !== undefined &&
+      loc.lng !== undefined &&
+      !isNaN(Number(loc.lat)) &&
+      !isNaN(Number(loc.lng))
+  );
+
   return (
     <>
-      {locations?.map((loc, i) =>
-        loc.lat && loc.lng ? (
-          <CircleMarker
-            key={`cm-${loc.city}-${i}`}
-            center={[Number(loc.lat), Number(loc.lng)]}
-            radius={calcRadius(loc.count)}
-            pathOptions={{
-              color: "#1e90ff",
-              fillColor: "#1e90ff",
-              fillOpacity: 0.75,
-              weight: 1
-            }}
-          >
-            <Tooltip direction="top" offset={[0, -6]} opacity={1}>
-              <div style={{ textAlign: "center" }}>
-                <strong>{loc.city}</strong>
-                <br />
-                {loc.count.toLocaleString("pt-BR")} clientes fechados
-              </div>
-            </Tooltip>
-          </CircleMarker>
-        ) : null
-      )}
+      {validLocations.map((loc, i) => (
+        <CircleMarker
+          key={`cm-${loc.city}-${i}`}
+          center={[Number(loc.lat), Number(loc.lng)]}
+          radius={calcRadius(loc.count)}
+          pathOptions={{
+            color: "#1e90ff",
+            fillColor: "#1e90ff",
+            fillOpacity: 0.75,
+            weight: 1,
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+            <div style={{ textAlign: "center" }}>
+              <strong>{loc.city}</strong>
+              <br />
+              {Number(loc.count ?? 0).toLocaleString("pt-BR")} clientes fechados
+            </div>
+          </Tooltip>
+        </CircleMarker>
+      ))}
     </>
   );
 }
@@ -40,6 +48,7 @@ function MarkersLayer({ locations, calcRadius }) {
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
+
 export default function GeoMap({
   title = "Mapa de Clientes",
   locations = [],
@@ -47,11 +56,11 @@ export default function GeoMap({
   initialZoom = 5,
   minRadius = 6,
   maxRadius = 28,
-  onExpand = null
+  onExpand = null,
 }) {
   const calcRadius = (count) => {
     if (!count || count <= 0) return minRadius;
-    const r = minRadius + Math.log(count);
+    const r = minRadius + Math.log(Number(count));
     return Math.min(maxRadius, Math.max(minRadius, r));
   };
 
@@ -59,12 +68,9 @@ export default function GeoMap({
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
-
       {/* Título opcional */}
       {title && (
-        <h3 style={{ marginBottom: "8px", fontWeight: "600" }}>
-          {title}
-        </h3>
+        <h3 style={{ marginBottom: "8px", fontWeight: "600" }}>{title}</h3>
       )}
 
       {/* BOTÃO EXPANDIR */}
@@ -82,7 +88,7 @@ export default function GeoMap({
             border: "1px solid #ccc",
             background: "white",
             cursor: "pointer",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.15)"
+            boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
           }}
         >
           Expandir
@@ -91,13 +97,13 @@ export default function GeoMap({
 
       {/* MAPA */}
       <MapContainer
-        center={initialCenter}
+        center={initialCenter.map((c) => Number(c))}
         zoom={initialZoom}
         style={{
           width: "100%",
           height: "450px",
           borderRadius: "12px",
-          overflow: "hidden"
+          overflow: "hidden",
         }}
         scrollWheelZoom={true}
       >

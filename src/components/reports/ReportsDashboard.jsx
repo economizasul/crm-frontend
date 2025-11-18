@@ -1,21 +1,19 @@
 // src/components/reports/ReportsDashboard.jsx
-import React, { useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { FaDollarSign, FaChartLine, FaTags, FaClock } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { FaDollarSign, FaChartLine, FaTags, FaClock } from "react-icons/fa";
 
-import ProductivityTable from './ProductivityTable.jsx';
-import LostReasonsTable from './LostReasonsTable.jsx';
-import DailyActivity from './DailyActivity.jsx';
+import ProductivityTable from "./ProductivityTable.jsx";
+import LostReasonsTable from "./LostReasonsTable.jsx";
+import DailyActivity from "./DailyActivity.jsx";
+import GeoMap from "./GeoMap.jsx";
 
-// novo mapa
-import GeoMap from './GeoMap.jsx';
-
-const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
+const DashboardCard = ({ title, value, icon: Icon, colorClass = "text-indigo-600", subtext = "" }) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3, type: 'spring', stiffness: 100 }}
+    transition={{ duration: 0.3, type: "spring", stiffness: 100 }}
     className="bg-white p-5 rounded-2xl shadow-xl border border-gray-50/50"
   >
     <div className="flex items-center justify-between">
@@ -27,23 +25,28 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
   </motion.div>
 );
 
-export default function ReportsDashboard({ data, loading, error }) {
+export default function ReportsDashboard({ data = {}, loading, error }) {
   const navigate = useNavigate();
 
   if (!data && !loading) return null;
 
-  const { productivity, lostReasons, dailyActivity, mapLocations } = data || {};
+  const {
+    productivity = {},
+    lostReasons = {},
+    dailyActivity = {},
+    mapLocations = [],
+  } = data || {};
 
-  // handler do botão expandir: navega para /full-map e passa os pontos no state
+  // Handler do botão expandir: navega para /full-map
   const handleExpand = useCallback(() => {
-    navigate('/full-map', { state: { locations: mapLocations || [] } });
+    navigate("/full-map", { state: { locations: mapLocations } });
   }, [navigate, mapLocations]);
 
-  // Formata valores (pequenas helpers)
-  const fmtNumber = (v) => Number(v ?? 0).toLocaleString('pt-BR');
-  const fmtKw = (v) => `${Number(v ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kW`;
-  const fmtPercent = (v) => `${(Number(v ?? 0) * 100).toFixed(1).replace('.', ',')}%`;
-  const fmtDays = (v) => `${Number(v ?? 0).toFixed(1).replace('.', ',')} dias`;
+  // Formata valores
+  const fmtNumber = (v) => Number(v ?? 0).toLocaleString("pt-BR");
+  const fmtKw = (v) => `${Number(v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })} kW`;
+  const fmtPercent = (v) => `${(Number(v ?? 0) * 100).toFixed(1).replace(".", ",")}%`;
+  const fmtDays = (v) => `${Number(v ?? 0).toFixed(1).replace(".", ",")} dias`;
 
   return (
     <div className="space-y-6">
@@ -65,7 +68,7 @@ export default function ReportsDashboard({ data, loading, error }) {
         />
         <DashboardCard
           title="Taxa Conversão"
-          value={fmtPercent(productivity?.conversionRate ?? 0)}
+          value={fmtPercent(productivity?.conversionRate)}
           icon={FaChartLine}
           colorClass="text-blue-600"
           subtext="Ganho/Total"
@@ -97,7 +100,7 @@ export default function ReportsDashboard({ data, loading, error }) {
           className="lg:col-span-2 min-h-[500px]"
         >
           <GeoMap
-            locations={mapLocations || []}
+            locations={mapLocations}
             initialCenter={[-24.5, -51.5]}
             initialZoom={7}
             minRadius={6}
