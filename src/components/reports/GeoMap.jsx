@@ -5,28 +5,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 // ============================================================================
-// COMPONENTE SEPARADO — NECESSÁRIO PARA USO CORRETO DE HOOKS
+// COMPONENTE INTERNO — RENDERIZA OS MARCADORES
 // ============================================================================
-function MarkersAndClusters({ locations, clusterAvailable, calcRadius }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map) return;
-
-    let clusterGroup = null;
-
-    return () => {
-      if (clusterGroup) {
-        try {
-          map.removeLayer(clusterGroup);
-        } catch (e) {}
-        clusterGroup = null;
-      }
-    };
-  }, [map]);
-
-  if (clusterAvailable) return null;
-
+function MarkersLayer({ locations, calcRadius }) {
   return (
     <>
       {locations?.map((loc, i) =>
@@ -59,44 +40,73 @@ function MarkersAndClusters({ locations, clusterAvailable, calcRadius }) {
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
-export default function GeoMap({ title = "Mapa de Clientes", locations = [], clusterAvailable = false }) {
-  const center = [-15.78, -47.93];
-
+export default function GeoMap({
+  title = "Mapa de Clientes",
+  locations = [],
+  initialCenter = [-15.78, -47.93],
+  initialZoom = 5,
+  minRadius = 6,
+  maxRadius = 28,
+  onExpand = null
+}) {
   const calcRadius = (count) => {
-    if (!count || count <= 0) return 4;
-    return Math.min(40, Math.max(6, 4 + Math.log(count)));
+    if (!count || count <= 0) return minRadius;
+    const r = minRadius + Math.log(count);
+    return Math.min(maxRadius, Math.max(minRadius, r));
   };
 
-  if (!locations || locations.length === 0) {
-    return (
-      <div className="map-wrapper">
-        <h3>{title}</h3>
-        <p>Nenhuma localização encontrada.</p>
-      </div>
-    );
-  }
+  const showExpandButton = typeof onExpand === "function";
 
   return (
-    <div className="map-wrapper" style={{ width: "100%", height: "100%" }}>
-      <h3 style={{ marginBottom: "10px" }}>{title}</h3>
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
 
+      {/* Título opcional */}
+      {title && (
+        <h3 style={{ marginBottom: "8px", fontWeight: "600" }}>
+          {title}
+        </h3>
+      )}
+
+      {/* BOTÃO EXPANDIR */}
+      {showExpandButton && (
+        <button
+          onClick={onExpand}
+          style={{
+            position: "absolute",
+            zIndex: 9999,
+            top: 10,
+            right: 10,
+            padding: "6px 12px",
+            fontSize: "12px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            background: "white",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.15)"
+          }}
+        >
+          Expandir
+        </button>
+      )}
+
+      {/* MAPA */}
       <MapContainer
-        center={center}
-        zoom={5}
-        style={{ width: "100%", height: "450px", borderRadius: "12px", overflow: "hidden" }}
+        center={initialCenter}
+        zoom={initialZoom}
+        style={{
+          width: "100%",
+          height: "450px",
+          borderRadius: "12px",
+          overflow: "hidden"
+        }}
         scrollWheelZoom={true}
-        preferCanvas={true}
       >
         <TileLayer
           attribution='&copy; OpenStreetMap contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <MarkersAndClusters
-          locations={locations}
-          clusterAvailable={clusterAvailable}
-          calcRadius={calcRadius}
-        />
+        <MarkersLayer locations={locations} calcRadius={calcRadius} />
       </MapContainer>
     </div>
   );
