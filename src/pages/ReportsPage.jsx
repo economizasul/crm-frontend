@@ -85,12 +85,22 @@ export default function ReportsPage() {
                 <div className="text-xs">Conversão (Histórico)</div>
               </div>
 
+              {/* 🔵 NOVO: Tempo de Atendimento (em horas) */}
+              <div className="text-sm text-gray-600 px-6">
+                <div className="font-semibold text-xl text-blue-700">
+                    {Number(summary?.avgResponseTimeHours ?? 0).toFixed(1).replace('.', ',')} h
+                </div>
+                <div className="text-xs">Tempo de Atendimento (Horas)</div>
+              </div>
+
+              {/* 🔴 Tempo médio de fechamento (em dias) */}
               <div className="text-sm text-gray-600 pl-6">
                 <div className="font-semibold text-xl text-orange-600">
                     {formatDays(summary?.avgClosingTimeDays)}
                 </div>
-                <div className="text-xs">Fechamento Médio (Histórico)</div>
+                <div className="text-xs">Fechamento Médio (Dias)</div>
               </div>
+
             </div>
           </div>
         </div>
