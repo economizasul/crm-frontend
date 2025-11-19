@@ -136,7 +136,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </AnimatePresence>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-5 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
   <DashboardCard
     title="Leads Totais"
     value={fmtNumber(productivity.totalLeads)}
