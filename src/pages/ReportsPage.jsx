@@ -65,42 +65,41 @@ export default function ReportsPage() {
 
             <div className="hidden lg:flex items-center gap-6 divide-x divide-gray-200 pl-4">
               <div className="text-sm text-gray-600 pr-6">
-                <div className="font-semibold text-xl text-[#0F172A]">
-                    {formatNumber(summary?.totalLeads)}
+                  <div className="font-semibold text-xl text-[#0F172A]">
+                      {formatNumber(summary?.totalLeads)}
+                  </div>
+                  <div className="text-xs">Leads Totais</div>
                 </div>
-                <div className="text-xs">Leads Totais</div>
-              </div>
 
-              <div className="text-sm text-gray-600 px-6">
-                <div className="font-semibold text-xl text-green-600">
-                    {formatKw(summary?.totalWonValueKW)}
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-green-600">
+                      {formatKw(summary?.totalWonValueKW)}
+                  </div>
+                  <div className="text-xs">KW Vendido (Histórico)</div>
                 </div>
-                <div className="text-xs">KW Vendido (Histórico)</div>
-              </div>
 
-              <div className="text-sm text-gray-600 px-6">
-                <div className="font-semibold text-xl text-blue-600">
-                    {formatPercent(summary?.conversionRate)}
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-blue-600">
+                      {formatPercent(summary?.conversionRate)}
+                  </div>
+                  <div className="text-xs">Conversão (Histórico)</div>
                 </div>
-                <div className="text-xs">Conversão (Histórico)</div>
-              </div>
 
-              {/* 🔵 NOVO: Tempo de Atendimento (em horas) */}
-              <div className="text-sm text-gray-600 px-6">
-                <div className="font-semibold text-xl text-blue-700">
-                    {Number(summary?.avgResponseTimeHours ?? 0).toFixed(1).replace('.', ',')} h
+                {/* 🔵 NOVO: Tempo de Atendimento (em horas) */}
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-blue-700">
+                      {Number(summary?.avgResponseTimeHours ?? 0).toFixed(1).replace('.', ',')} h
+                  </div>
+                  <div className="text-xs">Tempo de Atendimento (Horas)</div>
                 </div>
-                <div className="text-xs">Tempo de Atendimento (Horas)</div>
-              </div>
 
-              {/* 🔴 Tempo médio de fechamento (em dias) */}
-              <div className="text-sm text-gray-600 pl-6">
-                <div className="font-semibold text-xl text-orange-600">
-                    {formatDays(summary?.avgClosingTimeDays)}
+                {/* 🔴 Tempo médio de fechamento (em dias) */}
+                <div className="text-sm text-gray-600 pl-6">
+                  <div className="font-semibold text-xl text-orange-600">
+                      {formatDays(summary?.avgClosingTimeDays)}
+                  </div>
+                  <div className="text-xs">Fechamento Médio (Dias)</div>
                 </div>
-                <div className="text-xs">Fechamento Médio (Dias)</div>
-              </div>
-
             </div>
           </div>
         </div>
