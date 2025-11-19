@@ -133,26 +133,26 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </AnimatePresence>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
   <DashboardCard
     title="Leads Totais"
     value={fmtNumber(productivity.totalLeads)}
     icon={FaTags}
-    colorClass="text-indigo-300 dark:text-indigo-200"
+    colorClass="text-indigo-600 dark:text-indigo-400"
   />
 
   <DashboardCard
     title="KW Vendido"
     value={fmtKw(productivity.totalWonValueKW)}
     icon={FaDollarSign}
-    colorClass="text-green-300 dark:text-green-200"
+    colorClass="text-green-600 dark:text-green-400"
   />
 
   <DashboardCard
     title="Taxa Conversão"
     value={fmtPercent(productivity.conversionRate)}
     icon={FaChartLine}
-    colorClass="text-blue-300 dark:text-blue-200"
+    colorClass="text-blue-600 dark:text-blue-400"
   />
 
   {/* 🔥 NOVO KPI: Tempo Médio de Fechamento em Horas */}
@@ -160,7 +160,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
     title="Tempo Médio Fechamento"
     value={`${Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h`}
     icon={FaClock}
-    colorClass="text-orange-300 dark:text-orange-200"
+    colorClass="text-orange-600 dark:text-orange-400"
   />
 
   {/* 🔥 NOVO KPI: Tempo Médio de Atendimento */}
@@ -168,7 +168,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
     title="Tempo Médio Atendimento"
     value={`${Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h`}
     icon={FaUserTie}
-    colorClass="text-purple-300 dark:text-purple-200"
+    colorClass="text-purple-600 dark:text-purple-400"
   />
 </div>
 
