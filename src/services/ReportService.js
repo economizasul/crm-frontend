@@ -89,14 +89,25 @@ export const buscarLeadsGanhoParaMapa = async (filters = {}) => {
 
     const leadsComCoords = await Promise.all(
       leads.map(async (lead) => {
-        const coords = await extrairCoordenadasDoLinkGoogleMaps(lead.google_maps_link);
+        let latitude = lead.lat || null;
+        let longitude = lead.lng || null;
+
+        if (!latitude || !longitude) {
+          const coords = await extrairCoordenadasDoLinkGoogleMaps(lead.google_maps_link);
+          if (coords) {
+            latitude = coords.lat;
+            longitude = coords.lng;
+          }
+        }
+
         return {
           ...lead,
-          lat: coords?.lat || null,
-          lng: coords?.lng || null,
+          lat: latitude,
+          lng: longitude,
           cidade: lead.cidade || 'Cidade não informada',
           regiao: lead.regiao || 'Outros',
         };
+
       })
     );
 
