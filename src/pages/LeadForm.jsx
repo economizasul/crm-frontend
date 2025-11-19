@@ -5,6 +5,32 @@ import { FaArrowLeft, FaSave, FaMapMarkerAlt, FaWhatsapp, FaUserTie } from 'reac
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 
+async function fetchCoordinatesFromAddress(address) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+
+    const response = await fetch(url, {
+      headers: {
+        "Accept-Language": "pt-BR",
+      }
+    });
+
+    const data = await response.json();
+
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+      };
+    }
+
+    return null;
+  } catch (err) {
+    console.error("Erro ao buscar coordenadas:", err);
+    return null;
+  }
+}
+
 const LeadForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -18,6 +44,9 @@ const LeadForm = () => {
     email: '',
     document: '',
     address: '',
+    lat: null,
+    lng: null,
+    google_maps_link: '',
     status: 'Novo',
     origin: 'Orgânico',
     uc: '',
@@ -138,7 +167,25 @@ const LeadForm = () => {
     e.preventDefault();
     if (!validate()) return;
 
-    setSaving(true);
+  if (formData.address && (!formData.lat || !formData.lng)) {
+    const coords = await fetchCoordinatesFromAddress(formData.address);
+
+    if (coords) {
+      setFormData(prev => ({
+        ...prev,
+        lat: coords.lat,
+        lng: coords.lng,
+        google_maps_link: `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+      }));
+
+      // aguarda atualização do estado
+      await new Promise(resolve => setTimeout(resolve, 150));
+    } else {
+      console.warn("Não foi possível obter coordenadas do endereço informado.");
+    }
+  }
+
+  setSaving(true);
 
     const payload = {
       name: formData.name.trim(),
