@@ -133,12 +133,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </AnimatePresence>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
   <DashboardCard
     title="Leads Totais"
     value={fmtNumber(productivity.totalLeads)}
     icon={FaTags}
-    colorClass="text-indigo-600 dark:text-indigo-400"
+    colorClass="text-indigo-100 dark:text-indigo-80"
   />
 
   <DashboardCard
