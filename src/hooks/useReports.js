@@ -106,6 +106,20 @@ function formatDashboardData(raw) {
     'summary.avgClosingTime'
   ]) || 0;
 
+    // NOVOS CAMPOS — KPIs DE TEMPO MÉDIO (backend já envia)
+  const tempoMedioFechamentoHoras = tryPathsNumber(raw, [
+    'globalSummary.tempoMedioFechamentoHoras',
+    'tempoMedioFechamentoHoras',
+    'tempo_medio_fechamento_horas'
+  ]) || 0;
+
+  const tempoMedioAtendimentoHoras = tryPathsNumber(raw, [
+    'globalSummary.tempoMedioAtendimentoHoras',
+    'tempoMedioAtendimentoHoras',
+    'tempo_medio_atendimento_horas'
+  ]) || 0;
+
+
   // Productivity: pode vir em varias chaves
   const productivityCandidates = tryPathsAny(raw, [
     'productivity',

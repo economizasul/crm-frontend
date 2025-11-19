@@ -134,11 +134,44 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardCard title="Leads Totais" value={fmtNumber(productivity.totalLeads)} icon={FaTags} colorClass="text-indigo-600 dark:text-indigo-400" />
-        <DashboardCard title="KW Vendido" value={fmtKw(productivity.totalWonValueKW)} icon={FaDollarSign} colorClass="text-green-600 dark:text-green-400" />
-        <DashboardCard title="Taxa Conversão" value={fmtPercent(productivity.conversionRate)} icon={FaChartLine} colorClass="text-blue-600 dark:text-blue-400" />
-        <DashboardCard title="Tempo Médio" value={fmtDays(productivity.avgClosingTimeDays)} icon={FaClock} colorClass="text-orange-600 dark:text-orange-400" />
-      </div>
+  <DashboardCard
+    title="Leads Totais"
+    value={fmtNumber(productivity.totalLeads)}
+    icon={FaTags}
+    colorClass="text-indigo-600 dark:text-indigo-400"
+  />
+
+  <DashboardCard
+    title="KW Vendido"
+    value={fmtKw(productivity.totalWonValueKW)}
+    icon={FaDollarSign}
+    colorClass="text-green-600 dark:text-green-400"
+  />
+
+  <DashboardCard
+    title="Taxa Conversão"
+    value={fmtPercent(productivity.conversionRate)}
+    icon={FaChartLine}
+    colorClass="text-blue-600 dark:text-blue-400"
+  />
+
+  {/* 🔥 NOVO KPI: Tempo Médio de Fechamento em Horas */}
+  <DashboardCard
+    title="Tempo Médio Fechamento"
+    value={`${Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h`}
+    icon={FaClock}
+    colorClass="text-orange-600 dark:text-orange-400"
+  />
+
+  {/* 🔥 NOVO KPI: Tempo Médio de Atendimento */}
+  <DashboardCard
+    title="Tempo Médio Atendimento"
+    value={`${Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h`}
+    icon={FaUserTie}
+    colorClass="text-purple-600 dark:text-purple-400"
+  />
+</div>
+
 
       {/* MAPA */}
       <motion.div
