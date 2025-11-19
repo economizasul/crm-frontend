@@ -21,7 +21,7 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-100
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     whileHover={{ scale: 1.02 }}
-    className="bg-white dark:bg-gray-200 p-2 rounded-lg shadow-sm border border-gray-100 dark:border-gray-150 h-[36px] flex flex-col justify-center"
+    className="bg-white dark:bg-gray-200 p-2 rounded-lg shadow-sm border border-gray-100 dark:border-gray-150 h-[56px] flex flex-col justify-center"
   >
     <div className="flex items-center justify-between">
       <h3 className="text-[11px] font-semibold text-gray-250 dark:text-gray-200 uppercase">{title}</h3>
@@ -35,8 +35,6 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-100
     <p className="mt-0 text-[8px] text-gray-200 dark:text-gray-250">{subtext}</p>
   </motion.div>
 );
-
-
 
 export default function ReportsDashboard({ data, loading = false, error = null }) {
   const [leadsMapa, setLeadsMapa] = useState([]);
