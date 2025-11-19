@@ -21,18 +21,21 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     whileHover={{ scale: 1.03 }}
-    className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700"
+    className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 h-[130px]"
   >
     <div className="flex items-center justify-between">
-      <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase">{title}</h3>
-      <Icon className={`w-8 h-8 ${colorClass}`} />
+      <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{title}</h3>
+      <Icon className={`w-6 h-6 ${colorClass}`} />
     </div>
-    <motion.p className="mt-4 text-4xl font-extrabold text-gray-900 dark:text-white">
+
+    <motion.p className="mt-2 text-2xl font-bold text-gray-900 dark:text-white leading-none">
       {value}
     </motion.p>
-    <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{subtext}</p>
+
+    <p className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">{subtext}</p>
   </motion.div>
 );
+
 
 export default function ReportsDashboard({ data, loading = false, error = null }) {
   const [leadsMapa, setLeadsMapa] = useState([]);
@@ -138,7 +141,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
     title="Leads Totais"
     value={fmtNumber(productivity.totalLeads)}
     icon={FaTags}
-    colorClass="text-indigo-100 dark:text-indigo-80"
+    colorClass="text-indigo-600 dark:text-indigo-400"
   />
 
   <DashboardCard
