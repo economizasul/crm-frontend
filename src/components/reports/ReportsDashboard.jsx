@@ -21,18 +21,18 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     whileHover={{ scale: 1.02 }}
-    className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-[96px] flex flex-col justify-center"
+    className="bg-white dark:bg-gray-200 p-2 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 h-[96px] flex flex-col justify-center"
   >
     <div className="flex items-center justify-between">
-      <h3 className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">{title}</h3>
+      <h3 className="text-[11px] font-semibold text-gray-250 dark:text-gray-200 uppercase">{title}</h3>
       <Icon className={`w-5 h-5 ${colorClass}`} />
     </div>
 
-    <motion.p className="mt-1 text-xl font-semibold text-gray-900 dark:text-white leading-tight">
+    <motion.p className="mt-1 text-xl font-semibold text-gray-400 dark:text-white leading-tight">
       {value}
     </motion.p>
 
-    <p className="mt-0 text-[10px] text-gray-400 dark:text-gray-500">{subtext}</p>
+    <p className="mt-0 text-[8px] text-gray-200 dark:text-gray-250">{subtext}</p>
   </motion.div>
 );
 
