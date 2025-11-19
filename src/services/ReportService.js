@@ -6,7 +6,7 @@ import api from './api';
 // ==========================================================
 export const fetchDashboardMetrics = async (filters) => {
   try {
-    const response = await api.post('/reports/data', { filters });
+    const response = await api.post('/api/v1/reports/data', { filters });
     if (!response.data || !response.data.success) {
       throw new Error(response.data?.message || 'Resposta de API de relatórios falhou.');
     }
@@ -82,7 +82,7 @@ const extrairCoordenadasDoLinkGoogleMaps = async (link) => {
 
 export const buscarLeadsGanhoParaMapa = async (filters = {}) => {
   try {
-    const response = await api.post('/reports/leads-ganho-mapa', { filters });
+    const response = await api.post('/api/v1/reports/leads-ganho-mapa', { filters });
     if (!response.data?.success) throw new Error('Erro na API de mapa');
 
     const leads = response.data.data || [];
@@ -131,7 +131,7 @@ const getFilenameFromHeader = (response, defaultFilename) => {
 export const downloadCsvReport = async (filters) => {
   let url = null;
   try {
-    const response = await api.post('/reports/export/csv', { filters }, { responseType: 'blob' });
+    const response = await api.post('/api/v1/reports/export/csv', { filters }, { responseType: 'blob' });
     const filename = getFilenameFromHeader(response, 'relatorio_leads.csv');
     url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
@@ -151,7 +151,7 @@ export const downloadCsvReport = async (filters) => {
 export const downloadPdfReport = async (filters) => {
   let url = null;
   try {
-    const response = await api.post('/reports/export/pdf', { filters }, { responseType: 'blob' });
+    const response = await api.post('/api/v1/reports/export/pdf', { filters }, { responseType: 'blob' });
     const filename = getFilenameFromHeader(response, 'relatorio_resumo.pdf');
     url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
     const link = document.createElement('a');
