@@ -25,7 +25,6 @@ async function fetchCoordinatesFromAddress(address) {
     const response = await fetch(url, {
       headers: {
         "Accept-Language": "pt-BR",
-        // Nominatim exige User-Agent identificável para evitar bloqueio/rate-limit
         "User-Agent": "economizasul-crm/1.0 (contato@seudominio.com)"
       }
     });
@@ -37,7 +36,7 @@ async function fetchCoordinatesFromAddress(address) {
       return {
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
-        // tenta extrair cidade/região do objeto address
+
         cidade:
           item.address?.city ||
           item.address?.town ||
@@ -52,7 +51,7 @@ async function fetchCoordinatesFromAddress(address) {
           item.address?.state_district ||
           null,
 
-        raw: item // opcional para debugging
+        raw: item
       };
     }
 
@@ -196,52 +195,145 @@ const LeadForm = () => {
   };
 
   const handleAddressChange = async (value) => {
-  setFormData(prev => ({ ...prev, address: value }));
+    setFormData(prev => ({ ...prev, address: value }));
 
-  if (!value) return;
+    if (!value) return;
 
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(value)}`,
-      { headers: { "User-Agent": "economizasul-crm/1.0" } }
-    );
-    const data = await res.json();
+    try {
+      const normalized = normalizeAddressForNominatim(value);
 
-    if (data && data.length > 0) {
-      const addr = data[0].address || {};
-      setFormData(prev => ({
-        ...prev,
-        cidade: addr.city || addr.town || addr.village || addr.municipality || addr.county || "",
-        regiao: addr.state || addr.region || addr.state_district || "",
-      }));
-    }
-  } catch (err) {
-    console.error("Erro ao geocodificar endereço:", err);
-  }
-};
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(normalized)}`,
+        { headers: { "User-Agent": "economizasul-crm/1.0" } }
+      );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+      const data = await res.json();
 
-    // --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post) ---
-    let coords = null;
-    if (formData.address && (!formData.lat || !formData.lng || !formData.cidade || !formData.regiao)) {
-      const normalizedAddress = normalizeAddressForNominatim(formData.address);
-      coords = await fetchCoordinatesFromAddress(normalizedAddress);
+      if (data && data.length > 0) {
+        const addr = data[0].address || {};
 
-      if (coords) {
-        // atualiza visualmente o form
         setFormData(prev => ({
           ...prev,
-          lat: coords.lat,
-          lng: coords.lng,
-          google_maps_link: coords.lat && coords.lng ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : prev.google_maps_link,
-          cidade: coords.cidade || prev.cidade,
-          regiao: coords.regiao || prev.regiao
+          cidade: prev.cidade || 
+            addr.city || addr.town || addr.village || addr.municipality || addr.county || "",
+
+          regiao: prev.regiao ||
+            addr.state || addr.region || addr.state_district || ""
         }));
       }
+    } catch (err) {
+      console.error("Erro ao geocodificar endereço:", err);
     }
+  };
+
+
+  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validate()) return;
+
+  setSaving(true);
+  try {
+    // --- 1) GEOCODIFICAÇÃO (tenta quando houver address) ---
+    let coords = null;
+    if (formData.address) {
+      const normalizedAddress = normalizeAddressForNominatim(formData.address);
+      coords = await fetchCoordinatesFromAddress(normalizedAddress);
+      if (!coords) {
+        console.warn("Nominatim não retornou coordenadas para o endereço informado.");
+      }
+    }
+
+    // --- 2) MONTAR PAYLOAD de forma defensiva ---
+    // Helpers locais para decidir valor final sem sobrescrever com undefined/empty
+    const pickString = (v) => (typeof v === 'string' && v.trim() !== '' ? v.trim() : null);
+
+    const finalLat = (coords && coords.lat != null) ? coords.lat : (formData.lat != null ? formData.lat : null);
+    const finalLng = (coords && coords.lng != null) ? coords.lng : (formData.lng != null ? formData.lng : null);
+
+    // Para cidade/regiao: só usar coords se existir valor não vazio; senão, manter formData se existir; senão null
+    const finalCidade = (coords && typeof coords.cidade === 'string' && coords.cidade.trim() !== '')
+      ? coords.cidade.trim()
+      : (typeof formData.cidade === 'string' && formData.cidade.trim() !== '' ? formData.cidade.trim() : null);
+
+    const finalRegiao = (coords && typeof coords.regiao === 'string' && coords.regiao.trim() !== '')
+      ? coords.regiao.trim()
+      : (typeof formData.regiao === 'string' && formData.regiao.trim() !== '' ? formData.regiao.trim() : null);
+
+    const finalGoogleMapsLink = (finalLat != null && finalLng != null)
+      ? `https://www.google.com/maps?q=${finalLat},${finalLng}`
+      : (formData.google_maps_link ? formData.google_maps_link : null);
+
+    const payload = {
+      name: pickString(formData.name),
+      phone: formData.phone ? formData.phone.replace(/\D/g, '') : null,
+      email: pickString(formData.email),
+      document: pickString(formData.document),
+      address: pickString(formData.address),
+      status: formData.status || 'Novo',
+      origin: formData.origin || 'Orgânico',
+      uc: pickString(formData.uc),
+      avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
+      estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
+      qsa: pickString(formData.qsa),
+      // coords + cidade/regiao + link (prioridade: coords -> formData -> null)
+      lat: finalLat,
+      lng: finalLng,
+      cidade: finalCidade,
+      regiao: finalRegiao,
+      google_maps_link: finalGoogleMapsLink
+    };
+
+    // owner_id como integer (se informado)
+    if (formData.owner_id && formData.owner_id !== '') {
+      payload.owner_id = parseInt(formData.owner_id, 10);
+    }
+
+    // notas / histórico
+    if (newNote?.trim()) {
+      payload.newNote = {
+        text: newNote.trim(),
+        timestamp: Date.now(),
+        user: user?.name || 'Usuário'
+      };
+    } else if (!isEditMode) {
+      payload.newNote = {
+        text: `Lead criado via formulário (Origem: ${formData.origin})`,
+        timestamp: Date.now(),
+        user: user?.name || 'Sistema'
+      };
+    }
+
+    // --- 3) ENVIO (POST ou PUT) ---
+    if (isEditMode) {
+      await api.put(`/leads/${id}`, payload);
+      setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
+    } else {
+      await api.post('/leads', payload);
+      setToast({ message: 'Lead criado com sucesso!', type: 'success' });
+    }
+
+    // --- 4) Opcional: atualizar estado local (UX) apenas se coords existirem ---
+    if (coords) {
+      setFormData(prev => ({
+        ...prev,
+        lat: finalLat ?? prev.lat,
+        lng: finalLng ?? prev.lng,
+        google_maps_link: finalGoogleMapsLink ?? prev.google_maps_link,
+        cidade: finalCidade ?? prev.cidade,
+        regiao: finalRegiao ?? prev.regiao
+      }));
+    }
+
+    setTimeout(() => navigate('/leads'), 800);
+  } catch (err) {
+    console.error("Erro ao salvar lead:", err);
+    setToast({ message: err.response?.data?.error || 'Erro no servidor', type: 'error' });
+  } finally {
+    setSaving(false);
+    setNewNote('');
+  }
+};
 
     // --- PREPARA PAYLOAD ---
     setSaving(true);
