@@ -267,6 +267,9 @@ const LeadForm = () => {
     qsa: formData.qsa?.trim() || null,
   };
 
+  payload.cidade = formData.cidade || null;
+  payload.regiao = formData.regiao || null;
+
   // owner_id como integer (mantém seu código)
   if (formData.owner_id && formData.owner_id !== '') {
     payload.owner_id = parseInt(formData.owner_id, 10);
