@@ -225,47 +225,46 @@ const LeadForm = () => {
     if (!validate()) return;
 
     // --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post) ---
-// --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post/put) ---
-let coords = null;
-if (formData.address && (!formData.lat || !formData.lng || !formData.cidade || !formData.regiao)) {
-  const normalizedAddress = normalizeAddressForNominatim(formData.address);
-  coords = await fetchCoordinatesFromAddress(normalizedAddress);
+    let coords = null;
+    if (formData.address && (!formData.lat || !formData.lng || !formData.cidade || !formData.regiao)) {
+      const normalizedAddress = normalizeAddressForNominatim(formData.address);
+      coords = await fetchCoordinatesFromAddress(normalizedAddress);
 
-  if (coords) {
-    // atualiza visualmente o form
-    setFormData(prev => ({
-      ...prev,
-      lat: coords.lat,
-      lng: coords.lng,
-      google_maps_link: coords.lat && coords.lng ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : prev.google_maps_link,
-      cidade: coords.cidade || prev.cidade,
-      regiao: coords.regiao || prev.regiao
-    }));
-  }
-}
+      if (coords) {
+        // atualiza visualmente o form
+        setFormData(prev => ({
+          ...prev,
+          lat: coords.lat,
+          lng: coords.lng,
+          google_maps_link: coords.lat && coords.lng ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : prev.google_maps_link,
+          cidade: coords.cidade || prev.cidade,
+          regiao: coords.regiao || prev.regiao
+        }));
+      }
+    }
 
-// --- PREPARA PAYLOAD ---
-setSaving(true);
+    // --- PREPARA PAYLOAD ---
+    setSaving(true);
 
-const payload = {
-  name: formData.name.trim(),
-  phone: formData.phone.replace(/\D/g, ''),
-  email: formData.email?.trim() || null,
-  document: formData.document?.trim() || null,
-  address: formData.address?.trim() || null,
-  status: formData.status,
-  origin: formData.origin,
-  uc: formData.uc?.trim() || null,
-  avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
-  estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
-  qsa: formData.qsa?.trim() || null,
-  // <<< ATUALIZA SEMPRE COM COORDS SE HOUVER >>>
-  cidade: coords?.cidade || formData.cidade || null,
-  regiao: coords?.regiao || formData.regiao || null,
-  lat: coords?.lat || formData.lat || null,
-  lng: coords?.lng || formData.lng || null,
-  google_maps_link: (coords?.lat && coords?.lng) ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : formData.google_maps_link || null,
-};
+    const payload = {
+      name: formData.name.trim(),
+      phone: formData.phone.replace(/\D/g, ''),
+      email: formData.email?.trim() || null,
+      document: formData.document?.trim() || null,
+      address: formData.address?.trim() || null,
+      status: formData.status,
+      origin: formData.origin,
+      uc: formData.uc?.trim() || null,
+      avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
+      estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
+      qsa: formData.qsa?.trim() || null,
+      // <<< ATUALIZA SEMPRE COM COORDS SE HOUVER >>>
+      cidade: coords?.cidade || formData.cidade || null,
+      regiao: coords?.regiao || formData.regiao || null,
+      lat: coords?.lat || formData.lat || null,
+      lng: coords?.lng || formData.lng || null,
+      google_maps_link: (coords?.lat && coords?.lng) ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : formData.google_maps_link || null,
+    };
 
   payload.cidade = formData.cidade || null;
   payload.regiao = formData.regiao || null;
