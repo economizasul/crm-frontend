@@ -227,105 +227,97 @@ const LeadForm = () => {
   };
 
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) return;
+// --- INÍCIO handleSubmit ---
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validate()) return;
 
-    // --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post) ---
+  setSaving(true);
+
+  try {
+    // 1) Tenta geocodificar se houver endereço (não é obrigatório)
     let coords = null;
-    if (formData.address && (!formData.lat || !formData.lng || !formData.cidade || !formData.regiao)) {
-      const normalizedAddress = normalizeAddressForNominatim(formData.address);
-      coords = await fetchCoordinatesFromAddress(normalizedAddress);
-
-      if (coords) {
-        // atualiza visualmente o form
-        setFormData(prev => ({
-          ...prev,
-          lat: coords.lat,
-          lng: coords.lng,
-          google_maps_link: coords.lat && coords.lng ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : prev.google_maps_link,
-          cidade: coords.cidade || prev.cidade,
-          regiao: coords.regiao || prev.regiao
-        }));
+    if (formData.address && formData.address.trim() !== "") {
+      try {
+        const normalizedAddress = normalizeAddressForNominatim(formData.address);
+        coords = await fetchCoordinatesFromAddress(normalizedAddress);
+      } catch (geoErr) {
+        console.warn("Geocoding falhou (não é bloqueante):", geoErr);
+        coords = null;
       }
     }
 
-    // --- PREPARA PAYLOAD ---
-    setSaving(true);
-
+    // 2) Monta payload de forma clara (não depende de setFormData)
     const payload = {
-      name: formData.name.trim(),
-      phone: formData.phone.replace(/\D/g, ''),
+      name: formData.name?.trim() || null,
+      phone: formData.phone ? formData.phone.replace(/\D/g, '') : null,
       email: formData.email?.trim() || null,
       document: formData.document?.trim() || null,
       address: formData.address?.trim() || null,
-      status: formData.status,
-      origin: formData.origin,
+      status: formData.status || "Novo",
+      origin: formData.origin || "Orgânico",
       uc: formData.uc?.trim() || null,
       avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
       estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
       qsa: formData.qsa?.trim() || null,
-      // <<< ATUALIZA SEMPRE COM COORDS SE HOUVER >>>
-      cidade: coords?.cidade || formData.cidade || null,
-      regiao: coords?.regiao || formData.regiao || null,
-      lat: coords?.lat || formData.lat || null,
-      lng: coords?.lng || formData.lng || null,
-      google_maps_link: (coords?.lat && coords?.lng) ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : formData.google_maps_link || null,
+      // prioridade: coords -> formData -> null
+      lat: (coords && coords.lat != null) ? coords.lat : (formData.lat ?? null),
+      lng: (coords && coords.lng != null) ? coords.lng : (formData.lng ?? null),
+      cidade: (coords && typeof coords.cidade === 'string' && coords.cidade.trim() !== '') ? coords.cidade : (formData.cidade ?? null),
+      regiao: (coords && typeof coords.regiao === 'string' && coords.regiao.trim() !== '') ? coords.regiao : (formData.regiao ?? null),
+      google_maps_link: (coords && coords.lat && coords.lng) ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : (formData.google_maps_link || null)
     };
 
-  payload.cidade = formData.cidade || null;
-  payload.regiao = formData.regiao || null;
+    // owner_id
+    if (formData.owner_id && formData.owner_id !== '') payload.owner_id = parseInt(formData.owner_id, 10);
 
-  // owner_id como integer (mantém seu código)
-  if (formData.owner_id && formData.owner_id !== '') {
-    payload.owner_id = parseInt(formData.owner_id, 10);
-  }
-
-  // inclui coords no payload (se existirem)
-  if (coords) {
-    if (coords.lat !== undefined && coords.lat !== null) payload.lat = coords.lat;
-    if (coords.lng !== undefined && coords.lng !== null) payload.lng = coords.lng;
-    if (coords.cidade) payload.cidade = coords.cidade;
-    if (coords.regiao) payload.regiao = coords.regiao;
-    // preferir o link construído a partir das coords (mais confiável)
-    if (coords.lat && coords.lng) payload.google_maps_link = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
-  }
-
-    // ENVIA owner_id COMO INTEGER
-    if (formData.owner_id && formData.owner_id !== '') {
-      payload.owner_id = parseInt(formData.owner_id, 10);
-    }
-
-    if (newNote.trim()) {
-      payload.newNote = {
-        text: newNote.trim(),
-        timestamp: Date.now(),
-        user: user?.name || 'Usuário'
-      };
+    // newNote
+    if (newNote?.trim()) {
+      payload.newNote = { text: newNote.trim(), timestamp: Date.now(), user: user?.name || 'Usuário' };
     } else if (!isEditMode) {
-      payload.newNote = {
-        text: `Lead criado via formulário (Origem: ${formData.origin})`,
-        timestamp: Date.now(),
-        user: user?.name || 'Sistema'
-      };
+      payload.newNote = { text: `Lead criado via formulário (Origem: ${formData.origin})`, timestamp: Date.now(), user: user?.name || 'Sistema' };
     }
 
-    try {
-      if (isEditMode) {
-        await api.put(`/leads/${id}`, payload);
-        setToast({ message: 'Lead atualizado com sucesso!', type: 'success' });
-      } else {
-        await api.post('/leads', payload);
-        setToast({ message: 'Lead criado com sucesso!', type: 'success' });
-      }
-      setTimeout(() => navigate('/leads'), 1500);
-    } catch (error) {
-      setToast({ message: error.response?.data?.error || 'Erro no servidor', type: 'error' });
-    } finally {
-      setSaving(false);
-      setNewNote('');
+    // DEBUG - log payload (remover em produção)
+    console.debug("-> Enviando payload:", payload);
+
+    // 3) Envia (POST ou PUT)
+    let response;
+    if (isEditMode) {
+      response = await api.put(`/leads/${id}`, payload);
+    } else {
+      response = await api.post('/leads', payload);
     }
-  };
+
+    console.debug("-> Response:", response?.data ?? response);
+    setToast({ message: isEditMode ? 'Lead atualizado com sucesso!' : 'Lead criado com sucesso!', type: 'success' });
+
+    // Atualiza estado local com o que veio do server (se houver)
+    if (response?.data) {
+      const savedLead = response.data.lead || response.data || null;
+      if (savedLead) {
+        setFormData(prev => ({
+          ...prev,
+          lat: savedLead.lat ?? payload.lat,
+          lng: savedLead.lng ?? payload.lng,
+          google_maps_link: savedLead.google_maps_link ?? payload.google_maps_link,
+          cidade: savedLead.cidade ?? payload.cidade,
+          regiao: savedLead.regiao ?? payload.regiao
+        }));
+      }
+    }
+
+    setTimeout(() => navigate('/leads'), 800);
+  } catch (err) {
+    console.error("Erro ao salvar lead:", err);
+    const serverMsg = err?.response?.data?.error || err?.response?.data || err.message;
+    setToast({ message: serverMsg || 'Erro no servidor', type: 'error' });
+  } finally {
+    setSaving(false);
+    setNewNote('');
+  }
+};
+// --- FIM handleSubmit ---
 
   const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
   const getWhatsAppLink = () => {
