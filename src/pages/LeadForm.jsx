@@ -195,6 +195,32 @@ const LeadForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleAddressChange = async (value) => {
+  setFormData(prev => ({ ...prev, address: value }));
+
+  if (!value) return;
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(value)}`,
+      { headers: { "User-Agent": "economizasul-crm/1.0" } }
+    );
+    const data = await res.json();
+
+    if (data && data.length > 0) {
+      const addr = data[0].address || {};
+      setFormData(prev => ({
+        ...prev,
+        cidade: addr.city || addr.town || addr.village || addr.municipality || addr.county || "",
+        regiao: addr.state || addr.region || addr.state_district || "",
+      }));
+    }
+  } catch (err) {
+    console.error("Erro ao geocodificar endereço:", err);
+  }
+};
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -382,6 +408,8 @@ const LeadForm = () => {
           </div>
           <div className="md:col-span-2"><label className="block text-sm font-semibold text-gray-700 mb-2">Endereço</label>
             <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Rua Exemplo, 123" className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500" />
+            <input type="text" name="cidade" value={formData.cidade || ""} onChange={(e) => setFormData({...formData, cidade: e.target.value})} placeholder="Cidade" readOnly className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500 mt-2" />
+            <input type="text" name="regiao" value={formData.regiao || ""}  onChange={(e) => setFormData({...formData, regiao: e.target.value})}  placeholder="Região" readOnly className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500 mt-2" />
           </div>
           <div><label className="block text-sm font-semibold text-gray-700 mb-2">Status <span className="text-red-500">*</span></label>
             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500">
