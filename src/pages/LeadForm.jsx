@@ -5,6 +5,19 @@ import { FaArrowLeft, FaSave, FaMapMarkerAlt, FaWhatsapp, FaUserTie } from 'reac
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 
+function normalizeAddressForNominatim(addr) {
+  if (!addr) return addr;
+
+  let normalized = addr;
+  normalized = normalized.replace(/\bPR\b/gi, "Paraná");
+
+  if (!/Brasil/i.test(normalized)) {
+    normalized += ", Brasil";
+  }
+
+  return normalized;
+}
+
 async function fetchCoordinatesFromAddress(address) {
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(address)}`;
@@ -25,8 +38,20 @@ async function fetchCoordinatesFromAddress(address) {
         lat: parseFloat(item.lat),
         lng: parseFloat(item.lon),
         // tenta extrair cidade/região do objeto address
-        cidade: item.address?.city || item.address?.town || item.address?.village || item.address?.municipality || null,
-        regiao: item.address?.state || item.address?.region || null,
+        cidade:
+          item.address?.city ||
+          item.address?.town ||
+          item.address?.village ||
+          item.address?.municipality ||
+          item.address?.county ||
+          null,
+
+        regiao:
+          item.address?.state ||
+          item.address?.region ||
+          item.address?.state_district ||
+          null,
+
         raw: item // opcional para debugging
       };
     }
@@ -177,7 +202,9 @@ const LeadForm = () => {
     // --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post) ---
   let coords = null;
   if (formData.address && (!formData.lat || !formData.lng)) {
-    coords = await fetchCoordinatesFromAddress(formData.address);
+    const normalizedAddress = normalizeAddressForNominatim(formData.address);
+    coords = await fetchCoordinatesFromAddress(normalizedAddress);
+
 
     if (coords) {
       // atualiza visualmente o form (opcional)
