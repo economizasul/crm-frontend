@@ -233,7 +233,7 @@ const LeadForm = () => {
 
 
     if (coords) {
-      // atualiza visualmente o form (opcional)
+      // atualiza visualmente o form
       setFormData(prev => ({
         ...prev,
         lat: coords.lat,
