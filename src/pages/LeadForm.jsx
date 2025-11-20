@@ -7,20 +7,27 @@ import { useAuth } from '../AuthContext.jsx';
 
 async function fetchCoordinatesFromAddress(address) {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(address)}`;
 
     const response = await fetch(url, {
       headers: {
         "Accept-Language": "pt-BR",
+        // Nominatim exige User-Agent identificável para evitar bloqueio/rate-limit
+        "User-Agent": "economizasul-crm/1.0 (contato@seudominio.com)"
       }
     });
 
     const data = await response.json();
 
     if (data && data.length > 0) {
+      const item = data[0];
       return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+        // tenta extrair cidade/região do objeto address
+        cidade: item.address?.city || item.address?.town || item.address?.village || item.address?.municipality || null,
+        regiao: item.address?.state || item.address?.region || null,
+        raw: item // opcional para debugging
       };
     }
 
@@ -167,39 +174,61 @@ const LeadForm = () => {
     e.preventDefault();
     if (!validate()) return;
 
+    // --- GEOCODIFICAÇÃO CLIENTE (tentativa rápida antes do post) ---
+  let coords = null;
   if (formData.address && (!formData.lat || !formData.lng)) {
-    const coords = await fetchCoordinatesFromAddress(formData.address);
+    coords = await fetchCoordinatesFromAddress(formData.address);
 
     if (coords) {
+      // atualiza visualmente o form (opcional)
       setFormData(prev => ({
         ...prev,
         lat: coords.lat,
         lng: coords.lng,
-        google_maps_link: `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+        google_maps_link: coords.lat && coords.lng ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : prev.google_maps_link,
+        cidade: coords.cidade || prev.cidade,
+        regiao: coords.regiao || prev.regiao
       }));
-
-      // aguarda atualização do estado
-      await new Promise(resolve => setTimeout(resolve, 150));
     } else {
-      console.warn("Não foi possível obter coordenadas do endereço informado.");
+      console.warn("Não foi possível obter coordenadas do endereço informado (Nominatim retornou vazio).");
+    }
+  } else {
+    // se já tem lat/lng no formData, usa-os
+    if (formData.lat && formData.lng) {
+      coords = { lat: formData.lat, lng: formData.lng, cidade: formData.cidade, regiao: formData.regiao };
     }
   }
 
   setSaving(true);
 
-    const payload = {
-      name: formData.name.trim(),
-      phone: formData.phone.replace(/\D/g, ''),
-      email: formData.email?.trim() || null,
-      document: formData.document?.trim() || null,
-      address: formData.address?.trim() || null,
-      status: formData.status,
-      origin: formData.origin,
-      uc: formData.uc?.trim() || null,
-      avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
-      estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
-      qsa: formData.qsa?.trim() || null,
-    };
+  const payload = {
+    name: formData.name.trim(),
+    phone: formData.phone.replace(/\D/g, ''),
+    email: formData.email?.trim() || null,
+    document: formData.document?.trim() || null,
+    address: formData.address?.trim() || null,
+    status: formData.status,
+    origin: formData.origin,
+    uc: formData.uc?.trim() || null,
+    avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
+    estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
+    qsa: formData.qsa?.trim() || null,
+  };
+
+  // owner_id como integer (mantém seu código)
+  if (formData.owner_id && formData.owner_id !== '') {
+    payload.owner_id = parseInt(formData.owner_id, 10);
+  }
+
+  // inclui coords no payload (se existirem)
+  if (coords) {
+    if (coords.lat !== undefined && coords.lat !== null) payload.lat = coords.lat;
+    if (coords.lng !== undefined && coords.lng !== null) payload.lng = coords.lng;
+    if (coords.cidade) payload.cidade = coords.cidade;
+    if (coords.regiao) payload.regiao = coords.regiao;
+    // preferir o link construído a partir das coords (mais confiável)
+    if (coords.lat && coords.lng) payload.google_maps_link = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+  }
 
     // ENVIA owner_id COMO INTEGER
     if (formData.owner_id && formData.owner_id !== '') {
