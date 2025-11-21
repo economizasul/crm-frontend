@@ -53,6 +53,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   useEffect(() => {
     const carregar = async () => {
       if (!filtrosBase.startDate || loading) return;
+
       setCarregandoMapa(true);
       try {
         const filtros = { ...filtrosBase, vendedor: vendedorSelecionado === 'todos' ? null : vendedorSelecionado };
@@ -62,7 +63,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         console.error('Erro ao carregar mapa:', err);
         setLeadsMapa([]);
       } finally {
-        setTimeout(() => setCarregandoMapa(false), 600);
+        setCarregandoMapa(false); // ← aqui é o que importa
       }
     };
     carregar();
