@@ -175,7 +175,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   />
 </div>
 
-
       {/* MAPA */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
@@ -185,7 +184,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
             <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-            Mapa de Clientes Fechados ({leads.filter(l => l.status === 'Ganho').length})
+            Mapa de Clientes Fechados ({leadsMapa.length} cliente{leadsMapa.length !== 1 ? 's' : ''})
           </h3>
         </div>
         {carregandoMapa ? (
@@ -197,10 +196,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         ) : (
           <ParanaMap 
-            leadsGanho={leads.filter(lead => 
-              lead.status === 'Ganho' && 
-              (!regiaoSelecionada || lead.regiao === regiaoSelecionada)
-            )} 
+            leadsGanho={leadsVisiveis}
             onRegiaoClick={setRegiaoSelecionada} 
             regiaoAtiva={regiaoSelecionada} 
           />
