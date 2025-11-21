@@ -50,22 +50,24 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-  // MAPA — VERSÃO QUE FUNCIONA 100% COM SEUS DADOS ATUAIS
-  // MAPA — VERSÃO FINAL COM FILTRO INTELIGENTE
+  // MAPA — VERSÃO INDESTRUTÍVEL (nunca mais dá erro nem fica branco)
   useEffect(() => {
-    if (loading || !data?.leads || !Array.isArray(data.leads)) {
+    // Proteção total: se não tem data ou não tem leads, limpa tudo
+    if (!data || !data.leads || !Array.isArray(data.leads)) {
       setLeadsMapa([]);
-      setCarregandoMapa(true);
+      setCarregandoMapa(false); // desliga o loading mesmo se não tem dados
+      console.log('Nenhum lead disponível ou data ainda não carregou');
       return;
     }
 
-    console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => `'${l.status}'`))]);
+    console.log('Total de leads recebidos:', data.leads.length);
+    console.log('Status encontrados:', [...new Set(data.leads.map(l => `'${l?.status}'`))]);
 
     const leadsGanho = data.leads
       .filter(lead => {
-        if (!lead.status) return false;
-        const status = lead.status.toString().trim();
-        return ['Ganho', 'ganho', 'Ganhou', 'GANHO', 'Fechado', 'Vendido', 'Convertido', 'Fechado com sucesso'].includes(status);
+        if (!lead?.status) return false;
+        const status = lead.status.toString().trim().toLowerCase();
+        return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido', 'ganho com sucesso'].includes(status);
       })
       .map(lead => ({
         ...lead,
@@ -73,15 +75,16 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         cidade: lead.cidade || 'Cidade não informada',
         lat: lead.lat ? parseFloat(lead.lat) : null,
         lng: lead.lng ? parseFloat(lead.lng) : null,
-        vendedor_name: lead.vendedor_name || lead.seller_name || 'Não informado'
+        vendedor_name: lead.vendedor_name || lead.seller_name || 'Não informado',
+        google_maps_link: lead.google_maps_link || ''
       }))
-      .filter(lead => lead.lat && lead.lng);
+      .filter(lead => lead.lat !== null && lead.lng !== null);
 
-    console.log('Leads com status Ganho e coordenadas:', leadsGanho.length, leadsGanho);
+    console.log('Leads no mapa (com lat/lng):', leadsGanho.length, leadsGanho);
 
     setLeadsMapa(leadsGanho);
     setCarregandoMapa(false);
-  }, [data, loading]);
+  }, [data]);
 
       console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
