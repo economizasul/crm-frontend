@@ -283,9 +283,18 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          const statusLeads = leads
+          // Filtra leads da coluna + busca
+          let statusLeads = leads
             .filter(l => l.status === status)
-            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            // Ordena do mais recente para o mais antigo (baseado em createdAt ou id)
+            .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
+
+          // LIMITA APENAS "Ganho" e "Perdido" aos 10 mais recentes
+          if (status === 'Ganho' || status === 'Perdido') {
+            statusLeads = statusLeads.slice(0, 10);
+          }
+
           return (
             <div
               key={status}
@@ -308,8 +317,15 @@ const KanbanBoard = () => {
               }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
-                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">{statusLeads.length}</span>
+                {status}{' '}
+                <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
+                  {statusLeads.length}
+                  {/* Mostra "+" se tiver mais de 10 ocultos */}
+                  {(status === 'Ganho' || status === 'Perdido') && 
+                  leads.filter(l => l.status === status).length > 10 && '+'}
+                </span>
               </h2>
+
               <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
@@ -320,7 +336,7 @@ const KanbanBoard = () => {
               </div>
             </div>
           );
-        })}
+          })}
       </div>
 
       {/* MODAL COM TRANSFERÊNCIA */}
