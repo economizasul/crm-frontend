@@ -289,7 +289,7 @@ const KanbanBoard = () => {
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-38 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.style.backgroundColor = '#f0fdf4';
