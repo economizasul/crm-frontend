@@ -41,7 +41,7 @@ const LeadCard = ({ lead, onClick }) => (
       e.currentTarget.style.opacity = '1';
     }}
   >
-    <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
+    <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
     <p className="text-sm text-gray-600">{lead.phone}</p>
     {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
     <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
