@@ -51,27 +51,20 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const filtrosBase = data?.filters || {};
 
   // MAPA — VERSÃO INDESTRUTÍVEL (nunca mais dá erro, nunca mais fica branco)
+  // MAPA — VERSÃO QUE NUNCA VAI QUEBRAR NEM DEIXAR A PÁGINA BRANCA
   useEffect(() => {
-    // Proteção total: se data for null, undefined, ou não tiver leads → limpa tudo
-    if (!data || typeof data !== 'object') {
+    // Proteção total contra data null/undefined
+    if (!data || !data.leads || !Array.isArray(data.leads)) {
       setLeadsMapa([]);
       setCarregandoMapa(false);
       return;
     }
 
-    // Se ainda não tem leads (ou não é array), espera
-    if (!data.leads || !Array.isArray(data.leads)) {
-      setLeadsMapa([]);
-      setCarregandoMapa(false);
-      return;
-    }
-
-    // Agora sim: processa os leads
     const leadsGanho = data.leads
       .filter(lead => {
-        if (!lead || !lead.status) return false;
-        const status = lead.status.toString().trim().toLowerCase();
-        return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido'].includes(status);
+        if (!lead?.status) return false;
+        const s = lead.status.toString().trim().toLowerCase();
+        return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido'].includes(s);
       })
       .map(lead => ({
         ...lead,
@@ -80,14 +73,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         lat: lead.lat ? parseFloat(lead.lat) : null,
         lng: lead.lng ? parseFloat(lead.lng) : null,
         vendedor_name: lead.vendedor_name || lead.seller_name || 'Não informado',
-        google_maps_link: lead.google_maps_link || ''
+        google_maps_link: lead.google_maps_link || null
       }))
       .filter(lead => lead.lat !== null && lead.lng !== null);
 
     setLeadsMapa(leadsGanho);
     setCarregandoMapa(false);
 
-    console.log('MAPA CARREGADO →', leadsGanho.length, 'clientes com coordenadas');
+    console.log('MAPA PRONTO →', leadsGanho.length, 'pins no mapa');
   }, [data]);
 
       console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
@@ -208,14 +201,11 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
         <h3 className="text-2xl font-bold flex items-center gap-3">
           <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-          Mapa de Clientes Fechados ({
-            data && data.leads && Array.isArray(data.leads)
-              ? data.leads.filter(l => {
-                  if (!l || !l.status) return false;
-                  return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido'].includes(l.status.toString().trim().toLowerCase());
-                }).length
+          Mapa de Clientes Fechados (
+            {data && Array.isArray(data.leads)
+              ? data.leads.filter(l => l?.status && ['ganho','ganhou','fechado','vendido','convertido'].includes(l.status.toString().trim().toLowerCase())).length
               : 0
-          } clientes)
+            } clientes)
         </h3>
         </div>
         {carregandoMapa ? (
