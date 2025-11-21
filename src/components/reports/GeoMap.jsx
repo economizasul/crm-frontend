@@ -1,99 +1,119 @@
 // src/components/reports/GeoMap.jsx
-import React, { useEffect, useRef } from 'react';
-import { useReports } from '../../hooks/useReports';
+import React from "react";
+import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
-const GeoMap = () => {
-  const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const { leads } = useReports(); // pega todos os leads do hook
+// ============================================================================
+// COMPONENTE INTERNO — RENDERIZA OS MARCADORES
+// ============================================================================
 
-  useEffect(() => {
-    if (!leads || leads.length === 0 || mapInstance.current) return;
-
-    // Carrega a API do Google Maps
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places`;
-    script.async = true;
-    document.body.appendChild(script);
-
-    script.onload = () => {
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: -24.5, lng: -51.5 },
-        zoom: 7,
-        mapTypeId: 'roadmap',
-        styles: [
-          { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'on' }] },
-          { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-          { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-        ],
-      });
-      mapInstance.current = map;
-
-      // Filtra apenas leads com status "Ganho" e que tenham lat/lng válidos
-      const wonLeads = leads.filter(
-        lead => lead.status === 'Ganho' && lead.lat && lead.lng && lead.cidade
-      );
-
-      // Agrupa por cidade
-      const cityCount = {};
-      wonLeads.forEach(lead => {
-        const city = lead.cidade.trim();
-        cityCount[city] = (cityCount[city] || 0) + 1;
-      });
-
-      // Cria um marcador para cada cidade com leads ganhos
-      Object.entries(cityCount).forEach(([city, count]) => {
-        const leadInCity = wonLeads.find(l => l.cidade.trim() === city);
-        if (!leadInCity) return;
-
-        const marker = new window.google.maps.Marker({
-          position: { lat: parseFloat(leadInCity.lat), lng: parseFloat(leadInCity.lng) },
-          map,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            fillColor: '#22c55e',        // verde sucesso
-            fillOpacity: 0.9,
-            strokeColor: '#16a34a',
-            strokeWeight: 2,
-            scale: 18 + count * 3,       // tamanho aumenta com quantidade
-            labelOrigin: new window.google.maps.Point(0, 0),
-          },
-          label: {
-            text: count.toString(),
-            color: 'white',
-            fontSize: '14px',
-            fontWeight: 'bold',
-          },
-        });
-
-        // Tooltip ao passar o mouse
-        const infowindow = new window.google.maps.InfoWindow({
-          content: `<div style="padding:8px; font-weight:bold; color:#1f2937;">
-                      <div>${city}</div>
-                      <div style="color:#22c55e; font-size:1.1em;">${count} lead(s) ganho(s)</div>
-                    </div>`,
-        });
-
-        marker.addListener('mouseover', () => infowindow.open(map, marker));
-        marker.addListener('mouseout', () => infowindow.close());
-      });
-    };
-
-    return () => {
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-  }, [leads]);
+function MarkersLayer({ locations, calcRadius }) {
+  // Filtra apenas locais com lat e lng válidos
+  const validLocations = (locations || []).filter(
+    (loc) =>
+      loc &&
+      loc.lat !== undefined &&
+      loc.lng !== undefined &&
+      !isNaN(Number(loc.lat)) &&
+      !isNaN(Number(loc.lng))
+  );
 
   return (
-    <div className="w-full h-full rounded-xl overflow-hidden shadow-lg border border-gray-200">
-      <div ref={mapRef} className="w-full h-full" style={{ minHeight: '500px' }} />
-      {!leads || leads.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80">
-          <p className="text-gray-500 text-lg">Carregando mapa de leads ganhos...</p>
-        </div>
+    <>
+      {validLocations.map((loc, i) => (
+        <CircleMarker
+          key={`cm-${loc.city}-${i}`}
+          center={[Number(loc.lat), Number(loc.lng)]}
+          radius={calcRadius(loc.count)}
+          pathOptions={{
+            color: "#1e90ff",
+            fillColor: "#1e90ff",
+            fillOpacity: 0.75,
+            weight: 1,
+          }}
+        >
+          <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+            <div style={{ textAlign: "center" }}>
+              <strong>{loc.city}</strong>
+              <br />
+              {Number(loc.count ?? 0).toLocaleString("pt-BR")} clientes fechados
+            </div>
+          </Tooltip>
+        </CircleMarker>
+      ))}
+    </>
+  );
+}
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
+
+export default function GeoMap({
+  title = "Mapa de Clientes",
+  locations = [],
+  initialCenter = [-15.78, -47.93],
+  initialZoom = 5,
+  minRadius = 6,
+  maxRadius = 28,
+  onExpand = null,
+}) {
+  const calcRadius = (count) => {
+    if (!count || count <= 0) return minRadius;
+    const r = minRadius + Math.log(Number(count));
+    return Math.min(maxRadius, Math.max(minRadius, r));
+  };
+
+  const showExpandButton = typeof onExpand === "function";
+
+  return (
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      {/* Título opcional */}
+      {title && (
+        <h3 style={{ marginBottom: "8px", fontWeight: "600" }}>{title}</h3>
       )}
+
+      {/* BOTÃO EXPANDIR */}
+      {showExpandButton && (
+        <button
+          onClick={onExpand}
+          style={{
+            position: "absolute",
+            zIndex: 9999,
+            top: 10,
+            right: 10,
+            padding: "6px 12px",
+            fontSize: "12px",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            background: "white",
+            cursor: "pointer",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+          }}
+        >
+          Expandir
+        </button>
+      )}
+
+      {/* MAPA */}
+      <MapContainer
+        center={initialCenter.map((c) => Number(c))}
+        zoom={initialZoom}
+        style={{
+          width: "100%",
+          height: "450px",
+          borderRadius: "12px",
+          overflow: "hidden",
+        }}
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          attribution='&copy; OpenStreetMap contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        <MarkersLayer locations={locations} calcRadius={calcRadius} />
+      </MapContainer>
     </div>
   );
-};
-
-export default GeoMap;
+}

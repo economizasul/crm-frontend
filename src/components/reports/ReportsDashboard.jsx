@@ -185,7 +185,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
             <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-            Mapa do Paraná ({leadsVisiveis.length} clientes)
+            Mapa de Clientes Fechados ({leads.filter(l => l.status === 'Ganho').length})
           </h3>
         </div>
         {carregandoMapa ? (
@@ -196,7 +196,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             </div>
           </div>
         ) : (
-          <ParanaMap leadsGanho={leadsVisiveis} onRegiaoClick={setRegiaoSelecionada} regiaoAtiva={regiaoSelecionada} />
+          <ParanaMap 
+            leadsGanho={leads.filter(lead => 
+              lead.status === 'Ganho' && 
+              (!regiaoSelecionada || lead.regiao === regiaoSelecionada)
+            )} 
+            onRegiaoClick={setRegiaoSelecionada} 
+            regiaoAtiva={regiaoSelecionada} 
+          />
         )}
       </motion.div>
 
