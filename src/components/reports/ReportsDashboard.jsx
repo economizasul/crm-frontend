@@ -205,11 +205,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <h3 className="text-2xl font-bold flex items-center gap-3">
           <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
           Mapa de Clientes Fechados ({
-            data?.leads?.filter(l => {
-              if (!l.status) return false;
-              const s = l.status.toString().trim();
-              return ['Ganho', 'ganho', 'Ganhou', 'GANHO', 'Fechado', 'Vendido', 'Convertido'].includes(s);
-            }).length || 0
+            data && data.leads
+              ? data.leads.filter(l => {
+                  if (!l?.status) return false;
+                  return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido'].includes(l.status.toString().trim().toLowerCase());
+                }).length
+              : 0
           } clientes)
         </h3>
         </div>
