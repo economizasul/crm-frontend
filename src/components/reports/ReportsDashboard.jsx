@@ -50,24 +50,28 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-  useEffect(() => {
-    const carregar = async () => {
-      if (!filtrosBase.startDate || loading) return;
+useEffect(() => {
+  const carregar = async () => {
+    if (!filtrosBase.startDate || loading) return;
 
-      setCarregandoMapa(true);
-      try {
-        const filtros = { ...filtrosBase, vendedor: vendedorSelecionado === 'todos' ? null : vendedorSelecionado };
-        const leads = await buscarLeadsGanhoParaMapa(filtros);
-        setLeadsMapa(leads.map(l => ({ ...l, regiao: l.regiao || 'Outros' })));
-      } catch (err) {
-        console.error('Erro ao carregar mapa:', err);
-        setLeadsMapa([]);
-      } finally {
-        setCarregandoMapa(false); // ← aqui é o que importa
-      }
-    };
-    carregar();
-  }, [filtrosBase, vendedorSelecionado, loading]);
+    setCarregandoMapa(true);
+    try {
+      const filtros = { 
+        ...filtrosBase, 
+        vendedor: vendedorSelecionado === 'todos' ? null : vendedorSelecionado,
+        status: 'Ganho'  // ESSA LINHA É A CHAVE
+      };
+      const leads = await buscarLeadsGanhoParaMapa(filtros);
+      setLeadsMapa(leads.map(l => ({ ...l, regiao: l.regiao || 'Outros' })));
+    } catch (err) {
+      console.error('Erro ao carregar mapa:', err);
+      setLeadsMapa([]);
+    } finally {
+      setCarregandoMapa(false);
+    }
+  };
+  carregar();
+}, [filtrosBase, vendedorSelecionado, loading]);
 
   const leadsVisiveis = regiaoSelecionada
     ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)
@@ -185,7 +189,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
             <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-            Mapa de Clientes Fechados ({leadsMapa.length} cliente{leadsMapa.length !== 1 ? 's' : ''})
+            Mapa de Clientes Fechados ({data?.leads?.filter(l => l.status === 'Ganho').length || 0} cliente{data?.leads?.filter(l => l.status === 'Ganho').length !== 1 ? 's' : ''})
           </h3>
         </div>
         {carregandoMapa ? (
