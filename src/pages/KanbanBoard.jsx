@@ -41,7 +41,7 @@ const LeadCard = ({ lead, onClick }) => (
       e.currentTarget.style.opacity = '1';
     }}
   >
-    <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
+    <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
     <p className="text-sm text-gray-600">{lead.phone}</p>
     {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
     <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
@@ -289,7 +289,7 @@ const KanbanBoard = () => {
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              className="flex-shrink-0 w-38 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.style.backgroundColor = '#f0fdf4';
