@@ -319,8 +319,8 @@ const handleSubmit = async (e) => {
 };
 // --- FIM handleSubmit ---
 
-  const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
-  const getWhatsAppLink = () => {
+    const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
+    const getWhatsAppLink = () => {
     if (!formData.phone) return null;
     const phone = formData.phone.replace(/\D/g, '');
     const formatted = phone.startsWith('55') ? phone : `55${phone}`;
@@ -414,10 +414,10 @@ const handleSubmit = async (e) => {
           <div><label className="block text-sm font-semibold text-gray-700 mb-2">Status <span className="text-red-500">*</span></label>
             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500">
               <option value="Novo">Novo</option>
-              <option value="Primeiro Contato">Primeiro Contato</option>
-              <option value="Retorno Agendado">Retorno Agendado</option>
-              <option value="Em Negociação">Em Negociação</option>
-              <option value="Proposta Enviada">Proposta Enviada</option>
+              <option value="Contato">Contato</option>
+              <option value="Retorno">Retorno</option>
+              <option value="Conversando">Conversando</option>
+              <option value="Simulação">Simulação</option>
               <option value="Ganho">Ganho</option>
               <option value="Perdido">Perdido</option>
             </select>
