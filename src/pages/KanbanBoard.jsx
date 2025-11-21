@@ -28,27 +28,23 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-const LeadCard = ({ lead, onClick, compact = false }) => (
+const LeadCard = ({ lead, onClick }) => (
   <div
     onClick={() => onClick(lead)}
-    className={`bg-white rounded-lg shadow-md border border-gray-200 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none ${
-      compact ? 'p-3 py-2 text-xs' : 'p-4'
-    }`}
+    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
     draggable="true"
     onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', String(lead.id));
+      e.dataTransfer.setData('leadId', String(lead.id)); // GARANTE STRING
       e.currentTarget.style.opacity = '0.5';
     }}
-    onDragEnd={(e) => e.currentTarget.style.opacity = '1'}
+    onDragEnd={(e) => {
+      e.currentTarget.style.opacity = '1';
+    }}
   >
-    <h4 className={`font-bold truncate ${compact ? 'text-sm text-gray-900' : 'text-gray-800'}`}>
-      {lead.name}
-    </h4>
-    <p className={`text-sm ${compact ? 'text-gray-500' : 'text-gray-600'}`}>
-      {lead.phone}
-    </p>
+    <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
+    <p className="text-sm text-gray-600">{lead.phone}</p>
     {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
-    <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+    <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
       <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
     </div>
     <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
@@ -287,20 +283,13 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          let statusLeads = leads
+          const statusLeads = leads
             .filter(l => l.status === status)
-            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); // mais recentes primeiro
-
-          // Aplicar limites
-          const totalInStage = leads.filter(l => l.status === status).length;
-          const maxToShow = status === 'Ganho' ? 10 : 20;
-          statusLeads = statusLeads.slice(0, maxToShow);
-
+            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()));
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-80 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.style.backgroundColor = '#f0fdf4';
@@ -319,35 +308,14 @@ const KanbanBoard = () => {
               }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
-                {status}{' '}
-                <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
-                  {statusLeads.length}
-                  {totalInStage > maxToShow && '+'}
-                </span>
+                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">{statusLeads.length}</span>
               </h2>
-
-              <div className="space-y-3 min-h-96">
-                {statusLeads.map((lead, index) => {
-                  const isCompact = status === 'Ganho' || (status !== 'Ganho' && index >= 10);
-
-                  return (
-                    <div key={lead.id} className={isCompact ? 'scale-95' : ''}>
-                      <LeadCard lead={lead} onClick={openLeadModal} compact={isCompact} />
-                    </div>
-                  );
-                })}
-
+              <div className="space-y-3">
+                {statusLeads.map(lead => (
+                  <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
+                ))}
                 {statusLeads.length === 0 && (
-                  <p className="text-center text-gray-400 italic py-12 text-sm">
-                    Arraste leads aqui
-                  </p>
-                )}
-
-                {/* Indicador de leads ocultos */}
-                {totalInStage > maxToShow && (
-                  <p className={`text-center text-xs font-bold mt-4 ${status === 'Ganho' ? 'text-green-600' : 'text-gray-500'}`}>
-                    +{totalInStage - maxToShow} mais antigos
-                  </p>
+                  <p className="text-center text-gray-400 italic py-12 text-sm">Arraste leads aqui</p>
                 )}
               </div>
             </div>
