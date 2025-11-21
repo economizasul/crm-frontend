@@ -31,10 +31,10 @@ const Toast = ({ message, type, onClose }) => {
 const LeadCard = ({ lead, onClick }) => (
   <div
     onClick={() => onClick(lead)}
-    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
+    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none w-full overflow-hidden"
     draggable="true"
     onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', String(lead.id)); // GARANTE STRING
+      e.dataTransfer.setData('leadId', String(lead.id));
       e.currentTarget.style.opacity = '0.5';
     }}
     onDragEnd={(e) => {
@@ -42,10 +42,11 @@ const LeadCard = ({ lead, onClick }) => (
     }}
   >
     <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
-    <p className="text-sm text-gray-600">{lead.phone}</p>
-    {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
+    <p className="text-sm text-gray-600 truncate">{lead.phone}</p>
+    {lead.uc && <p className="text-xs text-gray-500 mt-1 truncate">UC: {lead.uc}</p>}
     <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-      <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+      <FaUserTie className="flex-shrink-0" />
+      <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
     </div>
     <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
       {lead.status}
