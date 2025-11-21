@@ -50,28 +50,31 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-useEffect(() => {
-  const carregar = async () => {
-    if (!filtrosBase.startDate || loading) return;
-
-    setCarregandoMapa(true);
-    try {
-      const filtros = { 
-        ...filtrosBase, 
-        vendedor: vendedorSelecionado === 'todos' ? null : vendedorSelecionado,
-        status: 'Ganho'  // ESSA LINHA É A CHAVE
-      };
-      const leads = await buscarLeadsGanhoParaMapa(filtros);
-      setLeadsMapa(leads.map(l => ({ ...l, regiao: l.regiao || 'Outros' })));
-    } catch (err) {
-      console.error('Erro ao carregar mapa:', err);
+  // MAPA — VERSÃO QUE FUNCIONA 100% COM SEUS DADOS ATUAIS
+  useEffect(() => {
+    if (loading || !data?.leads) {
       setLeadsMapa([]);
-    } finally {
-      setCarregandoMapa(false);
+      setCarregandoMapa(true);
+      return;
     }
-  };
-  carregar();
-}, [filtrosBase, vendedorSelecionado, loading]);
+
+    // Usa diretamente os leads que já vieram no relatório principal
+    const leadsGanho = data.leads
+      .filter(lead => lead.status === 'Ganho')
+      .map(lead => ({
+        ...lead,
+        regiao: lead.regiao || 'Outros',
+        cidade: lead.cidade || 'Cidade não informada',
+        lat: lead.lat ? parseFloat(lead.lat) : null,
+        lng: lead.lng ? parseFloat(lead.lng) : null,
+      }))
+      .filter(lead => lead.lat && lead.lng); // só os que têm coordenadas
+
+    setLeadsMapa(leadsGanho);
+    setCarregandoMapa(false);
+
+    console.log('Leads carregados no mapa:', leadsGanho.length, leadsGanho);
+  }, [data, loading]);
 
   const leadsVisiveis = regiaoSelecionada
     ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)
@@ -187,10 +190,10 @@ useEffect(() => {
         className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
       >
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
-          <h3 className="text-2xl font-bold flex items-center gap-3">
-            <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-            Mapa de Clientes Fechados ({data?.leads?.filter(l => l.status === 'Ganho').length || 0} cliente{data?.leads?.filter(l => l.status === 'Ganho').length !== 1 ? 's' : ''})
-          </h3>
+        <h3 className="text-2xl font-bold flex items-center gap-3">
+          <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
+          Mapa de Clientes Fechados ({data?.leads?.filter(l => l.status === 'Ganho').length || 0} clientes)
+        </h3>
         </div>
         {carregandoMapa ? (
           <div className="h-96 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
