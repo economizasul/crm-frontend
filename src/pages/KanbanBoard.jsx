@@ -31,33 +31,25 @@ const Toast = ({ message, type, onClose }) => {
 const LeadCard = ({ lead, onClick }) => (
   <div
     onClick={() => onClick(lead)}
-    className="bg-white rounded-lg shadow-md border border-gray-200 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all select-none
-               w-full
-               min-w-0
-               p-3"
+    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
     draggable="true"
     onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', String(lead.id));
+      e.dataTransfer.setData('leadId', String(lead.id)); // GARANTE STRING
       e.currentTarget.style.opacity = '0.5';
     }}
-    onDragEnd={(e) => e.currentTarget.style.opacity = '1'}
+    onDragEnd={(e) => {
+      e.currentTarget.style.opacity = '1';
+    }}
   >
-    <h4 className="font-semibold text-gray-600 truncate text-sm leading-tight">
-      {lead.name}
-    </h4>
-    <p className="text-xs text-gray-600 truncate mt-1">{lead.phone}</p>
-    {lead.uc && <p className="text-xs text-gray-500 truncate">UC: {lead.uc}</p>}
-    
+    <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
+    <p className="text-sm text-gray-600">{lead.phone}</p>
+    {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
     <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-      <FaUserTie className="flex-shrink-0 w-3 h-3" />
-      <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+      <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
     </div>
-
-    <div className="mt-2">
-      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium truncate w-full text-left ${STAGES[lead.status] || STAGES.Novo}`}>
-        {lead.status}
-      </span>
-    </div>
+    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
+      {lead.status}
+    </span>
   </div>
 );
 
@@ -291,24 +283,16 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          // Filtra + busca + ordena por mais recente primeiro
-          let statusLeads = leads
+          const statusLeads = leads
             .filter(l => l.status === status)
-            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
-          // LIMITE DE 10 apenas para Ganho e Perdido
-          if (status === 'Ganho' || status === 'Perdido') {
-            statusLeads = statusLeads.slice(0, 10);
-          }
-
+            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()));
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-38 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
               onDragOver={(e) => {
                 e.preventDefault();
-                e.currentTarget.style.backgroundColor = '#c1fad2ff';
+                e.currentTarget.style.backgroundColor = '#f0fdf4';
                 e.currentTarget.style.borderColor = '#22c55e';
               }}
               onDragLeave={(e) => {
@@ -324,22 +308,14 @@ const KanbanBoard = () => {
               }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
-                {status}{' '}
-                <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
-                  {statusLeads.length}
-                  {(status === 'Ganho' || status === 'Perdido') && 
-                  leads.filter(l => l.status === status).length > 10 && '+'}
-                </span>
+                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">{statusLeads.length}</span>
               </h2>
-
               <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
                 ))}
                 {statusLeads.length === 0 && (
-                  <p className="text-center text-gray-400 italic py-12 text-sm">
-                    Arraste leads aqui
-                  </p>
+                  <p className="text-center text-gray-400 italic py-12 text-sm">Arraste leads aqui</p>
                 )}
               </div>
             </div>
