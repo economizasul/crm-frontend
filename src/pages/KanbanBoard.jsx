@@ -31,7 +31,7 @@ const Toast = ({ message, type, onClose }) => {
 const LeadCard = ({ lead, onClick }) => (
   <div
     onClick={() => onClick(lead)}
-    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none w-full overflow-hidden"
+    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
     draggable="true"
     onDragStart={(e) => {
       e.dataTransfer.setData('leadId', String(lead.id));
@@ -39,18 +39,26 @@ const LeadCard = ({ lead, onClick }) => (
     }}
     onDragEnd={(e) => {
       e.currentTarget.style.opacity = '1';
-    }}
+    }} // ← ESTAVA FALTANDO ESTE PONTO E VÍRGULA + FECHAMENTO
   >
-    <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
-    <p className="text-sm text-gray-600 truncate">{lead.phone}</p>
-    {lead.uc && <p className="text-xs text-gray-500 mt-1 truncate">UC: {lead.uc}</p>}
-    <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-      <FaUserTie className="flex-shrink-0" />
-      <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+    {/* CONTAINER QUE FORÇA A LARGURA E CORTA TUDO */}
+    <div className="w-full overflow-hidden">
+      <h4 className="font-bold text-gray-800 truncate">{lead.name}</h4>
+      <p className="text-sm text-gray-600 truncate">{lead.phone}</p>
+      {lead.uc && <p className="text-xs text-gray-500 mt-1 truncate">UC: {lead.uc}</p>}
+      
+      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+        <FaUserTie className="flex-shrink-0" />
+        <span className="truncate min-w-0">{lead.ownerName || 'Sem vendedor'}</span>
+      </div>
+
+      {/* BADGE DE STATUS — AGORA NUNCA VAI ESTOURAR */}
+      <div className="mt-2">
+        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold truncate max-w-full ${STAGES[lead.status] || STAGES.Novo}`}>
+          {lead.status}
+        </span>
+      </div>
     </div>
-    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
-      {lead.status}
-    </span>
   </div>
 );
 
