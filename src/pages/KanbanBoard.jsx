@@ -283,13 +283,21 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          const statusLeads = leads
+          // Filtra + busca + ordena por mais recente primeiro
+          let statusLeads = leads
             .filter(l => l.status === status)
-            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+          // LIMITE DE 10 apenas para Ganho e Perdido
+          if (status === 'Ganho' || status === 'Perdido') {
+            statusLeads = statusLeads.slice(0, 10);
+          }
+
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-44 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
+              className="flex-shrink-0 w-42 bg-white p-4 rounded-lg shadow-lg border-2 border-gray-200 transition-all"
               onDragOver={(e) => {
                 e.preventDefault();
                 e.currentTarget.style.backgroundColor = '#f0fdf4';
@@ -308,14 +316,22 @@ const KanbanBoard = () => {
               }}
             >
               <h2 className={`text-lg font-bold mb-4 px-4 py-2 rounded-lg ${STAGES[status]} border-2`}>
-                {status} <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">{statusLeads.length}</span>
+                {status}{' '}
+                <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
+                  {statusLeads.length}
+                  {(status === 'Ganho' || status === 'Perdido') && 
+                  leads.filter(l => l.status === status).length > 10 && '+'}
+                </span>
               </h2>
+
               <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
                 ))}
                 {statusLeads.length === 0 && (
-                  <p className="text-center text-gray-400 italic py-12 text-sm">Arraste leads aqui</p>
+                  <p className="text-center text-gray-400 italic py-12 text-sm">
+                    Arraste leads aqui
+                  </p>
                 )}
               </div>
             </div>
