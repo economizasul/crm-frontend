@@ -194,35 +194,24 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* MAPA DO PARANÁ — VERSÃO 100% FUNCIONAL */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
-      >
+      {/* TESTE DEFINITIVO — DADOS FIXOS (IGNORA O BANCO) */}
+      <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
+            Mapa de Clientes Fechados (TESTE - 3 pontos fixos)
           </h3>
         </div>
 
-        {/* CONTAINER COM ALTURA FIXA — ESSA LINHA É OBRIGATÓRIA */}
         <div className="relative w-full h-96">
-          {carregandoMapa ? (
-            <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-              <FaSpinner className="animate-spin text-5xl text-indigo-600" />
-              <span className="ml-4 text-gray-600">Carregando mapa...</span>
-            </div>
-          ) : leadsMapa.length === 0 ? (
-            <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-              <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
-            </div>
-          ) : (
-            <ParanaMap
-              leadsGanho={leadsVisiveis}
-              onRegiaoClick={setRegiaoSelecionada}
-              regiaoAtiva={regiaoSelecionada}
-            />
-          )}
+          <ParanaMap
+            leadsGanho={[
+              { lat: -25.4284, lng: -49.2733, cidade: "Curitiba", regiao: "Metropolitana" },
+              { lat: -23.5505, lng: -46.6333, cidade: "São Paulo (fora PR)", regiao: "Noroeste" },
+              { lat: -25.2521, lng: -50.1584, cidade: "Ponta Grossa", regiao: "Campos Gerais" }
+            ]}
+            onRegiaoClick={setRegiaoSelecionada}
+            regiaoAtiva={regiaoSelecionada}
+          />
         </div>
       </motion.div>
 
