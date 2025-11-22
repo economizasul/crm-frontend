@@ -52,33 +52,26 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
   // MAPA — VERSÃO 100% SEGURA
   useEffect(() => {
-    // Se ainda não tem dados, limpa e sai
     if (!data || !data.leads || !Array.isArray(data.leads)) {
       setLeadsMapa([]);
       setCarregandoMapa(false);
       return;
     }
 
-    // Agora sim, pode usar data.leads com segurança
-    console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l?.status || 'sem status'))]);
-
-    const leadsFiltrados = data.leads
-      .filter(lead => {
-        if (!lead?.status) return false;
-        const s = String(lead.status).trim().toLowerCase();
-        return ['ganho', 'ganhou', 'fechado', 'vendido', 'convertido'].includes(s);
-      })
+    const leadsGanho = data.leads
+      .filter(lead => lead?.status === 'Ganho')  // EXATO como está no seu banco
       .map(lead => ({
         ...lead,
-        regiao: lead.regiao || 'Outros',
-        cidade: lead.cidade || 'Cidade não informada',
+        regiao: lead.regiao || 'Desconhecida',
+        cidade: lead.cidade || 'Não informada',
         lat: lead.lat ? parseFloat(lead.lat) : null,
         lng: lead.lng ? parseFloat(lead.lng) : null,
-        google_maps_link: lead.google_maps_link || ''
       }))
       .filter(lead => lead.lat !== null && lead.lng !== null);
 
-    setLeadsMapa(leadsFiltrados);
+    console.log('Leads no mapa (deve ser 3):', leadsGanho);
+
+    setLeadsMapa(leadsGanho);
     setCarregandoMapa(false);
   }, [data]);
 
@@ -193,34 +186,33 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   />
 </div>
 
-      {/* MAPA */}
+      {/* MAPA DO PARANÁ — VERSÃO FINAL FUNCIONANDO */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
       >
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
-        <h3 className="text-2xl font-bold flex items-center gap-3">
-          <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-          Mapa de Clientes Fechados (
-            {data && Array.isArray(data.leads)
-              ? data.leads.filter(l => l?.status && ['ganho','ganhou','fechado','vendido','convertido'].includes(l.status.toString().trim().toLowerCase())).length
-              : 0
-            } clientes)
-        </h3>
+          <h3 className="text-2xl font-bold flex items-center gap-3">
+            <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
+            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
+          </h3>
         </div>
+
         {carregandoMapa ? (
-          <div className="h-96 flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-            <div className="text-center">
-              <FaSpinner className="animate-spin text-5xl text-indigo-600 mb-4" />
-              <p className="text-gray-600 dark:text-gray-300">Carregando mapa...</p>
-            </div>
+          <div className="h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <FaSpinner className="animate-spin text-5xl text-indigo-600" />
+            <span className="ml-4 text-gray-600">Carregando mapa...</span>
+          </div>
+        ) : leadsMapa.length === 0 ? (
+          <div className="h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <p className="text-gray-500">Nenhum cliente fechado com coordenadas</p>
           </div>
         ) : (
-          <ParanaMap 
+          <ParanaMap
             leadsGanho={leadsVisiveis}
-            onRegiaoClick={setRegiaoSelecionada} 
-            regiaoAtiva={regiaoSelecionada} 
+            onRegiaoClick={setRegiaoSelecionada}
+            regiaoAtiva={regiaoSelecionada}
           />
         )}
       </motion.div>
