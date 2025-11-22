@@ -58,27 +58,20 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       return;
     }
 
-    const leadsGanho = data.leads
-      .filter(lead => {
-        if (!lead?.status) return false;
-        // Remove TODOS os espaços e compara (funciona com "Ganho", " Ganho ", "Ganho  ", etc)
-        return lead.status.toString().trim() === 'Ganho';
-      })
+    const leadsParaMapa = data.leads
+      .filter(lead => lead?.status?.toString().trim() === 'Ganho')
+      .filter(lead => lead?.lat && lead?.lng)  // só quem tem coordenadas
       .map(lead => ({
         ...lead,
-        regiao: (lead.regiao || 'Desconhecida').trim(),
-        cidade: lead.cidade || 'Não informada',
-        lat: lead.lat ? parseFloat(lead.lat) : null,
-        lng: lead.lng ? parseFloat(lead.lng) : null,
-      }))
-      .filter(lead => lead.lat !== null && lead.lng !== null && lead.lat !== 0 && lead.lng !== 0);
+        lat: parseFloat(lead.lat),
+        lng: parseFloat(lead.lng),
+        regiao: lead.regiao?.trim() || 'Desconhecida',
+        cidade: lead.cidade || 'Sem cidade'
+      }));
 
-    console.log('LEADS QUE VÃO PRO MAPA (DEVEM SER 3):', leadsGanho);
-    console.log('Total de leads com status Ganho (com ou sem espaço):', 
-      data.leads.filter(l => l?.status?.toString().trim() === 'Ganho').length
-    );
+    console.log('Seus 3 leads reais que vão pro mapa:', leadsParaMapa);
 
-    setLeadsMapa(leadsGanho);
+    setLeadsMapa(leadsParaMapa);
     setCarregandoMapa(false);
   }, [data]);
 
@@ -193,25 +186,26 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   />
 </div>
 
-      {/* MAPA DO PARANÁ — VERSÃO 100% FUNCIONAL */}
-      {/* TESTE DEFINITIVO — DADOS FIXOS (IGNORA O BANCO) */}
+      {/* MAPA */}
       <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Clientes Fechados (TESTE - 3 pontos fixos)
+            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
           </h3>
         </div>
 
         <div className="relative w-full h-96">
-          <ParanaMap
-            leadsGanho={[
-              { lat: -25.4284, lng: -49.2733, cidade: "Curitiba", regiao: "Metropolitana" },
-              { lat: -23.5505, lng: -46.6333, cidade: "São Paulo (fora PR)", regiao: "Noroeste" },
-              { lat: -25.2521, lng: -50.1584, cidade: "Ponta Grossa", regiao: "Campos Gerais" }
-            ]}
-            onRegiaoClick={setRegiaoSelecionada}
-            regiaoAtiva={regiaoSelecionada}
-          />
+          {leadsMapa.length === 0 ? (
+            <div className="flex items-center justify-center h-full bg-gray-50">
+              <p className="text-gray-500">Carregando seus clientes...</p>
+            </div>
+          ) : (
+            <ParanaMap
+              leadsGanho={leadsVisiveis}
+              onRegiaoClick={setRegiaoSelecionada}
+              regiaoAtiva={regiaoSelecionada}
+            />
+          )}
         </div>
       </motion.div>
 
