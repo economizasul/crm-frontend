@@ -50,12 +50,17 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-  // MAPA — VERSÃO QUE NUNCA VAI QUEBRAR NEM DEIXAR A PÁGINA BRANCA
-   useEffect(() => {
+  // MAPA — VERSÃO 100% SEGURA
+  useEffect(() => {
+    // Se ainda não tem dados, limpa e sai
     if (!data || !data.leads || !Array.isArray(data.leads)) {
       setLeadsMapa([]);
+      setCarregandoMapa(false);
       return;
     }
+
+    // Agora sim, pode usar data.leads com segurança
+    console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l?.status || 'sem status'))]);
 
     const leadsFiltrados = data.leads
       .filter(lead => {
@@ -77,7 +82,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
     setCarregandoMapa(false);
   }, [data]);
 
-      console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
+      //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
   const leadsVisiveis = regiaoSelecionada
     ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)
@@ -146,41 +151,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         )}
       </AnimatePresence>
 
-      {/* MAPA — SEMPRE VISÍVEL (FORA DO AnimatePresence) */}
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
-      >
-        <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
-          <h3 className="text-2xl font-bold flex items-center gap-3">
-            <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
-            Mapa de Clientes Fechados (
-              {data && data.leads && Array.isArray(data.leads)
-                ? data.leads.filter(l => 
-                    l?.status && 
-                    ['ganho','ganhou','fechado','vendido','convertido'].includes(String(l.status).trim().toLowerCase())
-                  ).length
-                : 0
-              } clientes)
-          </h3>
-        </div>
 
-        {(!data || !data.leads || carregandoMapa) ? (
-          <div className="h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-            <div className="text-center">
-              <FaSpinner className="animate-spin text-5xl text-indigo-600 mb-4 mx-auto" />
-              <p className="text-gray-600 dark:text-gray-300">Carregando mapa...</p>
-            </div>
-          </div>
-        ) : (
-          <ParanaMap
-            leadsGanho={leadsVisiveis}
-            onRegiaoClick={setRegiaoSelecionada}
-            regiaoAtiva={regiaoSelecionada}
-          />
-        )}
-      </motion.div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
