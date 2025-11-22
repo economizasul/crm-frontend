@@ -58,13 +58,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       return;
     }
 
-    // LOG PARA VOCÊ VER EXATAMENTE O QUE TEM NO BANCO
-    console.log("Todos os status brutos:", data.leads.map(l => `'${l.status}'`));
-
     const leadsGanho = data.leads
       .filter(lead => {
         if (!lead?.status) return false;
-        // Remove espaços e compara (funciona com "Ganho", " Ganho ", "ganho ", etc)
+        // Remove TODOS os espaços e compara (funciona com "Ganho", " Ganho ", "Ganho  ", etc)
         return lead.status.toString().trim() === 'Ganho';
       })
       .map(lead => ({
@@ -74,9 +71,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         lat: lead.lat ? parseFloat(lead.lat) : null,
         lng: lead.lng ? parseFloat(lead.lng) : null,
       }))
-      .filter(lead => lead.lat !== null && lead.lng !== null);
+      .filter(lead => lead.lat !== null && lead.lng !== null && lead.lat !== 0 && lead.lng !== 0);
 
-    console.log("Leads que vão pro mapa (deve ser 3):", leadsGanho);
+    console.log('LEADS QUE VÃO PRO MAPA (DEVEM SER 3):', leadsGanho);
+    console.log('Total de leads com status Ganho (com ou sem espaço):', 
+      data.leads.filter(l => l?.status?.toString().trim() === 'Ganho').length
+    );
 
     setLeadsMapa(leadsGanho);
     setCarregandoMapa(false);
