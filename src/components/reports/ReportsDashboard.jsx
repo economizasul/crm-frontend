@@ -123,9 +123,30 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   return (
     <div className="space-y-8 p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
 
-      {/* FILTRO REGIÃO */}
+      {/* FILTRO REGIÃO — só aparece quando selecionar uma região */}
       <AnimatePresence>
         {regiaoSelecionada && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 p-5 rounded-2xl shadow-xl flex items-center justify-between text-white"
+          >
+            <div className="flex items-center gap-4">
+              <FaMapMarkedAlt className="text-3xl" />
+              <div>
+                <strong className="text-xl">Região: {regiaoSelecionada}</strong>
+                <p className="text-sm opacity-90">{leadsVisiveis.length} clientes</p>
+              </div>
+            </div>
+            <button onClick={() => setRegiaoSelecionada(null)}>
+              <FaTimes className="text-2xl" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MAPA — SEMPRE VISÍVEL (FORA DO AnimatePresence) */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -136,30 +157,30 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             <FaMapMarkedAlt className="text-indigo-600 dark:text-indigo-400" />
             Mapa de Clientes Fechados (
               {data && data.leads && Array.isArray(data.leads)
-                ? data.leads.filter(l => l?.status && ['ganho','ganhou','fechado','vendido','convertido'].includes(String(l.status).trim().toLowerCase())).length
+                ? data.leads.filter(l => 
+                    l?.status && 
+                    ['ganho','ganhou','fechado','vendido','convertido'].includes(String(l.status).trim().toLowerCase())
+                  ).length
                 : 0
               } clientes)
           </h3>
         </div>
 
-        {/* Só mostra o mapa se já tem dados */}
         {(!data || !data.leads || carregandoMapa) ? (
           <div className="h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
             <div className="text-center">
-              <FaSpinner className="animate-spin text-5xl text-indigo-600 mb-4" />
+              <FaSpinner className="animate-spin text-5xl text-indigo-600 mb-4 mx-auto" />
               <p className="text-gray-600 dark:text-gray-300">Carregando mapa...</p>
             </div>
           </div>
         ) : (
-          <ParanaMap 
+          <ParanaMap
             leadsGanho={leadsVisiveis}
-            onRegiaoClick={setRegiaoSelecionada} 
-            regiaoAtiva={regiaoSelecionada} 
+            onRegiaoClick={setRegiaoSelecionada}
+            regiaoAtiva={regiaoSelecionada}
           />
         )}
       </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
