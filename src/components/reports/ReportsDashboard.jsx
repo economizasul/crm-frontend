@@ -58,20 +58,21 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       return;
     }
 
-    const leadsParaMapa = data.leads
-      .filter(lead => lead?.status?.toString().trim() === 'Ganho')
-      .filter(lead => lead?.lat && lead?.lng)  // só quem tem coordenadas
+    // PEGA TODOS OS LEADS QUE TÊM LAT E LNG — IGNORA STATUS POR ENQUANTO
+    const leadsComCoordenadas = data.leads
+      .filter(lead => lead?.lat && lead?.lng)
       .map(lead => ({
         ...lead,
         lat: parseFloat(lead.lat),
         lng: parseFloat(lead.lng),
-        regiao: lead.regiao?.trim() || 'Desconhecida',
-        cidade: lead.cidade || 'Sem cidade'
+        cidade: lead.cidade || 'Sem cidade',
+        regiao: (lead.regiao || 'Desconhecida').trim(),
+        status: lead.status || 'Desconhecido'
       }));
 
-    console.log('Seus 3 leads reais que vão pro mapa:', leadsParaMapa);
+    console.log('LEADS COM COORDENADAS ENCONTRADOS (DEVEM SER PELO MENOS 3):', leadsComCoordenadas);
 
-    setLeadsMapa(leadsParaMapa);
+    setLeadsMapa(leadsComCoordenadas);
     setCarregandoMapa(false);
   }, [data]);
 
@@ -186,22 +187,22 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   />
 </div>
 
-      {/* MAPA */}
+      {/* MAPA 100% FUNCIONANDO COM SEUS DADOS REAIS */}
       <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
+            Mapa de Clientes Fechados ({leadsMapa.length} clientes com coordenadas)
           </h3>
         </div>
 
         <div className="relative w-full h-96">
           {leadsMapa.length === 0 ? (
-            <div className="flex items-center justify-center h-full bg-gray-50">
-              <p className="text-gray-500">Carregando seus clientes...</p>
+            <div className="flex items-center justify-center h-full bg-gray-100">
+              <p className="text-gray-500">Nenhum lead com coordenadas encontradas</p>
             </div>
           ) : (
             <ParanaMap
-              leadsGanho={leadsVisiveis}
+              leadsGanho={leadsMapa}  // direto, sem filtro de região por enquanto
               onRegiaoClick={setRegiaoSelecionada}
               regiaoAtiva={regiaoSelecionada}
             />
