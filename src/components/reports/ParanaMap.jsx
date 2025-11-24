@@ -59,21 +59,19 @@ const createClusterIcon = (count) => {
 };
 
 const ParanaMap = ({ leads = [] }) => {
-  // AGRUPA POR CIDADE (não por coordenada!)
+  // AGRUPA POR CIDADE → 1 marcador com soma correta
   const leadsPorCidade = leads.reduce((acc, lead) => {
-    const cidade = (lead.cidade || 'Sem cidade').trim().toLowerCase();
+    const cidade = (lead.cidade || 'Sem cidade').trim() || 'Sem cidade';
     if (!acc[cidade]) {
       acc[cidade] = {
-        cidade: lead.cidade || 'Sem cidade',
+        cidade,
         regiao: lead.regiao || 'Desconhecida',
         lat: parseFloat(lead.lat),
         lng: parseFloat(lead.lng),
-        count: 0,
+        count: 0
       };
     }
     acc[cidade].count += 1;
-
-    // Se já tem coordenadas, mantém as primeiras (ou faz média se quiser mais precisão)
     return acc;
   }, {});
 
@@ -121,7 +119,7 @@ const ParanaMap = ({ leads = [] }) => {
 
         {/* Regiões do Paraná coloridas */}
         <GeoJSON
-          data={REGIOES_PARANA_GEOJSON}
+          data={regioesParana}
           style={regioesStyle}
           onEachFeature={(feature, layer) => {
             if (feature.properties && feature.properties.nome) {
