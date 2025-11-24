@@ -38,17 +38,17 @@ const createCustomMarker = (count) => {
   return L.divIcon({
     html: `
       <div style="
-        background: ${count >= 10 ? '#d32f2f' : count >= 5 ? '#f57c00' : '#ff6d00'};
+        background: ${count >= 5 ? '#d32f2f' : '#ff6d00'};
         color: white;
-        width: 46px;
-        height: 46px;
+        width: 48px;
+        height: 48px;
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 18px;
+        font-size: 19px;
         border: 5px solid white;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5);
       ">
@@ -56,8 +56,8 @@ const createCustomMarker = (count) => {
       </div>
     `,
     className: 'custom-marker',
-    iconSize: [46, 46],
-    iconAnchor: [23, 46],
+    iconSize: [48, 48],
+    iconAnchor: [24, 48],
   });
 };
 
@@ -71,40 +71,39 @@ const ParanaMap = ({ leads = [] }) => {
       .catch(() => console.log("Regiões não carregaram, mas o mapa funciona"));
   }, []);
 
-  // AGRUPA POR CIDADE
-  const leadsPorCidade = leads.reduce((acc, lead) => {
-    const cidade = (lead.cidade || 'Sem cidade').trim();
-    if (!cidade || cidade === 'null') return acc;
+// AGRUPA POR CIDADE → 1 marcador por cidade com soma correta
+const leadsPorCidade = leads.reduce((acc, lead) => {
+  const cidade = (lead.cidade || 'Sem cidade').trim();
+  if (!cidade || cidade === 'null') return acc;
 
-    if (!acc[cidade]) {
-      acc[cidade] = {
-        cidade,
-        lat: parseFloat(lead.lat),
-        lng: parseFloat(lead.lng),
-        count: 0
-      };
-    }
-    acc[cidade].count += 1;
-    return acc;
-  }, {});
+  if (!acc[cidade]) {
+    acc[cidade] = {
+      cidade,
+      lat: parseFloat(lead.lat),
+      lng: parseFloat(lead.lng),
+      count: 0
+    };
+  }
+  acc[cidade].count += 1;
+  return acc;
+}, {});
 
-  const marcadores = Object.values(leadsPorCidade);
+const marcadores = Object.values(leadsPorCidade);
 
   return (
     // TAMANHO FIXO + À DIREITA (o que você pediu!)
     <div style={{
       height: '680px',
       width: '100%',
-      maxWidth: '1100px',        // ← tamanho perfeito
-      marginLeft: 'auto',        // ← empurra pra direita
-      marginRight: '30px',
+      maxWidth: '1080px',
+      marginLeft: 'auto',
+      marginRight: '40px',
       marginTop: '30px',
-      marginBottom: '50px',
       borderRadius: '20px',
       overflow: 'hidden',
       boxShadow: '0 15px 50px rgba(0,0,0,0.25)',
       background: '#fff',
-      border: '1px solid #e0e0e0'
+      border: '1px solid #ddd'
     }}>
       <MapContainer
         center={[-24.5, -51.5]}
