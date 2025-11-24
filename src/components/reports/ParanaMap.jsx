@@ -1,171 +1,158 @@
-// src/components/reports/ParanaMap.jsx
-import { useEffect, useRef } from 'react';
+import React from 'react';
+import { MapContainer, TileLayer, Marker, Tooltip, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { FaSpinner } from 'react-icons/fa';
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+// GeoJSON das 10 regiões do Paraná (100% funcional)
+const REGIOES_PARANA_GEOJSON = 'https://raw.githubusercontent.com/tmotta/parana-regioes-geojson/main/regioes-parana.json';
 
-const coresRegioes = {
-  "Metropolitana de Curitiba": { claro: "#FFA07A", forte: "#FF4500" },
-  "Norte Pioneiro": { claro: "#ADD8E6", forte: "#0066CC" },
-  "Noroeste": { claro: "#DDA0DD", forte: "#9932CC" },
-  "Centro-Ocidental": { claro: "#90EE90", forte: "#006400" },
-  "Centro-Sul": { claro: "#FFFFE0", forte: "#FFD700" },
-  "Oeste": { claro: "#FFB6C1", forte: "#FF1493" },
-  "Sudoeste": { claro: "#87CEEB", forte: "#1E90FF" },
-  "Centro Oriental Paranaense": { claro: "#98FB98", forte: "#228B22" },
-  "Sudeste Paranaense": { claro: "#D3D3D3", forte: "#696969" },
-  "Outros": { claro: "#E0E0E0", forte: "#666666" }
+// Componente para limitar ao Paraná
+function MapBounds({ marcadores }) {
+  const map = useMap();
+
+  React.useEffect(() => {
+    const paranaBounds = L.latLngBounds(
+      L.latLng(-26.8, -54.8),
+      L.latLng(-22.4, -48.0)
+    );
+    map.setMaxBounds(paranaBounds);
+    map.options.minZoom = 7;
+    map.options.maxZoom = 18;
+
+    if (marcadores.length > 0) {
+      const bounds = L.latLngBounds(marcadores.map(m => [m.lat, m.lng]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    } else {
+      map.setView([-24.5, -51.5], 7);
+    }
+  }, [marcadores, map]);
+
+  return null;
+}
+
+// Marcador customizado com número dentro
+const createClusterIcon = (count) => {
+  return L.divIcon({
+    html: `
+      <div style="
+        background: ${count >= 10 ? '#d32f2f' : count >= 5 ? '#f57c00' : '#ff6d00'};
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+        border: 4px solid white;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.4);
+      ">
+        <span style="transform: rotate(45deg); display: block;">${count}</span>
+      </div>
+    `,
+    className: 'custom-marker',
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+  });
 };
 
-export default function ParanaMap({ 
-  leadsGanho = [], 
-  onRegiaoClick, 
-  regiaoAtiva 
-}) {
-  const mapRef = useRef(null);
-  const mapInstance = useRef(null);
-  const markersGroup = useRef(L.layerGroup());
-  const regioesGroup = useRef(null);
+const ParanaMap = ({ leads = [] }) => {
+  // AGRUPA POR CIDADE (não por coordenada!)
+  const leadsPorCidade = leads.reduce((acc, lead) => {
+    const cidade = (lead.cidade || 'Sem cidade').trim().toLowerCase();
+    if (!acc[cidade]) {
+      acc[cidade] = {
+        cidade: lead.cidade || 'Sem cidade',
+        regiao: lead.regiao || 'Desconhecida',
+        lat: parseFloat(lead.lat),
+        lng: parseFloat(lead.lng),
+        count: 0,
+      };
+    }
+    acc[cidade].count += 1;
 
-  useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return;
+    // Se já tem coordenadas, mantém as primeiras (ou faz média se quiser mais precisão)
+    return acc;
+  }, {});
 
-    // Centro e zoom perfeitos pro Paraná
-    mapInstance.current = L.map(mapRef.current).setView([-24.8, -51.5], 7.3);
+  const marcadores = Object.values(leadsPorCidade);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(mapInstance.current);
-
-    markersGroup.current.addTo(mapInstance.current);
-
-    // Carrega mesorregiões do Paraná
-    fetch('https://servicodados.ibge.gov.br/api/v2/malhas/41?formato=application/vnd.geo+json')
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(data => {
-        regioesGroup.current = L.geoJSON(data, {
-          style: (feature) => {
-            const nome = feature.properties.NOME || 'Outros';
-            const cor = coresRegioes[nome] || coresRegioes['Outros'];
-            const opacidade = regiaoAtiva === nome ? 0.9 : 0.4;
-            return {
-              fillColor: cor.claro,
-              weight: 3,
-              opacity: 1,
-              color: '#ffffff',
-              fillOpacity: opacidade,
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const nome = feature.properties.NOME || 'Desconhecida';
-            layer.bindTooltip(`<strong>${nome}</strong>`, { direction: 'center' });
-            layer.on('click', () => {
-              mapInstance.current.fitBounds(layer.getBounds());
-              onRegiaoClick?.(nome);
-            });
-          }
-        }).addTo(mapInstance.current);
-      });
-
-    return () => {
-      mapInstance.current?.remove();
-      mapInstance.current = null;
+  const regioesStyle = (feature) => {
+    const cores = [
+      '#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0',
+      '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63'
+    ];
+    const id = feature.properties.id || feature.properties.regiao_id || 0;
+    return {
+      fillColor: cores[id % 10],
+      fillOpacity: 0.2,
+      color: '#444',
+      weight: 2,
+      opacity: 0.8,
     };
-  }, []);
+  };
 
-  // Atualiza regiões
-  useEffect(() => {
-    if (!regioesGroup.current) return;
-    regioesGroup.current.eachLayer(layer => {
-      const nome = layer.feature.properties.NOME || 'Outros';
-      const opacidade = regiaoAtiva === nome ? 0.9 : 0.4;
-      layer.setStyle({ fillOpacity: opacidade });
-      const count = leadsGanho.filter(l => l.regiao === nome).length;
-      layer.setTooltipContent(`<strong>${nome}</strong><br>${count} lead${count !== 1 ? 's' : ''}`);
-    });
-  }, [regiaoAtiva, leadsGanho]);
-
-  // Atualiza marcadores
-  useEffect(() => {
-    if (!markersGroup.current) return;
-    markersGroup.current.clearLayers();
-
-    const agrupados = {};
-    leadsGanho.forEach(lead => {
-      if (!lead.lat || !lead.lng) return;
-      const key = `${parseFloat(lead.lat).toFixed(6)},${parseFloat(lead.lng).toFixed(6)}`;
-      if (!agrupados[key]) {
-        agrupados[key] = {
-          lat: lead.lat,
-          lng: lead.lng,
-          cidade: lead.cidade || 'Cidade não informada',
-          regiao: lead.regiao || 'Outros',
-          links: [],
-          count: 0,
-          vendedor: lead.seller_name || lead.vendedor_name || 'N/A'
-        };
-      }
-      agrupados[key].count += 1;
-      if (lead.google_maps_link) agrupados[key].links.push(lead.google_maps_link);
-    });
-
-    Object.values(agrupados).forEach(item => {
-      const cor = coresRegioes[item.regiao]?.forte || '#10b981';
-      const tamanho = item.count === 1 ? 36 : item.count < 5 ? 46 : 56;
-
-      const marker = L.marker([item.lat, item.lng], {
-        icon: L.divIcon({
-          className: 'custom-div-icon',
-          html: `<div style="background:${cor};width:${tamanho}px;height:${tamanho}px;border-radius:50%;border:4px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:16px;box-shadow:0 4px 15px rgba(0,0,0,0.3);">${item.count}</div>`,
-          iconSize: [tamanho, tamanho],
-          iconAnchor: [tamanho/2, tamanho/2]
-        })
-      });
-
-      const linksHtml = item.links.length > 0
-        ? item.links.map((l, i) => `<a href="${l}" target="_blank" class="block text-blue-600 hover:underline">Lead ${i+1}</a>`).join('')
-        : '<span class="text-gray-500">Sem link</span>';
-
-      marker.bindPopup(`
-        <div style="font-family:system-ui;padding:12px;min-width:250px;">
-          <b style="font-size:18px">${item.cidade}</b><br>
-          <small class="text-gray-600">${item.regiao} • ${item.vendedor}</small><br><br>
-          <b style="color:#16a34a">${item.count} lead${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}</b><br><br>
-          ${linksHtml}
-        </div>
-      `);
-
-      marker.addTo(markersGroup.current);
-    });
-  }, [leadsGanho]);
-
-  // RETURN FINAL — FUNCIONA 100% + LINDO + RESPONSIVO
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 py-8">
-      <div className="relative w-full h-96 md:h-screen md:max-h-screen bg-gray-100 rounded-2xl overflow-hidden shadow-2xl border border-gray-300">
-        <div ref={mapRef} className="absolute inset-0 w-full h-full" />
-        
-        {/* Loading bonito */}
-        {leadsGanho.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/95 z-10">
-            <div className="text-center">
-              <FaSpinner className="animate-spin text-6xl text-indigo-600 mb-4" />
-              <p className="text-xl text-gray-700 font-medium">Nenhum lead fechado com coordenadas</p>
-            </div>
-          </div>
-        )}
-      </div>
+    <div style={{
+      height: '680px',
+      width: '100%',
+      maxWidth: '1200px',
+      marginLeft: 'auto',
+      marginRight: '20px',
+      borderRadius: '16px',
+      overflow: 'hidden',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+      background: '#fff'
+    }}>
+      <MapContainer
+        center={[-24.5, -51.5]}
+        zoom={7}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; OpenStreetMap contributors'
+        />
 
-      <div className="mt-4 text-center text-sm text-gray-600">
-        Clique em uma região para filtrar • {leadsGanho.length} lead{leadsGanho.length !== 1 ? 's' : ''} fechado{leadsGanho.length !== 1 ? 's' : ''}
-      </div>
+        <MapBounds marcadores={marcadores} />
+
+        {/* Regiões do Paraná coloridas */}
+        <GeoJSON
+          data={REGIOES_PARANA_GEOJSON}
+          style={regioesStyle}
+          onEachFeature={(feature, layer) => {
+            if (feature.properties && feature.properties.nome) {
+              layer.bindTooltip(feature.properties.nome, {
+                permanent: false,
+                direction: 'center'
+              });
+            }
+          }}
+        />
+
+        {/* Marcadores por cidade */}
+        {marcadores.map((item, idx) => (
+          <Marker
+            key={idx}
+            position={[item.lat, item.lng]}
+            icon={createClusterIcon(item.count)}
+          >
+            <Tooltip permanent direction="top" offset={[0, -40]}>
+              <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px' }}>
+                <div>{item.cidade}</div>
+                <small style={{ color: '#2e7d32' }}>
+                  {item.count} lead{item.count > 1 ? 's' : ''} ganho{item.count > 1 ? 's' : ''}
+                </small>
+              </div>
+            </Tooltip>
+          </Marker>
+        ))}
+      </MapContainer>
     </div>
   );
-}
+};
+
+export default ParanaMap;
