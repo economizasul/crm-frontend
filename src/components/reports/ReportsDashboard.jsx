@@ -52,48 +52,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
   // MAPA — VERSÃO 100% SEGURA
   useEffect(() => {
-    setCarregandoMapa(true);
+    const leadsTeste = [
+      { lat: -25.4284, lng: -49.2733, cidade: "Curitiba", regiao: "Metropolitana" },
+      { lat: -23.7000, lng: -51.9333, cidade: "Maringá", regiao: "Noroeste" },
+      { lat: -25.2521, lng: -50.1584, cidade: "Ponta Grossa", regiao: "Campos Gerais" }
+    ];
 
-    // TESTE BRUTO: vamos ver o que essa função realmente retorna
-    buscarLeadsGanhoParaMapa()
-      .then(res => {
-        console.log('RESPOSTA COMPLETA DA API buscarLeadsGanhoParaMapa:', res);
-        console.log('É array?', Array.isArray(res));
-        console.log('Se for objeto, tem .data?', res?.data);
-
-        let leads = [];
-
-        if (Array.isArray(res)) {
-          leads = res;
-        } else if (res?.data && Array.isArray(res.data)) {
-          leads = res.data;
-        } else if (res?.data && Array.isArray(res)) {
-          leads = res;
-        }
-
-        console.log('LEADS QUE CONSEGUIMOS EXTRAIR:', leads);
-
-        const formatados = leads
-          .filter(l => l?.lat && l?.lng)
-          .map(l => ({
-            ...l,
-            lat: parseFloat(l.lat),
-            lng: parseFloat(l.lng),
-            regiao: l.regiao || 'Desconhecida',
-            cidade: l.cidade || 'Sem cidade'
-          }));
-
-        console.log('LEADS PRONTOS PARA O MAPA:', formatados);
-        setLeadsMapa(formatados);
-        setCarregandoMapa(false);
-      })
-      .catch(err => {
-        console.error('ERRO COMPLETO NA CHAMADA:', err);
-        console.error('Status:', err.response?.status);
-        console.error('Dados do erro:', err.response?.data);
-        setLeadsMapa([]);
-        setCarregandoMapa(false);
-      });
+    setLeadsMapa(leadsTeste);
+    setCarregandoMapa(false);
   }, []);
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
