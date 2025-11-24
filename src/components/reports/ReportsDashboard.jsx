@@ -51,18 +51,30 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const filtrosBase = data?.filters || {};
 
   // MAPA — VERSÃO 100% SEGURA
-    useEffect(() => {
+  useEffect(() => {
     setCarregandoMapa(true);
 
+    // TESTE BRUTO: vamos ver o que essa função realmente retorna
     buscarLeadsGanhoParaMapa()
-      .then(response => {
-        // Algumas APIs retornam response.data, outras retornam direto o array
-        const leads = Array.isArray(response) ? response : (response?.data || []);
+      .then(res => {
+        console.log('RESPOSTA COMPLETA DA API buscarLeadsGanhoParaMapa:', res);
+        console.log('É array?', Array.isArray(res));
+        console.log('Se for objeto, tem .data?', res?.data);
 
-        console.log('Leads ganhos carregados do serviço (deve ter 3+):', leads);
+        let leads = [];
 
-        const leadsFormatados = leads
-          .filter(l => l.lat && l.lng)
+        if (Array.isArray(res)) {
+          leads = res;
+        } else if (res?.data && Array.isArray(res.data)) {
+          leads = res.data;
+        } else if (res?.data && Array.isArray(res)) {
+          leads = res;
+        }
+
+        console.log('LEADS QUE CONSEGUIMOS EXTRAIR:', leads);
+
+        const formatados = leads
+          .filter(l => l?.lat && l?.lng)
           .map(l => ({
             ...l,
             lat: parseFloat(l.lat),
@@ -71,15 +83,18 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             cidade: l.cidade || 'Sem cidade'
           }));
 
-        setLeadsMapa(leadsFormatados);
+        console.log('LEADS PRONTOS PARA O MAPA:', formatados);
+        setLeadsMapa(formatados);
         setCarregandoMapa(false);
       })
       .catch(err => {
-        console.error('Erro ao buscar leads para o mapa:', err);
+        console.error('ERRO COMPLETO NA CHAMADA:', err);
+        console.error('Status:', err.response?.status);
+        console.error('Dados do erro:', err.response?.data);
         setLeadsMapa([]);
         setCarregandoMapa(false);
       });
-  }, []); // <-- rodar só uma vez
+  }, []);
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
