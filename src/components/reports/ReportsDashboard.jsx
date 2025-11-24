@@ -52,14 +52,24 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
   // MAPA — VERSÃO 100% SEGURA
   useEffect(() => {
-    const leadsTeste = [
-      { lat: -25.4284, lng: -49.2733, cidade: "Curitiba", regiao: "Metropolitana" },
-      { lat: -23.7000, lng: -51.9333, cidade: "Maringá", regiao: "Noroeste" },
-      { lat: -25.2521, lng: -50.1584, cidade: "Ponta Grossa", regiao: "Campos Gerais" }
-    ];
+    setCarregandoMapa(true);
 
-    setLeadsMapa(leadsTeste);
-    setCarregandoMapa(false);
+    buscarLeadsGanhoParaMapa()
+      .then(res => {
+        const leads = Array.isArray(res) ? res : (res?.data || []);
+        const formatados = leads
+          .filter(l => l.lat && l.lng)
+          .map(l => ({
+            ...l,
+            lat: parseFloat(l.lat),
+            lng: parseFloat(l.lng),
+            regiao: l.regiao || 'Desconhecida',
+            cidade: l.cidade || 'Sem cidade'
+          }));
+        setLeadsMapa(formatados);
+      })
+      .catch(() => setLeadsMapa([]))
+      .finally(() => setCarregandoMapa(false));
   }, []);
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
@@ -174,29 +184,35 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* MAPA 100% FUNCIONANDO COM SEUS DADOS REAIS */}
-       <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+      {/* MAPA DO PARANÁ — FINAL, LINDO E EXATO */}
+      <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
+            Mapa de Leads Fechados ({leadsMapa.length} clientes)
           </h3>
         </div>
 
-        <div className="relative w-full h-96">
-          {carregandoMapa ? (
-            <div className="flex items-center justify-center h-full bg-gray-100">
-              <FaSpinner className="animate-spin text-5xl text-indigo-600" />
-            </div>
-          ) : leadsMapa.length === 0 ? (
-            <div className="flex items-center justify-center h-full bg-gray-100">
-              <p className="text-gray-500">Nenhum cliente com coordenadas</p>
-            </div>
-          ) : (
-            <ParanaMap
-              leadsGanho={leadsVisiveis}
-              onRegiaoClick={setRegiaoSelecionada}
-              regiaoAtiva={regiaoSelecionada}
-            />
-          )}
+        <div className="w-full max-w-5xl mx-auto px-4 py-8">
+          <div className="relative w-full h-0 pb-[60%] rounded-2xl overflow-hidden shadow-xl border border-gray-300">
+            {carregandoMapa ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <FaSpinner className="animate-spin text-5xl text-indigo-600" />
+              </div>
+            ) : leadsMapa.length === 0 ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <p className="text-gray-500 text-lg">Nenhum lead fechado com coordenadas</p>
+              </div>
+            ) : (
+              <ParanaMap
+                leadsGanho={leadsVisiveis}
+                onRegiaoClick={setRegiaoSelecionada}
+                regiaoAtiva={regiaoSelecionada}
+                center={{ lat: -24.8, lng: -51.5 }}
+                zoom={7}
+                className="absolute inset-0 w-full h-full"
+              />
+            )}
+          </div>
         </div>
       </motion.div>
 
