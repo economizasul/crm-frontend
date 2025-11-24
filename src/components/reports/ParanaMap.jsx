@@ -27,26 +27,18 @@ const coresRegioes = {
 export default function ParanaMap({ 
   leadsGanho = [], 
   onRegiaoClick, 
-  regiaoAtiva,
-  center = { lat: -24.8, lng: -51.5 },   // Centro perfeito do Paraná
-  zoom = 7.3                              // Zoom ideal pro estado todo
+  regiaoAtiva 
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersGroup = useRef(L.layerGroup());
   const regioesGroup = useRef(null);
 
-  // 1. CRIA O MAPA UMA ÚNICA VEZ
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
-    mapInstance.current = L.map(mapRef.current, {
-      center: [center.lat, center.lng],
-      zoom: zoom,
-      zoomControl: true,
-      scrollWheelZoom: true,
-      dragging: true,
-    });
+    // Centro e zoom perfeitos pro Paraná
+    mapInstance.current = L.map(mapRef.current).setView([-24.8, -51.5], 7.3);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
@@ -54,16 +46,15 @@ export default function ParanaMap({
 
     markersGroup.current.addTo(mapInstance.current);
 
-    // Carrega as mesorregiões do Paraná
-    const ibgeUrl = 'https://servicodados.ibge.gov.br/api/v2/malhas/41?formato=application/vnd.geo+json';
-    fetch(ibgeUrl)
+    // Carrega mesorregiões do Paraná
+    fetch('https://servicodados.ibge.gov.br/api/v2/malhas/41?formato=application/vnd.geo+json')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         regioesGroup.current = L.geoJSON(data, {
           style: (feature) => {
             const nome = feature.properties.NOME || 'Outros';
             const cor = coresRegioes[nome] || coresRegioes['Outros'];
-            const opacidade = regiaoAtiva === nome ? 0.85 : 0.45;
+            const opacidade = regiaoAtiva === nome ? 0.9 : 0.4;
             return {
               fillColor: cor.claro,
               weight: 3,
@@ -81,34 +72,29 @@ export default function ParanaMap({
             });
           }
         }).addTo(mapInstance.current);
-      })
-      .catch(() => {});
+      });
 
     return () => {
       mapInstance.current?.remove();
       mapInstance.current = null;
     };
-  }, []); // roda só uma vez
+  }, []);
 
-  // 2. Atualiza estilo das regiões e tooltips
+  // Atualiza regiões
   useEffect(() => {
-    if (!mapInstance.current || !regioesGroup.current) return;
-
+    if (!regioesGroup.current) return;
     regioesGroup.current.eachLayer(layer => {
       const nome = layer.feature.properties.NOME || 'Outros';
-      const cor = coresRegioes[nome] || coresRegioes['Outros'];
-      const opacidade = regiaoAtiva === nome ? 0.85 : 0.45;
+      const opacidade = regiaoAtiva === nome ? 0.9 : 0.4;
       layer.setStyle({ fillOpacity: opacidade });
-
       const count = leadsGanho.filter(l => l.regiao === nome).length;
-      layer.setTooltipContent(`<strong>${nome}</strong><br>${count} lead${count !== 1 ? 's' : ''} fechado${count !== 1 ? 's' : ''}`);
+      layer.setTooltipContent(`<strong>${nome}</strong><br>${count} lead${count !== 1 ? 's' : ''}`);
     });
   }, [regiaoAtiva, leadsGanho]);
 
-  // 3. Atualiza apenas os marcadores
+  // Atualiza marcadores
   useEffect(() => {
-    if (!mapInstance.current || !markersGroup.current) return;
-
+    if (!markersGroup.current) return;
     markersGroup.current.clearLayers();
 
     const agrupados = {};
@@ -132,57 +118,52 @@ export default function ParanaMap({
 
     Object.values(agrupados).forEach(item => {
       const cor = coresRegioes[item.regiao]?.forte || '#10b981';
-      const tamanho = item.count === 1 ? 34 : item.count < 5 ? 44 : item.count < 10 ? 52 : 62;
+      const tamanho = item.count === 1 ? 36 : item.count < 5 ? 46 : 56;
 
-      const pin = L.marker([item.lat, item.lng], {
+      const marker = L.marker([item.lat, item.lng], {
         icon: L.divIcon({
-          className: 'custom-pin',
-          html: `<div style="background:${cor};width:${tamanho}px;height:${tamanho}px;border-radius:50%;border:4px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;color:white;box-shadow:0 6px 20px rgba(0,0,0,0.3);text-shadow:1px 1px 3px rgba(0,0,0,0.5);">${item.count}</div>`,
+          className: 'custom-div-icon',
+          html: `<div style="background:${cor};width:${tamanho}px;height:${tamanho}px;border-radius:50%;border:4px solid white;display:flex;align-items:center;justify-content:center;font-weight:bold;color:white;font-size:16px;box-shadow:0 4px 15px rgba(0,0,0,0.3);">${item.count}</div>`,
           iconSize: [tamanho, tamanho],
-          iconAnchor: [tamanho / 2, tamanho / 2]
+          iconAnchor: [tamanho/2, tamanho/2]
         })
       });
 
       const linksHtml = item.links.length > 0
-        ? item.links.map((link, i) => `<a href="${link}" target="_blank" class="block text-blue-600 hover:underline text-sm">Lead ${i + 1}</a>`).join('')
-        : '<i class="text-gray-500">Sem link</i>';
+        ? item.links.map((l, i) => `<a href="${l}" target="_blank" class="block text-blue-600 hover:underline">Lead ${i+1}</a>`).join('')
+        : '<span class="text-gray-500">Sem link</span>';
 
-      pin.bindPopup(`
-        <div style="font-family:system-ui;padding:12px;min-width:260px;">
+      marker.bindPopup(`
+        <div style="font-family:system-ui;padding:12px;min-width:250px;">
           <b style="font-size:18px">${item.cidade}</b><br>
           <small class="text-gray-600">${item.regiao} • ${item.vendedor}</small><br><br>
-          <b style="color:#16a34a;font-size:17px">${item.count} lead${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}</b><br><br>
+          <b style="color:#16a34a">${item.count} lead${item.count > 1 ? 's' : ''} ganho${item.count > 1 ? 's' : ''}</b><br><br>
           ${linksHtml}
         </div>
       `);
 
-      pin.addTo(markersGroup.current);
+      marker.addTo(markersGroup.current);
     });
   }, [leadsGanho]);
 
-  // RETURN FINAL — BONITO, CENTRALIZADO E RESPONSIVO
+  // RETURN FINAL — FUNCIONA 100% + LINDO + RESPONSIVO
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-8">
-      <div className="relative w-full bg-gray-100 rounded-2xl overflow-hidden shadow-2xl border border-gray-300">
-        <div 
-          ref={mapRef} 
-          className="absolute inset-0 w-full h-full"
-          style={{ minHeight: '520px' }}
-        />
-
+      <div className="relative w-full h-96 md:h-screen md:max-h-screen bg-gray-100 rounded-2xl overflow-hidden shadow-2xl border border-gray-300">
+        <div ref={mapRef} className="absolute inset-0 w-full h-full" />
+        
         {/* Loading bonito */}
-        {leadsGanho.length === 0 && !mapInstance.current && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/95 z-10 backdrop-blur-sm">
+        {leadsGanho.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50/95 z-10">
             <div className="text-center">
-              <FaSpinner className="animate-spin text-6xl text-indigo-600 mx-auto mb-6" />
-              <p className="text-xl text-gray-700 font-medium">Carregando mapa do Paraná...</p>
+              <FaSpinner className="animate-spin text-6xl text-indigo-600 mb-4" />
+              <p className="text-xl text-gray-700 font-medium">Nenhum lead fechado com coordenadas</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Legenda discreta */}
-      <div className="mt-6 text-center text-sm text-gray-600 font-medium">
+      <div className="mt-4 text-center text-sm text-gray-600">
         Clique em uma região para filtrar • {leadsGanho.length} lead{leadsGanho.length !== 1 ? 's' : ''} fechado{leadsGanho.length !== 1 ? 's' : ''}
       </div>
     </div>
