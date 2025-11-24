@@ -119,6 +119,21 @@ export default function ReportsDashboard({ data, loading = false, error = null }
     );
   }
 
+  // ================================
+  // DEBUG TEMPORÁRIO — APAGA DEPOIS
+  // ================================
+  console.log('DADOS COMPLETOS QUE CHEGARAM DO BACKEND:', data);
+
+  return (
+    <div className="p-10 bg-red-900 text-white min-h-screen">
+      <h1 className="text-4xl font-bold mb-8">DEBUG – DADOS DO BACKEND</h1>
+      <pre className="bg-black p-6 rounded-lg overflow-auto text-sm">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </div>
+  );
+  // ================================
+
   return (
     <div className="space-y-8 p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
 
