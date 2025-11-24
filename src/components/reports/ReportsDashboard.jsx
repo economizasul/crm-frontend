@@ -51,30 +51,35 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const filtrosBase = data?.filters || {};
 
   // MAPA — VERSÃO 100% SEGURA
-  useEffect(() => {
-    if (!data || !data.leads || !Array.isArray(data.leads)) {
-      setLeadsMapa([]);
-      setCarregandoMapa(false);
-      return;
-    }
+    useEffect(() => {
+    setCarregandoMapa(true);
 
-    // PEGA TODOS OS LEADS QUE TÊM LAT E LNG — IGNORA STATUS POR ENQUANTO
-    const leadsComCoordenadas = data.leads
-      .filter(lead => lead?.lat && lead?.lng)
-      .map(lead => ({
-        ...lead,
-        lat: parseFloat(lead.lat),
-        lng: parseFloat(lead.lng),
-        cidade: lead.cidade || 'Sem cidade',
-        regiao: (lead.regiao || 'Desconhecida').trim(),
-        status: lead.status || 'Desconhecido'
-      }));
+    buscarLeadsGanhoParaMapa()
+      .then(response => {
+        // Algumas APIs retornam response.data, outras retornam direto o array
+        const leads = Array.isArray(response) ? response : (response?.data || []);
 
-    console.log('LEADS COM COORDENADAS ENCONTRADOS (DEVEM SER PELO MENOS 3):', leadsComCoordenadas);
+        console.log('Leads ganhos carregados do serviço (deve ter 3+):', leads);
 
-    setLeadsMapa(leadsComCoordenadas);
-    setCarregandoMapa(false);
-  }, [data]);
+        const leadsFormatados = leads
+          .filter(l => l.lat && l.lng)
+          .map(l => ({
+            ...l,
+            lat: parseFloat(l.lat),
+            lng: parseFloat(l.lng),
+            regiao: l.regiao || 'Desconhecida',
+            cidade: l.cidade || 'Sem cidade'
+          }));
+
+        setLeadsMapa(leadsFormatados);
+        setCarregandoMapa(false);
+      })
+      .catch(err => {
+        console.error('Erro ao buscar leads para o mapa:', err);
+        setLeadsMapa([]);
+        setCarregandoMapa(false);
+      });
+  }, []); // <-- rodar só uma vez
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
@@ -118,21 +123,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
     );
   }
-
-  // ================================
-  // DEBUG TEMPORÁRIO — APAGA DEPOIS
-  // ================================
-  console.log('DADOS COMPLETOS QUE CHEGARAM DO BACKEND:', data);
-
-  return (
-    <div className="p-10 bg-red-900 text-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-8">DEBUG – DADOS DO BACKEND</h1>
-      <pre className="bg-black p-6 rounded-lg overflow-auto text-sm">
-        {JSON.stringify(data, null, 2)}
-      </pre>
-    </div>
-  );
-  // ================================
 
   return (
     <div className="space-y-8 p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -203,21 +193,25 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* MAPA 100% FUNCIONANDO COM SEUS DADOS REAIS */}
-      <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+       <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
           <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Clientes Fechados ({leadsMapa.length} clientes com coordenadas)
+            Mapa de Clientes Fechados ({leadsMapa.length} clientes)
           </h3>
         </div>
 
         <div className="relative w-full h-96">
-          {leadsMapa.length === 0 ? (
+          {carregandoMapa ? (
             <div className="flex items-center justify-center h-full bg-gray-100">
-              <p className="text-gray-500">Nenhum lead com coordenadas encontradas</p>
+              <FaSpinner className="animate-spin text-5xl text-indigo-600" />
+            </div>
+          ) : leadsMapa.length === 0 ? (
+            <div className="flex items-center justify-center h-full bg-gray-100">
+              <p className="text-gray-500">Nenhum cliente com coordenadas</p>
             </div>
           ) : (
             <ParanaMap
-              leadsGanho={leadsMapa}  // direto, sem filtro de região por enquanto
+              leadsGanho={leadsVisiveis}
               onRegiaoClick={setRegiaoSelecionada}
               regiaoAtiva={regiaoSelecionada}
             />
