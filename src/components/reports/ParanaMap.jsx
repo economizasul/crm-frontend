@@ -3,72 +3,75 @@ import { MapContainer, TileLayer, Marker, Tooltip, GeoJSON, useMap } from 'react
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// GeoJSON das 10 regiões do Paraná (100% funcional)
-const REGIOES_PARANA_GEOJSON = 'https://raw.githubusercontent.com/tmotta/parana-regioes-geojson/main/regioes-parana.json';
+// SEU GEOJSON LOCAL (que já funcionava antes)
+import regioesParana from '../../data/regioes-parana.json';
 
-// Componente para limitar ao Paraná
-function MapBounds({ marcadores }) {
+// Corrige o ícone padrão do Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Limita o mapa ao Paraná e evita zoom infinito
+function MapBounds({ leads }) {
   const map = useMap();
-
   React.useEffect(() => {
-    const paranaBounds = L.latLngBounds(
+    const bounds = L.latLngBounds(
       L.latLng(-26.8, -54.8),
       L.latLng(-22.4, -48.0)
     );
-    map.setMaxBounds(paranaBounds);
-    map.options.minZoom = 7;
-    map.options.maxZoom = 18;
+    map.setMaxBounds(bounds);
+    map.setMinZoom(7);
+    map.setMaxZoom(18);
 
-    if (marcadores.length > 0) {
-      const bounds = L.latLngBounds(marcadores.map(m => [m.lat, m.lng]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 });
+    if (leads.length > 0) {
+      const group = L.latLngBounds(leads.map(l => [l.lat, l.lng]));
+      map.fitBounds(group, { padding: [50, 50], maxZoom: 12 });
     } else {
       map.setView([-24.5, -51.5], 7);
     }
-  }, [marcadores, map]);
-
+  }, [leads, map]);
   return null;
 }
 
-// Marcador customizado com número dentro
-const createClusterIcon = (count) => {
+// Marcador com número dentro (o que você já tinha)
+const createCustomMarker = (count) => {
   return L.divIcon({
-    html: `
-      <div style="
-        background: ${count >= 10 ? '#d32f2f' : count >= 5 ? '#f57c00' : '#ff6d00'};
-        color: white;
-        width: 40px;
-        height: 40px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 16px;
-        border: 4px solid white;
-        box-shadow: 0 3px 15px rgba(0,0,0,0.4);
-      ">
-        <span style="transform: rotate(45deg); display: block;">${count}</span>
-      </div>
-    `,
-    className: 'custom-marker',
+    html: `<div style="
+      background: ${count > 5 ? '#d32f2f' : '#ff6d00'};
+      color: white;
+      width: 40px;
+      height: 40px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      border: 4px solid white;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.4);
+    "><span style="transform: rotate(45deg);">${count}</span></div>`,
+    className: '',
     iconSize: [40, 40],
     iconAnchor: [20, 40],
   });
 };
 
 const ParanaMap = ({ leads = [] }) => {
-  // AGRUPA POR CIDADE → 1 marcador com soma correta
+  // AGRUPAMENTO CORRIGIDO: 1 marcador por cidade (não por coordenada)
   const leadsPorCidade = leads.reduce((acc, lead) => {
-    const cidade = (lead.cidade || 'Sem cidade').trim() || 'Sem cidade';
+    const cidade = (lead.cidade || 'Sem cidade').trim();
+    if (!cidade) return acc;
+
     if (!acc[cidade]) {
       acc[cidade] = {
         cidade,
-        regiao: lead.regiao || 'Desconhecida',
         lat: parseFloat(lead.lat),
         lng: parseFloat(lead.lng),
-        count: 0
+        count: 0,
       };
     }
     acc[cidade].count += 1;
@@ -77,28 +80,10 @@ const ParanaMap = ({ leads = [] }) => {
 
   const marcadores = Object.values(leadsPorCidade);
 
-  const regioesStyle = (feature) => {
-    const cores = [
-      '#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0',
-      '#00BCD4', '#FFEB3B', '#795548', '#607D8B', '#E91E63'
-    ];
-    const id = feature.properties.id || feature.properties.regiao_id || 0;
-    return {
-      fillColor: cores[id % 10],
-      fillOpacity: 0.2,
-      color: '#444',
-      weight: 2,
-      opacity: 0.8,
-    };
-  };
-
   return (
     <div style={{
       height: '680px',
       width: '100%',
-      maxWidth: '1200px',
-      marginLeft: 'auto',
-      marginRight: '20px',
       borderRadius: '16px',
       overflow: 'hidden',
       boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
@@ -112,35 +97,34 @@ const ParanaMap = ({ leads = [] }) => {
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap contributors'
+          attribution='&copy; OpenStreetMap'
         />
 
-        <MapBounds marcadores={marcadores} />
+        <MapBounds leads={marcadores} />
 
-        {/* Regiões do Paraná coloridas */}
+        {/* Regiões coloridas — seu arquivo local que já funcionava */}
         <GeoJSON
           data={regioesParana}
-          style={regioesStyle}
-          onEachFeature={(feature, layer) => {
-            if (feature.properties && feature.properties.nome) {
-              layer.bindTooltip(feature.properties.nome, {
-                permanent: false,
-                direction: 'center'
-              });
-            }
-          }}
+          style={(feature) => ({
+            fillColor: ['#4CAF50','#2196F3','#FF9800','#F44336','#9C27B0','#00BCD4','#FFEB3B','#795548','#607D8B','#E91E63']
+              [(feature.properties.id || feature.properties.regiao_id || 0) % 10],
+            fillOpacity: 0.25,
+            color: '#333',
+            weight: 1.5,
+            opacity: 0.8,
+          })}
         />
 
-        {/* Marcadores por cidade */}
-        {marcadores.map((item, idx) => (
+        {/* Marcadores agrupados por cidade */}
+        {marcadores.map((item, i) => (
           <Marker
-            key={idx}
+            key={i}
             position={[item.lat, item.lng]}
-            icon={createClusterIcon(item.count)}
+            icon={createCustomMarker(item.count)}
           >
             <Tooltip permanent direction="top" offset={[0, -40]}>
-              <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px' }}>
-                <div>{item.cidade}</div>
+              <div style={{ textAlign: 'center', fontWeight: 'bold' }}>
+                {item.cidade}<br />
                 <small style={{ color: '#2e7d32' }}>
                   {item.count} lead{item.count > 1 ? 's' : ''} ganho{item.count > 1 ? 's' : ''}
                 </small>
