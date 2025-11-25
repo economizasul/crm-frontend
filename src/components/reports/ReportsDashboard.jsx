@@ -50,26 +50,52 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-  // MAPA — VERSÃO 100% SEGURA
+  // MAPA — FORÇADO E COM LOG OBRIGATÓRIO
   useEffect(() => {
-    setCarregandoMapa(true);
+    console.log('EXECUTANDO BUSCA DE LEADS PARA O MAPA AGORA...');
 
-    buscarLeadsGanhoParaMapa()
-      .then(res => {
-        const leads = Array.isArray(res) ? res : (res?.data || []);
-        const formatados = leads
-          .filter(l => l.lat && l.lng)
-          .map(l => ({
-            ...l,
-            lat: parseFloat(l.lat),
-            lng: parseFloat(l.lng),
-            regiao: l.regiao || 'Desconhecida',
-            cidade: l.cidade || 'Sem cidade'
-          }));
-        setLeadsMapa(formatados);
-      })
-      .catch(() => setLeadsMapa([]))
-      .finally(() => setCarregandoMapa(false));
+    const carregarMapa = async () => {
+      try {
+        setCarregandoMapa(true);
+        console.log('Chamando /api/v1/reports/leads-ganho-mapa...');
+
+        const response = await fetch('https://crm-app-cnf7.onrender.com/api/v1/reports/leads-ganho-mapa', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}` // pega o token do login
+          },
+          body: JSON.stringify({ filters: {} })
+        });
+
+        const json = await response.json();
+        console.log('RESPOSTA COMPLETA DO MAPA:', json);
+
+        if (json.success && Array.isArray(json.data)) {
+          const leadsFiltrados = json.data
+            .filter(l => l.lat && l.lng)
+            .map(l => ({
+              ...l,
+              lat: parseFloat(l.lat),
+              lng: parseFloat(l.lng),
+              regiao: l.regiao || 'Outros',
+              cidade: l.cidade || 'Cidade não informada'
+            }));
+          console.log('LEADS VÁLIDOS PARA O MAPA:', leadsFiltrados);
+          setLeadsMapa(leadsFiltrados);
+        } else {
+          console.log('Nenhum lead retornado ou erro na resposta');
+          setLeadsMapa([]);
+        }
+      } catch (err) {
+        console.error('ERRO FORÇADO NO MAPA:', err);
+        setLeadsMapa([]);
+      } finally {
+        setCarregandoMapa(false);
+      }
+    };
+
+    carregarMapa();
   }, []);
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
