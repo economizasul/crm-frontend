@@ -71,16 +71,21 @@ const ParanaMap = ({ leads = [] }) => {
       .catch(() => console.log("Regiões não carregaram, mas o mapa funciona"));
   }, []);
 
-// AGRUPA POR CIDADE → 1 marcador por cidade com soma correta
+// AGRUPA POR CIDADE E USA A PRIMEIRA COORDENADA VÁLIDA
 const leadsPorCidade = leads.reduce((acc, lead) => {
   const cidade = (lead.cidade || 'Sem cidade').trim();
   if (!cidade || cidade === 'null') return acc;
 
+  // Só aceita coordenadas válidas
+  const lat = parseFloat(lead.lat);
+  const lng = parseFloat(lead.lng);
+  if (isNaN(lat) || isNaN(lng)) return acc;
+
   if (!acc[cidade]) {
     acc[cidade] = {
       cidade,
-      lat: parseFloat(lead.lat),
-      lng: parseFloat(lead.lng),
+      lat,
+      lng,
       count: 0
     };
   }
