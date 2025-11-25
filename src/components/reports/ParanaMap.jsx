@@ -38,24 +38,23 @@ const createCustomMarker = (count) => {
   return L.divIcon({
     html: `
       <div style="
-        background: ${count >= 5 ? '#d32f2f' : '#ff6d00'};
+        background: ${count > 1 ? '#d32f2f' : '#ff6d00'};
         color: white;
         width: 48px;
         height: 48px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 19px;
-        border: 5px solid white;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        font-size: 18px;
+        border: 4px solid white;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
       ">
-        <span style="transform: rotate(45deg);">${count}</span>
+        ${count}
       </div>
     `,
-    className: 'custom-marker',
+    className: '',
     iconSize: [48, 48],
     iconAnchor: [24, 48],
   });
@@ -94,6 +93,8 @@ const leadsPorCidade = leads.reduce((acc, lead) => {
 }, {});
 
 const marcadores = Object.values(leadsPorCidade);
+
+console.log('Marcadores gerados:', marcadores);
 
   return (
     // TAMANHO FIXO + À DIREITA (o que você pediu!)
