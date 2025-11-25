@@ -46,7 +46,7 @@ const statusColor = (status) => {
             return 'bg-green-100 text-green-800';
         case 'Perdido':
             return 'bg-red-100 text-red-800';
-        case 'Desqualificado':
+        case 'Inapto':
             return 'bg-orange-100 text-red-800';            
         // Fallbacks legados
         case 'Fechado':

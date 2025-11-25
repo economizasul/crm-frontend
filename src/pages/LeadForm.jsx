@@ -420,7 +420,7 @@ const handleSubmit = async (e) => {
               <option value="Simulação">Simulação</option>
               <option value="Ganho">Ganho</option>
               <option value="Perdido">Perdido</option>
-              <option value="Desqualificado">Desqualificado</option>
+              <option value="Inapto">Inapto</option>
             </select>
           </div>
           <div><label className="block text-sm font-semibold text-gray-700 mb-2">Origem <span className="text-red-500">*</span></label>
