@@ -13,7 +13,7 @@ const STAGES = {
   'Simulação': 'bg-purple-100 text-purple-800 border-purple-300',
   'Ganho': 'bg-green-100 text-green-800 border-green-300',
   'Perdido': 'bg-red-100 text-red-800 border-red-300',
-  'Desqualificado': 'bg-red-260 text-red-800 border-red-300',
+  'Desqualificado': 'bg-orange-100 text-red-800 border-red-300',
 };
 
 const Toast = ({ message, type, onClose }) => {
