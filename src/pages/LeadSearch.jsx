@@ -33,7 +33,7 @@ const formatNoteDate = (timestamp) => {
 const statusColor = (status) => {
     switch (status) {
         case 'Novo':
-            return 'bg-gray-100 text-gray-800';
+            return 'bg-gray-200 text-gray-700';
         case 'Contato':
             return 'bg-blue-600 text-blue-600';
         case 'Rechame':
