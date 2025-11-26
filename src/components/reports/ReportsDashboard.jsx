@@ -260,7 +260,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Vendas Concluídas */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Vendas Concluídas</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-green-600 text-sm md:text-base">
                 {fmtNumber(productivity.totalWonCount || 0)}
@@ -275,7 +275,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Valor Total de KW Fechado */}
         <tr className="hover:bg-gray-50 bg-green-50 dark:bg-green-900/50">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Total de KW Fechado</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-extrabold text-green-600 text-base md:text-lg">
                 {fmtKw(productivity.totalWonValueKW)}
@@ -290,7 +290,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Taxa de Conversão */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Conversão</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-purple-600 text-sm md:text-base">
                 {fmtPercent(productivity.conversionRate)}
@@ -304,8 +304,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         
         {/* Tempo Médio Fechamento */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-          <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Tempo Médio Fechamento</td>
-          <td className="text-left py-4">
+          <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Fechamento Médio</td>
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-orange-600 text-sm md:text-base">
                 {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
@@ -320,7 +320,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Taxa de Perda */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Perda</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-red-600 text-sm md:text-base">
                 {productivity.totalLeads > 0 
@@ -337,7 +337,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Taxa de Inaptos */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Inaptos</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-gray-600 text-sm md:text-base dark:text-gray-400">
                 {productivity.totalLeads > 0
@@ -354,7 +354,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Atendimentos Realizados */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Atendimentos Realizados</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-teal-600 text-sm md:text-base">
                 {data.globalSummary?.totalNotes || 0}
