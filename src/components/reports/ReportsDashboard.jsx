@@ -210,105 +210,105 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL 50/50 — PROFISSIONAL E LINDO ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ===== LAYOUT FINAL — COMPACTO, ALINHADO E PROFISSIONAL ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5">
+        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE COMPACTO ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
           
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-3 flex-1">
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Leads Ativos</td>
                   <td className="text-center font-bold text-indigo-600 text-lg">
                     {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
                   </td>
-                  <td className="text-right text-gray-500 text-xs">Em atendimento/negociação</td>
+                  <td className="text-right text-gray-500 text-xs">Em atendimento</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Novos Cadastros</td>
                   <td className="text-center font-bold text-blue-600 text-lg">
                     {fmtNumber(productivity.totalLeads)}
                   </td>
-                  <td className="text-right text-gray-500 text-xs">No período selecionado</td>
+                  <td className="text-right text-gray-500 text-xs">No período</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
-                  <td className="py-3 font-medium text-gray-700">Vendas Concluídas (Qtd)</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-3 font-medium text-gray-700">Vendas Concluídas</td>
                   <td className="text-center font-bold text-green-600 text-xl">
                     {fmtNumber(productivity.totalWonCount || 0)}
                   </td>
-                  <td className="text-right text-gray-500 text-xs">Status "Ganho"</td>
+                  <td className="text-right text-gray-500 text-xs">Status Ganho</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition bg-green-50">
-                  <td className="py-3 font-medium text-gray-700">Valor Total de Vendas</td>
+                <tr className="hover:bg-gray-50 bg-green-50">
+                  <td className="py-3 font-medium text-gray-700">Valor Total Vendido</td>
                   <td className="text-center font-extrabold text-green-600 text-2xl">
                     {fmtKw(productivity.totalWonValueKW)}
                   </td>
-                  <td className="text-right text-gray-600 font-medium">kW vendidos</td>
+                  <td className="text-right text-gray-600 font-medium">kW</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Taxa de Conversão</td>
                   <td className="text-center font-bold text-purple-600 text-lg">
                     {fmtPercent(productivity.conversionRate)}
                   </td>
                   <td className="text-right text-gray-500 text-xs">Leads → Vendas</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
-                  <td className="py-3 font-medium text-gray-700">Tempo Médio de Fechamento</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-3 font-medium text-gray-700">Tempo Médio Fechamento</td>
                   <td className="text-center font-bold text-orange-600 text-lg">
                     {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
                   </td>
                   <td className="text-right text-gray-500 text-xs">Cadastro → Ganho</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Taxa de Perda</td>
                   <td className="text-center font-bold text-red-600 text-lg">
                     {productivity.totalLeads > 0 
                       ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
                       : '0,0'}%
                   </td>
-                  <td className="text-right text-gray-500 text-xs">Status "Perdido"</td>
+                  <td className="text-right text-gray-500 text-xs">Status Perdido</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Taxa de Inaptos</td>
                   <td className="text-center font-bold text-gray-600 text-lg">
                     {productivity.totalLeads > 0
                       ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
                       : 0}%
                   </td>
-                  <td className="text-right text-gray-500 text-xs">Sem interesse ou fora do perfil</td>
+                  <td className="text-right text-gray-500 text-xs">Fora do perfil</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition">
+                <tr className="hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">Atendimentos Realizados</td>
                   <td className="text-center font-bold text-teal-600 text-lg">
                     {data.globalSummary?.totalNotes || 0}
                   </td>
-                  <td className="text-right text-gray-500 text-xs">Novas anotações no período</td>
+                  <td className="text-right text-gray-500 text-xs">Novas anotações</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* ===== DIREITA: MAPA GRANDE E LINDO ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center">
+        {/* ===== DIREITA: MAPA GRANDE ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
           
-          <div className="h-96 lg:h-full min-h-96">
+          <div className="flex-1 min-h-96">
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
               </div>
             ) : leadsMapa.length === 0 ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
-                <p className="text-gray-500 text-lg">Nenhum lead fechado com coordenadas</p>
+                <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
               <ParanaMap
@@ -324,10 +324,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* GRÁFICOS ABAIXO DO LAYOUT 50/50 */}
+      {/* ===== GRÁFICOS ABAIXO — AGORA ALINHADOS E SEM ESPAÇO VAZIO ===== */}
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <DailyActivity dailyActivityData={dailyActivity} />
-        <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <DailyActivity dailyActivityData={dailyActivity} />
+        </div>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+        </div>
       </div>
     </div>
   );
