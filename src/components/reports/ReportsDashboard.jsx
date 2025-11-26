@@ -210,157 +210,124 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — 100% FUNCIONAL E CORRIGIDO ===== */}
-      <div className="mt-10 grid grid-cols-1 xl:grid-cols-3 gap-8">
+      {/* ===== LAYOUT FINAL 50/50 — PROFISSIONAL E LINDO ===== */}
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* COLUNA ESQUERDA E CENTRO: RESUMO + GRÁFICOS */}
-        <div className="xl:col-span-2 space-y-8">
-
-          {/* RESUMO DE PRODUTIVIDADE - TABELA PERFEITA */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
-              <h2 className="text-2xl font-bold">Resumo de Produtividade</h2>
-            </div>
-            <div className="p-6">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="font-semibold text-gray-700 py-3">Métrica</th>
-                    <th className="font-semibold text-gray-700 py-3 text-center w-32">Valor</th>
-                    <th className="font-semibold text-gray-700 py-3 text-right">Descrição</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {/* LEADS ATIVOS */}
-                  <tr>
-                    <td className="py-4 font-medium">Leads Ativos</td>
-                    <td className="text-center text-2xl font-bold text-indigo-600">
-                      {fmtNumber(productivity.totalLeads - (productivity.totalWonCount + productivity.totalLostCount))}
-                    </td>
-                    <td className="text-sm text-gray-600">Total de leads em atendimento/negociação (exclui Ganho, Perdido e Inapto)</td>
-                  </tr>
-
-                  {/* NOVOS CADASTROS */}
-                  <tr>
-                    <td className="py-4 font-medium">Novos Cadastros</td>
-                    <td className="text-center text-2xl font-bold text-blue-600">
-                      {fmtNumber(productivity.totalLeads)}
-                    </td>
-                    <td className="text-sm text-gray-600">Quantidade de leads cadastrados no período</td>
-                  </tr>
-
-                  {/* VENDAS CONCLUÍDAS */}
-                  <tr>
-                    <td className="py-4 font-medium">Vendas Concluídas (Qtd)</td>
-                    <td className="text-center text-2xl font-bold text-green-600">
-                      {fmtNumber(productivity.totalWonCount)}
-                    </td>
-                    <td className="text-sm text-gray-600">Número de leads com status "Ganho" no período</td>
-                  </tr>
-
-                  {/* VALOR TOTAL DE VENDAS */}
-                  <tr>
-                    <td className="py-4 font-medium">Valor Total de Vendas (kW)</td>
-                    <td className="text-center text-3xl font-extrabold text-green-600">
-                      {fmtKw(productivity.totalWonValueKW)}
-                    </td>
-                    <td className="text-sm text-gray-600">Soma do avg_consumption dos leads ganhos</td>
-                  </tr>
-
-                  {/* TAXA DE CONVERSÃO */}
-                  <tr>
-                    <td className="py-4 font-medium">Taxa de Conversão</td>
-                    <td className="text-center text-2xl font-bold text-purple-600">
-                      {fmtPercent(productivity.conversionRate)}
-                    </td>
-                    <td className="text-sm text-gray-600">Proporção de leads convertidos em vendas</td>
-                  </tr>
-
-                  {/* TEMPO MÉDIO DE FECHAMENTO */}
-                  <tr>
-                    <td className="py-4 font-medium">Tempo Médio de Fechamento</td>
-                    <td className="text-center text-2xl font-bold text-orange-600">
-                      {productivity.avgClosingTimeDays > 0 
-                        ? Number(productivity.avgClosingTimeDays).toFixed(1).replace('.', ',')
-                        : '0,0'} dias
-                    </td>
-                    <td className="text-sm text-gray-600">Média de dias desde cadastro até fechamento</td>
-                  </tr>
-
-                  {/* TAXA DE PERDA */}
-                  <tr>
-                    <td className="py-4 font-medium">Taxa de Perda</td>
-                    <td className="text-center text-2xl font-bold text-red-600">
-                      {productivity.totalLeads > 0 
-                        ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
-                        : '0,0'}%
-                    </td>
-                    <td className="text-sm text-gray-600">Proporção de leads com status "Perdido"</td>
-                  </tr>
-
-                  {/* TAXA DE LEADS INAPTOS */}
-                  <tr>
-                    <td className="py-4 font-medium">Taxa de Leads Inaptos</td>
-                    <td className="text-center text-2xl font-bold text-gray-600">
-                      {productivity.totalLeads > 0 
-                        ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
-                        : 0}%
-                    </td>
-                    <td className="text-sm text-gray-600">Leads que não se enquadram nos requisitos</td>
-                  </tr>
-
-                  {/* ATENDIMENTOS REALIZADOS (FIXO POR ENQUANTO) */}
-                  <tr>
-                    <td className="py-4 font-medium">Atendimentos Realizados (Qtd)</td>
-                    <td className="text-center text-2xl font-bold text-teal-600">36</td>
-                    <td className="text-sm text-gray-600">Quantidade de novas anotações no período</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5">
+            <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
-
-          {/* GRÁFICOS ABAIXO */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <DailyActivity dailyActivityData={dailyActivity} />
-            <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+          
+          <div className="p-5 space-y-4">
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-gray-100">
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Leads Ativos</td>
+                  <td className="text-center font-bold text-indigo-600 text-lg">
+                    {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Em atendimento/negociação</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Novos Cadastros</td>
+                  <td className="text-center font-bold text-blue-600 text-lg">
+                    {fmtNumber(productivity.totalLeads)}
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">No período selecionado</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Vendas Concluídas (Qtd)</td>
+                  <td className="text-center font-bold text-green-600 text-xl">
+                    {fmtNumber(productivity.totalWonCount || 0)}
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Status "Ganho"</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition bg-green-50">
+                  <td className="py-3 font-medium text-gray-700">Valor Total de Vendas</td>
+                  <td className="text-center font-extrabold text-green-600 text-2xl">
+                    {fmtKw(productivity.totalWonValueKW)}
+                  </td>
+                  <td className="text-right text-gray-600 font-medium">kW vendidos</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Taxa de Conversão</td>
+                  <td className="text-center font-bold text-purple-600 text-lg">
+                    {fmtPercent(productivity.conversionRate)}
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Leads → Vendas</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Tempo Médio de Fechamento</td>
+                  <td className="text-center font-bold text-orange-600 text-lg">
+                    {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Cadastro → Ganho</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Taxa de Perda</td>
+                  <td className="text-center font-bold text-red-600 text-lg">
+                    {productivity.totalLeads > 0 
+                      ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
+                      : '0,0'}%
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Status "Perdido"</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Taxa de Inaptos</td>
+                  <td className="text-center font-bold text-gray-600 text-lg">
+                    {productivity.totalLeads > 0
+                      ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
+                      : 0}%
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Sem interesse ou fora do perfil</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition">
+                  <td className="py-3 font-medium text-gray-700">Atendimentos Realizados</td>
+                  <td className="text-center font-bold text-teal-600 text-lg">
+                    {data.globalSummary?.totalNotes || 0}
+                  </td>
+                  <td className="text-right text-gray-500 text-xs">Novas anotações no período</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
         </div>
 
-        {/* COLUNA DIREITA: MAPA PEQUENO */}
-        <div className="xl:col-span-1">
-          <motion.div 
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-8"
-          >
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center">
-              <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
-              <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
-            </div>
-            <div className="h-96">
-              {carregandoMapa ? (
-                <div className="flex items-center justify-center h-full bg-gray-50">
-                  <FaSpinner className="animate-spin text-5xl text-purple-600" />
-                </div>
-              ) : leadsMapa.length === 0 ? (
-                <div className="flex items-center justify-center h-full bg-gray-50">
-                  <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
-                </div>
-              ) : (
-                <ParanaMap
-                  leadsGanho={leadsVisiveis}
-                  onRegiaoClick={setRegiaoSelecionada}
-                  regiaoAtiva={regiaoSelecionada}
-                  center={{ lat: -24.8, lng: -51.5 }}
-                  zoom={7}
-                  className="w-full h-full"
-                />
-              )}
-            </div>
-          </motion.div>
+        {/* ===== DIREITA: MAPA GRANDE E LINDO ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center">
+            <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
+            <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
+          </div>
+          
+          <div className="h-96 lg:h-full min-h-96">
+            {carregandoMapa ? (
+              <div className="flex items-center justify-center h-full bg-gray-50">
+                <FaSpinner className="animate-spin text-6xl text-purple-600" />
+              </div>
+            ) : leadsMapa.length === 0 ? (
+              <div className="flex items-center justify-center h-full bg-gray-50">
+                <p className="text-gray-500 text-lg">Nenhum lead fechado com coordenadas</p>
+              </div>
+            ) : (
+              <ParanaMap
+                leadsGanho={leadsVisiveis}
+                onRegiaoClick={setRegiaoSelecionada}
+                regiaoAtiva={regiaoSelecionada}
+                center={{ lat: -24.8, lng: -51.5 }}
+                zoom={7}
+                className="w-full h-full"
+              />
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* GRÁFICOS ABAIXO DO LAYOUT 50/50 */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <DailyActivity dailyActivityData={dailyActivity} />
+        <LostReasonsTable lostLeadsAnalysis={lostReasons} />
       </div>
     </div>
   );
