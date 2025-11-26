@@ -37,9 +37,9 @@ const statusColor = (status) => {
         case 'Contato':
             return 'bg-blue-100 text-blue-800';
         case 'Rechame':
-            return 'bg-blue-100 text-blue-800';            
+            return 'bg-blue-600 text-blue-600';            
         case 'Retorno':
-            return 'bg-indigo-100 text-indigo-800';
+            return 'bg-indigo-200 text-indigo-700';
         case 'Conversando':
             return 'bg-yellow-100 text-yellow-800';
         case 'Simulação':
