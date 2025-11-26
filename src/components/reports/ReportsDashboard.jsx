@@ -228,7 +228,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           {/* Título: Usa whitespace-nowrap para não quebrar a linha */}
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Leads Ativos</td>
           {/* Dados + Descrição: Usa flex para alinhar lado a lado */}
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               {/* Número */}
               <span className="font-bold text-indigo-600 text-sm md:text-base">
@@ -245,7 +245,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         {/* Novos Cadastros */}
         <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
           <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Novos Cadastros</td>
-          <td className="text-left py-4">
+          <td className="text-left py-2">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-bold text-blue-600 text-sm md:text-base">
                 {fmtNumber(productivity.totalLeads)}
