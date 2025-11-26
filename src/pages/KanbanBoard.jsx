@@ -6,7 +6,7 @@ import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 
 const STAGES = {
-  'Novo': 'bg-gray-100 text-gray-800 border-gray-300',
+  'Novo': 'bg-gray-200 text-gray-600 border-gray-300',
   'Contato': 'bg-blue-200 text-blue-400 border-blue-300',
   'Rechame': 'bg-blue-100 text-blue-800 border-blue-300',
   'Retorno': 'bg-indigo-200 text-indigo-700 border-indigo-300',
