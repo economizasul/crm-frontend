@@ -209,43 +209,102 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   />
 </div>
 
-      {/* MAPA 100% FUNCIONANDO COM SEUS DADOS REAIS */}
-      {/* MAPA DO PARANÁ — FINAL, LINDO E EXATO */}
-      <motion.div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
-        <div className="p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 border-b">
-          <h3 className="text-2xl font-bold flex items-center gap-3">
-            Mapa de Leads Fechados ({leadsMapa.length} clientes)
-          </h3>
-        </div>
+      {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        <div className="w-full max-w-5xl mx-auto px-4 py-8">
-          <div className="relative w-full h-0 pb-[60%] rounded-2xl overflow-hidden shadow-xl border border-gray-300">
-            {carregandoMapa ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <FaSpinner className="animate-spin text-5xl text-indigo-600" />
+        {/* COLUNA ESQUERDA: GRÁFICOS E RELATÓRIOS */}
+        <div className="lg:col-span-8 space-y-8">
+
+          {/* Cards grandes (como no exemplo que você mandou) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-8 text-white shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-blue-100 text-lg">Total de Leads Ativos</p>
+                  <p className="text-6xl font-extrabold mt-4">{fmtNumber(productivity.totalLeads)}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 p-6 rounded-2xl">
+                  <i className="fas fa-users text-6xl opacity-80"></i>
+                </div>
               </div>
-            ) : leadsMapa.length === 0 ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                <p className="text-gray-500 text-lg">Nenhum lead fechado com coordenadas</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-3xl p-8 text-white shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-green-100 text-lg">KW Vendido no Período</p>
+                  <p className="text-6xl font-extrabold mt-4">{fmtKw(productivity.totalWonValueKW)}</p>
+                </div>
+                <div className="bg-white bg-opacity-20 p-6 rounded-2xl">
+                  <i className="fas fa-bolt text-6xl opacity-80"></i>
+                </div>
               </div>
-            ) : (
-              <ParanaMap
-                leadsGanho={leadsVisiveis}
-                onRegiaoClick={setRegiaoSelecionada}
-                regiaoAtiva={regiaoSelecionada}
-                center={{ lat: -24.8, lng: -51.5 }}
-                zoom={7}
-                className="absolute inset-0 w-full h-full"
-              />
-            )}
+            </div>
           </div>
-        </div>
-      </motion.div>
 
-      {/* GRÁFICOS FINAIS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <DailyActivity dailyActivityData={dailyActivity} />
-        <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+          {/* Cards menores */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
+              <p className="text-gray-500 text-sm">Taxa de Conversão</p>
+              <p className="text-4xl font-bold text-purple-600 mt-2">{fmtPercent(productivity.conversionRate)}</p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
+              <p className="text-gray-500 text-sm">Tempo Médio de Fechamento</p>
+              <p className="text-4xl font-bold text-orange-600 mt-2">
+                {Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
+              <p className="text-gray-500 text-sm">Tempo Médio de Atendimento</p>
+              <p className="text-4xl font-bold text-pink-600 mt-2">
+                {Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h
+              </p>
+            </div>
+          </div>
+
+          {/* Gráficos lado a lado */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <DailyActivity dailyActivityData={dailyActivity} />
+            <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+          </div>
+
+        </div>
+
+        {/* COLUNA DIREITA: MAPA PEQUENO */}
+        <div className="lg:col-span-4">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-6"
+          >
+            <div className="p-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+              <h3 className="text-xl font-bold flex items-center gap-3">
+                Mapa de Leads Fechados ({leadsMapa.length} clientes)
+              </h3>
+            </div>
+
+            <div className="h-96 relative">
+              {carregandoMapa ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <FaSpinner className="animate-spin text-5xl text-purple-600" />
+                </div>
+              ) : leadsMapa.length === 0 ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                  <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
+                </div>
+              ) : (
+                <ParanaMap
+                  leadsGanho={leadsVisiveis}
+                  onRegiaoClick={setRegiaoSelecionada}
+                  regiaoAtiva={regiaoSelecionada}
+                  center={{ lat: -24.8, lng: -51.5 }}
+                  zoom={7}
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </div>
   );
