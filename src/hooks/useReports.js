@@ -80,15 +80,20 @@ function formatDashboardData(raw) {
     'summary.total_leads'
   ]) || sumArrayField(tryPathsAny(raw, ['totalLeadsHistory', 'total_leads_history', 'leads_history']) || [], ['total', 'count', 'value']);
 
-  const totalWonValueKW = tryPathsNumber(raw, [
-    'globalSummary.totalWonValueKW',
-    'totalWonValueKW',
-    'total_won_value_kw',
-    'totalKwHistory.totalKw',
-    'totalKw',
-    'totals.kw',
-    'summary.totalKw'
-  ]) || sumArrayField(tryPathsAny(raw, ['totalKwHistory', 'total_kw_history', 'kw_history']) || [], ['totalKw','kw','value']);
+const totalWonValueKW = tryPathsNumber(raw, [
+  'globalSummary.totalWonValueKW',
+  'globalSummary.total_won_value_kw',
+  'totalWonValueKW',
+  'total_won_value_kw',
+  'totalWonValue',
+  'totalKw',
+  'kw_total',
+  'totals.kw',
+  'summary.totalKw',
+  'summary.total_won_value_kw',
+  'total_kw',
+  'kw'
+]) || sumArrayField(tryPathsAny(raw, ['leads', 'wonLeads', 'ganhos']) || [], ['avg_consumption', 'potencia_kw', 'kw']);
 
   const conversionRate = tryPathsNumber(raw, [
     'globalSummary.conversionRate',
