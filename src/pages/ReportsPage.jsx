@@ -13,8 +13,8 @@ const defaultStart = format(subDays(today, 29), 'yyyy-MM-dd'); // últimos 30 di
 const initialFilters = {
   startDate: defaultStart,
   endDate: defaultEnd,
-  ownerId: 'all',
-  source: 'all'
+  ownerId: null,
+  source: null
 };
 
 const formatPercent = (value) => `${(Number(value ?? 0) * 100).toFixed(1).replace('.', ',')}%`;

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchDashboardMetrics,
+  fetchFilteredReport,
   downloadCsvReport,
   downloadPdfReport,
   fetchAnalyticNotes as fetchAnalyticNotesAPI
@@ -221,7 +222,7 @@ export function useReports(initialFilters = {}) {
     setLoading(true);
     setError(null);
     try {
-      const raw = await fetchDashboardMetrics(currentFilters);
+      const raw = await fetchFilteredReport(currentFilters);
       // Se a API já retornou o formato correto, use direto
       if (!raw) {
         setData(null);

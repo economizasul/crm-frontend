@@ -17,6 +17,28 @@ export const fetchDashboardMetrics = async (filters) => {
   }
 };
 
+// NOVO ENDPOINT PARA RELATÓRIOS FILTRADOS (RESPEITA DATA!)
+export const fetchFilteredReport = async (filters) => {
+  try {
+    // Este é o endpoint correto que respeita startDate e endDate
+    const response = await api.post('/api/v1/reports/data', {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
+      source: filters.source === 'all' ? null : filters.source,
+    });
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || 'Erro na resposta da API');
+    }
+
+    return response.data.data;
+  } catch (error) {
+    console.error('Erro ao carregar relatório filtrado:', error);
+    throw error;
+  }
+};
+
 // ==========================================================
 // NOTAS ANALÍTICAS
 // ==========================================================
