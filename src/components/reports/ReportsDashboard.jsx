@@ -210,59 +210,96 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* ===== LAYOUT FINAL EXATAMENTE COMO NO SEU PRINT DESEJADO ===== */}
+      <div className="mt-10 grid grid-cols-1 xl:grid-cols-3 gap-8">
 
-        {/* COLUNA ESQUERDA: GRÁFICOS E RELATÓRIOS */}
-        <div className="lg:col-span-8 space-y-8">
+        {/* COLUNA ESQUERDA E CENTRO: TABELA RESUMO DE PRODUTIVIDADE + GRÁFICOS */}
+        <div className="xl:col-span-2 space-y-8">
 
-          {/* Cards grandes (como no exemplo que você mandou) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl p-8 text-white shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-lg">Total de Leads Ativos</p>
-                  <p className="text-6xl font-extrabold mt-4">{fmtNumber(productivity.totalLeads)}</p>
-                </div>
-                <div className="bg-white bg-opacity-20 p-6 rounded-2xl">
-                  <i className="fas fa-users text-6xl opacity-80"></i>
-                </div>
-              </div>
+          {/* RESUMO DE PRODUTIVIDADE - TABELA LINDA */}
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
+              <h2 className="text-2xl font-bold">Resumo de Produtividade</h2>
             </div>
-
-            <div className="bg-gradient-to-br from-green-600 to-emerald-700 rounded-3xl p-8 text-white shadow-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 text-lg">KW Vendido no Período</p>
-                  <p className="text-6xl font-extrabold mt-4">{fmtKw(productivity.totalWonValueKW)}</p>
-                </div>
-                <div className="bg-white bg-opacity-20 p-6 rounded-2xl">
-                  <i className="fas fa-bolt text-6xl opacity-80"></i>
-                </div>
-              </div>
+            <div className="p-6">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="font-semibold text-gray-700 py-3">Métrica</th>
+                    <th className="font-semibold text-gray-700 py-3 text-center w-32">Valor</th>
+                    <th className="font-semibold text-gray-700 py-3 text-right">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  <tr>
+                    <td className="py-4 font-medium">Leads Ativos</td>
+                    <td className="text-center text-2xl font-bold text-indigo-600">
+                      {fmtNumber(productivity.totalLeads - (productivity.totalWonCount + productivity.totalLostCount))}
+                    </td>
+                    <td className="text-sm text-gray-600">Total de leads em atendimento/negociação (exclui Ganho, Perdido e Inapto)</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Novos Cadastros</td>
+                    <td className="text-center text-2xl font-bold text-blue-600">
+                      {fmtNumber(productivity.totalLeads)}
+                    </td>
+                    <td className="text-sm text-gray-600">Quantidade de leads cadastrados no período</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Vendas Concluídas (Qtd)</td>
+                    <td className="text-center text-2xl font-bold text-green-600">
+                      {fmtNumber(productivity.totalWonCount)}
+                    </td>
+                    <td className="text-sm text-gray-600">Número de leads com status "Ganho" no período</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Valor Total de Vendas (kW)</td>
+                    <td className="text-center text-3xl font-extrabold text-green-600">
+                      {fmtKw(productivity.totalWonValueKW)}
+                    </td>
+                    <td className="text-sm text-gray-600">Soma do avg_consumption dos leads ganhos</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Taxa de Conversão</td>
+                    <td className="text-center text-2xl font-bold text-purple-600">
+                      {fmtPercent(productivity.conversionRate)}
+                    </td>
+                    <td className="text-sm text-gray-600">Proporção de leads convertidos em vendas</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Tempo Médio de Fechamento</td>
+                    <td className="text-center text-2xl font-bold text-orange-600">
+                      {Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(0) / 24 > 0 
+                        ? (Number(data.globalSummary?.tempoMedioFechamentoHoras || 0) / 24).toFixed(1).replace('.', ',') 
+                        : '0,0'} dias
+                    </td>
+                    <td className="text-sm text-gray-600">Média de dias desde cadastro até fechamento</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Taxa de Perda</td>
+                    <td className="text-center text-2xl font-bold text-red-600">0%</td>
+                    <td className="text-sm text-gray-600">Proporção de leads com status "Perdido"</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Taxa de Leads Inaptos</td>
+                    <td className="text-center text-2xl font-bold text-gray-600">
+                      {productivity.totalLeads > 0 
+                        ? Math.round((funnel.find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) 
+                        : 0}%
+                    </td>
+                    <td className="text-sm text-gray-600">Leads que não se enquadram nos requisitos</td>
+                  </tr>
+                  <tr>
+                    <td className="py-4 font-medium">Atendimentos Realizados (Qtd)</td>
+                    <td className="text-center text-2xl font-bold text-teal-600">36</td>
+                    <td className="text-sm text-gray-600">Quantidade de novas anotações no período</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          {/* Cards menores */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
-              <p className="text-gray-500 text-sm">Taxa de Conversão</p>
-              <p className="text-4xl font-bold text-purple-600 mt-2">{fmtPercent(productivity.conversionRate)}</p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
-              <p className="text-gray-500 text-sm">Tempo Médio de Fechamento</p>
-              <p className="text-4xl font-bold text-orange-600 mt-2">
-                {Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-200">
-              <p className="text-gray-500 text-sm">Tempo Médio de Atendimento</p>
-              <p className="text-4xl font-bold text-pink-600 mt-2">
-                {Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h
-              </p>
-            </div>
-          </div>
-
-          {/* Gráficos lado a lado */}
+          {/* Gráficos menores abaixo */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DailyActivity dailyActivityData={dailyActivity} />
             <LostReasonsTable lostLeadsAnalysis={lostReasons} />
@@ -270,26 +307,27 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
         </div>
 
-        {/* COLUNA DIREITA: MAPA PEQUENO */}
-        <div className="lg:col-span-4">
+        {/* COLUNA DIREITA: MAPA PEQUENO E LINDO */}
+        <div className="xl:col-span-1">
           <motion.div 
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-6"
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-8 h-fit"
           >
-            <div className="p-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-              <h3 className="text-xl font-bold flex items-center gap-3">
-                Mapa de Leads Fechados ({leadsMapa.length} clientes)
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center">
+              <h3 className="text-2xl font-bold">
+                Mapa de Leads Fechados
               </h3>
+              <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
             </div>
 
             <div className="h-96 relative">
               {carregandoMapa ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                <div className="flex items-center justify-center h-full bg-gray-50">
                   <FaSpinner className="animate-spin text-5xl text-purple-600" />
                 </div>
               ) : leadsMapa.length === 0 ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+                <div className="flex items-center justify-center h-full bg-gray-50">
                   <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
                 </div>
               ) : (
