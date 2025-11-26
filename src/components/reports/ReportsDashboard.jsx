@@ -214,85 +214,122 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE COMPACTO ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
-            <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
-          </div>
-          
-          <div className="p-5 space-y-3 flex-1">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100">
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Leads Ativos</td>
-                  <td className="text-center font-bold text-indigo-600 text-lg">
-                    {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Em atendimento</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Novos Cadastros</td>
-                  <td className="text-center font-bold text-blue-600 text-lg">
-                    {fmtNumber(productivity.totalLeads)}
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">No período</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Vendas Concluídas</td>
-                  <td className="text-center font-bold text-green-600 text-xl">
-                    {fmtNumber(productivity.totalWonCount || 0)}
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Status Ganho</td>
-                </tr>
-                <tr className="hover:bg-gray-50 bg-green-50">
-                  <td className="py-3 font-medium text-gray-700">Valor Total Vendido</td>
-                  <td className="text-center font-extrabold text-green-600 text-2xl">
-                    {fmtKw(productivity.totalWonValueKW)}
-                  </td>
-                  <td className="text-right text-gray-600 font-medium">kW</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Taxa de Conversão</td>
-                  <td className="text-center font-bold text-purple-600 text-lg">
-                    {fmtPercent(productivity.conversionRate)}
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Leads → Vendas</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Tempo Médio Fechamento</td>
-                  <td className="text-center font-bold text-orange-600 text-lg">
-                    {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Cadastro → Ganho</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Taxa de Perda</td>
-                  <td className="text-center font-bold text-red-600 text-lg">
-                    {productivity.totalLeads > 0 
-                      ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
-                      : '0,0'}%
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Status Perdido</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Taxa de Inaptos</td>
-                  <td className="text-center font-bold text-gray-600 text-lg">
-                    {productivity.totalLeads > 0
-                      ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
-                      : 0}%
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Fora do perfil</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-700">Atendimentos Realizados</td>
-                  <td className="text-center font-bold text-teal-600 text-lg">
-                    {data.globalSummary?.totalNotes || 0}
-                  </td>
-                  <td className="text-right text-gray-500 text-xs">Novas anotações</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+<div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col dark:bg-gray-800 dark:border-gray-700">
+  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
+    <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
+  </div>
+  
+  <div className="p-5 space-y-3 flex-1">
+    <table className="w-full text-sm">
+      <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+        
+        {/* Leads Ativos */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Leads Ativos</td>
+          {/* Combinamos a célula de número e descrição aqui */}
+          <td className="text-left py-3">
+            <div className="font-bold text-indigo-600 text-sm md:text-base">
+              {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Em atendimento</div>
+          </td>
+        </tr>
+        
+        {/* Novos Cadastros */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Novos Cadastros</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-blue-600 text-sm md:text-base">
+              {fmtNumber(productivity.totalLeads)}
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">No período</div>
+          </td>
+        </tr>
+        
+        {/* Vendas Concluídas */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Vendas Concluídas</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-green-600 text-sm md:text-base">
+              {fmtNumber(productivity.totalWonCount || 0)}
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Status Ganho</div>
+          </td>
+        </tr>
+        
+        {/* Valor Total Vendido */}
+        <tr className="hover:bg-gray-50 bg-green-50 dark:bg-green-900/50">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Valor Total Vendido</td>
+          <td className="text-left py-3">
+            <div className="font-extrabold text-green-600 text-base md:text-lg">
+              {fmtKw(productivity.totalWonValueKW)}
+            </div>
+            <div className="text-gray-600 text-xs mt-0.5 font-medium whitespace-normal">kW</div>
+          </td>
+        </tr>
+        
+        {/* Taxa de Conversão */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Taxa de Conversão</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-purple-600 text-sm md:text-base">
+              {fmtPercent(productivity.conversionRate)}
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Leads → Vendas</div>
+          </td>
+        </tr>
+        
+        {/* Tempo Médio Fechamento */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Tempo Médio Fechamento</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-orange-600 text-sm md:text-base">
+              {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Cadastro → Ganho</div>
+          </td>
+        </tr>
+        
+        {/* Taxa de Perda */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Taxa de Perda</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-red-600 text-sm md:text-base">
+              {productivity.totalLeads > 0 
+                ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
+                : '0,0'}%
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Status Perdido</div>
+          </td>
+        </tr>
+        
+        {/* Taxa de Inaptos */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Taxa de Inaptos</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-gray-600 text-sm md:text-base dark:text-gray-400">
+              {productivity.totalLeads > 0
+                ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
+                : 0}%
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Fora do perfil</div>
+          </td>
+        </tr>
+        
+        {/* Atendimentos Realizados */}
+        <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
+          <td className="py-3 font-medium text-gray-700 dark:text-gray-300">Atendimentos Realizados</td>
+          <td className="text-left py-3">
+            <div className="font-bold text-teal-600 text-sm md:text-base">
+              {data.globalSummary?.totalNotes || 0}
+            </div>
+            <div className="text-gray-500 text-xs mt-0.5 whitespace-normal">Novas anotações</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
         {/* ===== DIREITA: MAPA GRANDE ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
