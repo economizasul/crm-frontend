@@ -274,7 +274,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         
         {/* Valor Total de KW Fechado */}
         <tr className="hover:bg-gray-50 bg-green-50 dark:bg-green-900/50">
-          <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Valor Total de KW Fechado</td>
+          <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Total de KW Fechado</td>
           <td className="text-left py-4">
             <div className="flex flex-wrap items-baseline gap-1">
               <span className="font-extrabold text-green-600 text-base md:text-lg">
