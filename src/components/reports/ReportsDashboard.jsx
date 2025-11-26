@@ -210,13 +210,13 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL EXATAMENTE COMO NO SEU PRINT DESEJADO ===== */}
+      {/* ===== LAYOUT FINAL — 100% FUNCIONAL E CORRIGIDO ===== */}
       <div className="mt-10 grid grid-cols-1 xl:grid-cols-3 gap-8">
 
-        {/* COLUNA ESQUERDA E CENTRO: TABELA RESUMO DE PRODUTIVIDADE + GRÁFICOS */}
+        {/* COLUNA ESQUERDA E CENTRO: RESUMO + GRÁFICOS */}
         <div className="xl:col-span-2 space-y-8">
 
-          {/* RESUMO DE PRODUTIVIDADE - TABELA LINDA */}
+          {/* RESUMO DE PRODUTIVIDADE - TABELA PERFEITA */}
           <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
               <h2 className="text-2xl font-bold">Resumo de Produtividade</h2>
@@ -231,6 +231,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
+                  {/* LEADS ATIVOS */}
                   <tr>
                     <td className="py-4 font-medium">Leads Ativos</td>
                     <td className="text-center text-2xl font-bold text-indigo-600">
@@ -238,6 +239,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </td>
                     <td className="text-sm text-gray-600">Total de leads em atendimento/negociação (exclui Ganho, Perdido e Inapto)</td>
                   </tr>
+
+                  {/* NOVOS CADASTROS */}
                   <tr>
                     <td className="py-4 font-medium">Novos Cadastros</td>
                     <td className="text-center text-2xl font-bold text-blue-600">
@@ -245,6 +248,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </td>
                     <td className="text-sm text-gray-600">Quantidade de leads cadastrados no período</td>
                   </tr>
+
+                  {/* VENDAS CONCLUÍDAS */}
                   <tr>
                     <td className="py-4 font-medium">Vendas Concluídas (Qtd)</td>
                     <td className="text-center text-2xl font-bold text-green-600">
@@ -252,6 +257,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </td>
                     <td className="text-sm text-gray-600">Número de leads com status "Ganho" no período</td>
                   </tr>
+
+                  {/* VALOR TOTAL DE VENDAS */}
                   <tr>
                     <td className="py-4 font-medium">Valor Total de Vendas (kW)</td>
                     <td className="text-center text-3xl font-extrabold text-green-600">
@@ -259,6 +266,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </td>
                     <td className="text-sm text-gray-600">Soma do avg_consumption dos leads ganhos</td>
                   </tr>
+
+                  {/* TAXA DE CONVERSÃO */}
                   <tr>
                     <td className="py-4 font-medium">Taxa de Conversão</td>
                     <td className="text-center text-2xl font-bold text-purple-600">
@@ -266,29 +275,41 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </td>
                     <td className="text-sm text-gray-600">Proporção de leads convertidos em vendas</td>
                   </tr>
+
+                  {/* TEMPO MÉDIO DE FECHAMENTO */}
                   <tr>
                     <td className="py-4 font-medium">Tempo Médio de Fechamento</td>
                     <td className="text-center text-2xl font-bold text-orange-600">
-                      {Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(0) / 24 > 0 
-                        ? (Number(data.globalSummary?.tempoMedioFechamentoHoras || 0) / 24).toFixed(1).replace('.', ',') 
+                      {productivity.avgClosingTimeDays > 0 
+                        ? Number(productivity.avgClosingTimeDays).toFixed(1).replace('.', ',')
                         : '0,0'} dias
                     </td>
                     <td className="text-sm text-gray-600">Média de dias desde cadastro até fechamento</td>
                   </tr>
+
+                  {/* TAXA DE PERDA */}
                   <tr>
                     <td className="py-4 font-medium">Taxa de Perda</td>
-                    <td className="text-center text-2xl font-bold text-red-600">0%</td>
+                    <td className="text-center text-2xl font-bold text-red-600">
+                      {productivity.totalLeads > 0 
+                        ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
+                        : '0,0'}%
+                    </td>
                     <td className="text-sm text-gray-600">Proporção de leads com status "Perdido"</td>
                   </tr>
+
+                  {/* TAXA DE LEADS INAPTOS */}
                   <tr>
                     <td className="py-4 font-medium">Taxa de Leads Inaptos</td>
                     <td className="text-center text-2xl font-bold text-gray-600">
                       {productivity.totalLeads > 0 
-                        ? Math.round((funnel.find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) 
+                        ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
                         : 0}%
                     </td>
                     <td className="text-sm text-gray-600">Leads que não se enquadram nos requisitos</td>
                   </tr>
+
+                  {/* ATENDIMENTOS REALIZADOS (FIXO POR ENQUANTO) */}
                   <tr>
                     <td className="py-4 font-medium">Atendimentos Realizados (Qtd)</td>
                     <td className="text-center text-2xl font-bold text-teal-600">36</td>
@@ -299,7 +320,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             </div>
           </div>
 
-          {/* Gráficos menores abaixo */}
+          {/* GRÁFICOS ABAIXO */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DailyActivity dailyActivityData={dailyActivity} />
             <LostReasonsTable lostLeadsAnalysis={lostReasons} />
@@ -307,21 +328,18 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
         </div>
 
-        {/* COLUNA DIREITA: MAPA PEQUENO E LINDO */}
+        {/* COLUNA DIREITA: MAPA PEQUENO */}
         <div className="xl:col-span-1">
           <motion.div 
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-8 h-fit"
+            className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 sticky top-8"
           >
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center">
-              <h3 className="text-2xl font-bold">
-                Mapa de Leads Fechados
-              </h3>
+              <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
               <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
             </div>
-
-            <div className="h-96 relative">
+            <div className="h-96">
               {carregandoMapa ? (
                 <div className="flex items-center justify-center h-full bg-gray-50">
                   <FaSpinner className="animate-spin text-5xl text-purple-600" />
