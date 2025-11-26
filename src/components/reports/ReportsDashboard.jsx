@@ -210,154 +210,123 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — RESPEITANDO 100% SEUS AJUSTES + NOVO FUNIL DE ORIGEM ===== */}
+      {/* ===== LAYOUT FINAL — RESUMO COMPACTO (TERMINA NA ÚLTIMA LINHA) + MAPA GRANDE ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE — EXATAMENTE COMO VOCÊ FEZ ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col dark:bg-gray-800 dark:border-gray-700">
+        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE — ALTURA CONTROLADA PELO CONTEÚDO ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
           
-          <div className="p-5 space-y-3 flex-1">
+          <div className="p-5">
             <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                
+              <tbody className="divide-y divide-gray-100">
                 {/* Leads Ativos */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Leads Ativos</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-indigo-600 text-sm md:text-base">
                         {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
                       </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Quantidade de leads em atendimento/negociação
-                      </span>
+                      <span className="text-gray-500 text-xs">Quantidade de leads em atendimento/negociação</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Novos Cadastros */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Novos Cadastros</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      <span className="font-bold text-blue-600 text-sm md:text-base">
-                        {fmtNumber(productivity.totalLeads)}
-                      </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Quantidade de leads cadastrados no período
-                      </span>
+                      <span className="font-bold text-blue-600 text-sm md:text-base">{fmtNumber(productivity.totalLeads)}</span>
+                      <span className="text-gray-500 text-xs">Quantidade de leads cadastrados no período</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Vendas Concluídas */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Vendas Concluídas</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      <span className="font-bold text-green-600 text-sm md:text-base">
-                        {fmtNumber(productivity.totalWonCount || 0)}
-                      </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Número de leads na coluna Ganho (no período selecionado)
-                      </span>
+                      <span className="font-bold text-green-600 text-sm md:text-base">{fmtNumber(productivity.totalWonCount || 0)}</span>
+                      <span className="text-gray-500 text-xs">Número de leads na coluna Ganho</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Total de KW Fechado */}
-                <tr className="hover:bg-gray-50 bg-green-50 dark:bg-green-900/50">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Total de KW Fechado</td>
+                <tr className="hover:bg-gray-50 bg-green-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de KW Fechado</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      <span className="font-extrabold text-green-600 text-base md:text-lg">
-                        {fmtKw(productivity.totalWonValueKW)}
-                      </span>
-                      <span className="text-gray-600 text-xs font-medium whitespace-normal">
-                        Valor total em KW fechados no período.
-                      </span>
+                      <span className="font-extrabold text-green-600 text-base md:text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
+                      <span className="text-gray-600 text-xs font-medium">Valor total em KW fechados no período</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Taxa de Conversão */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Conversão</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      <span className="font-bold text-purple-600 text-sm md:text-base">
-                        {fmtPercent(productivity.conversionRate)}
-                      </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Proporção de leads fechados no período vs quantidade atendida.
-                      </span>
+                      <span className="font-bold text-purple-600 text-sm md:text-base">{fmtPercent(productivity.conversionRate)}</span>
+                      <span className="text-gray-500 text-xs">Proporção de leads fechados</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Fechamento Médio */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Fechamento Médio</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-orange-600 text-sm md:text-base">
                         {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
                       </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Média de dias desde o cadastro do lead até o fechamento.
-                      </span>
+                      <span className="text-gray-500 text-xs">Média de dias até o fechamento</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Taxa de Perda */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Perda</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-red-600 text-sm md:text-base">
-                        {productivity.totalLeads > 0 
-                          ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',')
-                          : '0,0'}%
+                        {productivity.totalLeads > 0 ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',') : '0,0'}%
                       </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Proporção de leads perdidos no período.
-                      </span>
+                      <span className="text-gray-500 text-xs">Proporção de leads perdidos</span>
                     </div>
                   </td>
                 </tr>
 
                 {/* Taxa de Inaptos */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Inaptos</td>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      <span className="font-bold text-gray-600 text-sm md:text-base dark:text-gray-400">
-                        {productivity.totalLeads > 0
-                          ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100)
-                          : 0}%
+                      <span className="font-bold text-gray-600 text-sm md:text-base">
+                        {productivity.totalLeads > 0 ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) : 0}%
                       </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Proporção de leads que não se enquadram no consumo mínimo em KW.
-                      </span>
+                      <span className="text-gray-500 text-xs">Fora do perfil</span>
                     </div>
                   </td>
                 </tr>
 
-                {/* Atendimentos Realizados */}
-                <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Atendimentos Realizados</td>
+                {/* Atendimentos Realizados — ÚLTIMA LINHA */}
+                <tr className="hover:bg-gray-50">
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-teal-600 text-sm md:text-base">
                         {data.globalSummary?.totalNotes || 0}
                       </span>
-                      <span className="text-gray-500 text-xs whitespace-normal">
-                        Contabiliza pela quantidade de novas anotações feitas no período.
-                      </span>
+                      <span className="text-gray-500 text-xs">Novas anotações no período</span>
                     </div>
                   </td>
                 </tr>
@@ -366,19 +335,19 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== DIREITA: MAPA DE LEADS FECHADOS ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+        {/* ===== DIREITA: MAPA GRANDE E BONITO ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col h-full min-h-96">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
-          <div className="flex-1 min-h-96">
+          <div className="flex-1">
             {carregandoMapa ? (
-              <div className="flex items-center justify-center h-full bg-gray-50">
+              <div className="flex items-center justify-center h-96 bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
               </div>
             ) : leadsMapa.length === 0 ? (
-              <div className="flex items-center justify-center h-full bg-gray-50">
+              <div className="flex items-center justify-center h-96 bg-gray-50">
                 <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
@@ -397,8 +366,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* ===== ABAIXO: ORIGEM DO LEAD + MOTIVOS DE PERDA ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* NOVO: ORIGEM DO LEAD — FUNIL LINDO */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-gray-800 mb-6">Origem do Lead</h3>
           <div className="space-y-4">
@@ -428,7 +395,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* MOTIVOS DE PERDA — MANTIDO 100% */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <LostReasonsTable lostLeadsAnalysis={lostReasons} />
         </div>
