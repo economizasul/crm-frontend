@@ -6,7 +6,7 @@ import api from './api';
 // ==========================================================
 export const fetchDashboardMetrics = async (filters) => {
   try {
-    const response = await api.post('/reports/data', { filters });
+    const response = await api.post('/reports/data', filters);
     if (!response.data || !response.data.success) {
       throw new Error(response.data?.message || 'Resposta de API de relatórios falhou.');
     }
@@ -21,7 +21,7 @@ export const fetchDashboardMetrics = async (filters) => {
 export const fetchFilteredReport = async (filters) => {
   try {
     // Este é o endpoint correto que respeita startDate e endDate
-    const response = await api.post('/api/v1/reports/data', {
+    const response = await api.post('/reports/data', {
       startDate: filters.startDate,
       endDate: filters.endDate,
       ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
@@ -104,7 +104,7 @@ const extrairCoordenadasDoLinkGoogleMaps = async (link) => {
 
 export const buscarLeadsGanhoParaMapa = async (filters = {}) => {
   try {
-    const response = await api.post('reports/leads-ganho-mapa', { filters });
+    const response = await api.post('/reports/leads-ganho-mapa', { filters });
     if (!response.data?.success) throw new Error('Erro na API de mapa');
 
     const leads = response.data.data || [];

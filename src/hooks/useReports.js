@@ -222,7 +222,7 @@ export function useReports(initialFilters = {}) {
     setLoading(true);
     setError(null);
     try {
-      const raw = await fetchFilteredReport(currentFilters);
+      const raw = await fetchDashboardMetrics(filters);
       // Se a API já retornou o formato correto, use direto
       if (!raw) {
         setData(null);
