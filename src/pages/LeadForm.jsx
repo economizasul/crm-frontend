@@ -415,6 +415,7 @@ const handleSubmit = async (e) => {
             <select name="status" value={formData.status} onChange={handleChange} className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500">
               <option value="Novo">Novo</option>
               <option value="Contato">Contato</option>
+              <option value="Rechame">Rechame</option>
               <option value="Retorno">Retorno</option>
               <option value="Conversando">Conversando</option>
               <option value="Simulação">Simulação</option>
