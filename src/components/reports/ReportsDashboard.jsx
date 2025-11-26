@@ -210,10 +210,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — COMPACTO, ALINHADO E PROFISSIONAL ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ===== LAYOUT FINAL — RESPEITANDO 100% SEUS AJUSTES + NOVO FUNIL DE ORIGEM ===== */}
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE COMPACTO ===== */}
+        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE — EXATAMENTE COMO VOCÊ FEZ ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col dark:bg-gray-800 dark:border-gray-700">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
@@ -225,23 +225,19 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 
                 {/* Leads Ativos */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  {/* Título: Usa whitespace-nowrap para não quebrar a linha */}
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Leads Ativos</td>
-                  {/* Dados + Descrição: Usa flex para alinhar lado a lado */}
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
-                      {/* Número */}
                       <span className="font-bold text-indigo-600 text-sm md:text-base">
                         {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
                       </span>
-                      {/* Descrição: Vem depois do número, com quebra de linha permitida */}
                       <span className="text-gray-500 text-xs whitespace-normal">
-                        Quantidade de leads cadastrados no período
+                        Quantidade de leads em atendimento/negociação
                       </span>
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Novos Cadastros */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Novos Cadastros</td>
@@ -256,7 +252,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Vendas Concluídas */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Vendas Concluídas</td>
@@ -271,8 +267,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
-                {/* Valor Total de KW Fechado */}
+
+                {/* Total de KW Fechado */}
                 <tr className="hover:bg-gray-50 bg-green-50 dark:bg-green-900/50">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Total de KW Fechado</td>
                   <td className="text-left py-2">
@@ -286,7 +282,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Taxa de Conversão */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Conversão</td>
@@ -301,8 +297,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
-                {/* Tempo Médio Fechamento */}
+
+                {/* Fechamento Médio */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Fechamento Médio</td>
                   <td className="text-left py-2">
@@ -316,7 +312,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Taxa de Perda */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Perda</td>
@@ -333,7 +329,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Taxa de Inaptos */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Taxa de Inaptos</td>
@@ -350,7 +346,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Atendimentos Realizados */}
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="py-4 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Atendimentos Realizados</td>
@@ -370,13 +366,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== DIREITA: MAPA GRANDE ===== */}
+        {/* ===== DIREITA: MAPA DE LEADS FECHADOS ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
-          
           <div className="flex-1 min-h-96">
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
@@ -400,11 +395,40 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* ===== GRÁFICOS ABAIXO — AGORA ALINHADOS E SEM ESPAÇO VAZIO ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ===== ABAIXO: ORIGEM DO LEAD + MOTIVOS DE PERDA ===== */}
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* NOVO: ORIGEM DO LEAD — FUNIL LINDO */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-          <DailyActivity dailyActivityData={dailyActivity} />
+          <h3 className="text-xl font-bold text-gray-800 mb-6">Origem do Lead</h3>
+          <div className="space-y-4">
+            {[
+              { origem: 'Orgânico', field: 'organico', color: 'bg-gray-600' },
+              { origem: 'Indicação', field: 'indicacao', color: 'bg-blue-600' },
+              { origem: 'Facebook', field: 'facebook', color: 'bg-indigo-600' },
+              { origem: 'Google', field: 'google', color: 'bg-red-600' },
+              { origem: 'Instagram', field: 'instagram', color: 'bg-pink-600' },
+              { origem: 'Parceria', field: 'parceria', color: 'bg-green-600' },
+            ].map((item) => {
+              const count = data.originStats?.[item.field] || 0;
+              const percent = productivity.totalLeads > 0 ? (count / productivity.totalLeads) * 100 : 0;
+              return (
+                <div key={item.origem} className="flex items-center justify-between group hover:bg-gray-50 p-4 rounded-xl transition">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-5 h-14 rounded-full ${item.color}`} />
+                    <span className="font-semibold text-gray-700 text-lg">{item.origem}</span>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-gray-800">{count}</div>
+                    <div className="text-sm text-gray-500">{percent.toFixed(1)}%</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* MOTIVOS DE PERDA — MANTIDO 100% */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <LostReasonsTable lostLeadsAnalysis={lostReasons} />
         </div>
