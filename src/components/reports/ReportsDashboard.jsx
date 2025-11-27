@@ -210,19 +210,17 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — RESUMO COMPACTO (TERMINA NA ÚLTIMA LINHA) + MAPA GRANDE ===== */}
+      {/* ===== LAYOUT FINAL PERFEITO — RESUMO COMPACTO + FUNIL REAL + MAPA ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE — ALTURA CONTROLADA PELO CONTEÚDO ===== */}
+        {/* ===== ESQUERDA: RESUMO DE PRODUTIVIDADE — TERMINA NA ÚLTIMA LINHA ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
-          
           <div className="p-5">
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
-                {/* Leads Ativos */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos</td>
                   <td className="text-left py-2">
@@ -230,56 +228,46 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-indigo-600 text-sm md:text-base">
                         {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
                       </span>
-                      <span className="text-gray-500 text-xs">Quantidade de leads em atendimento/negociação</span>
+                      <span className="text-gray-500 text-xs">em atendimento/negociação</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Novos Cadastros */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-blue-600 text-sm md:text-base">{fmtNumber(productivity.totalLeads)}</span>
-                      <span className="text-gray-500 text-xs">Quantidade de leads cadastrados no período</span>
+                      <span className="text-gray-500 text-xs">no período</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Vendas Concluídas */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-green-600 text-sm md:text-base">{fmtNumber(productivity.totalWonCount || 0)}</span>
-                      <span className="text-gray-500 text-xs">Número de leads na coluna Ganho</span>
+                      <span className="text-gray-500 text-xs">status Ganho</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Total de KW Fechado */}
                 <tr className="hover:bg-gray-50 bg-green-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de KW Fechado</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-extrabold text-green-600 text-base md:text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
-                      <span className="text-gray-600 text-xs font-medium">Valor total em KW fechados no período</span>
+                      <span className="text-gray-600 text-xs font-medium">kW vendidos</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Taxa de Conversão */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-1">
                       <span className="font-bold text-purple-600 text-sm md:text-base">{fmtPercent(productivity.conversionRate)}</span>
-                      <span className="text-gray-500 text-xs">Proporção de leads fechados</span>
+                      <span className="text-gray-500 text-xs">leads → vendas</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Fechamento Médio */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio</td>
                   <td className="text-left py-2">
@@ -287,12 +275,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-orange-600 text-sm md:text-base">
                         {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
                       </span>
-                      <span className="text-gray-500 text-xs">Média de dias até o fechamento</span>
+                      <span className="text-gray-500 text-xs">cadastro → ganho</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Taxa de Perda */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda</td>
                   <td className="text-left py-2">
@@ -300,12 +286,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-red-600 text-sm md:text-base">
                         {productivity.totalLeads > 0 ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',') : '0,0'}%
                       </span>
-                      <span className="text-gray-500 text-xs">Proporção de leads perdidos</span>
+                      <span className="text-gray-500 text-xs">status Perdido</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Taxa de Inaptos */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos</td>
                   <td className="text-left py-2">
@@ -313,12 +297,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-gray-600 text-sm md:text-base">
                         {productivity.totalLeads > 0 ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) : 0}%
                       </span>
-                      <span className="text-gray-500 text-xs">Fora do perfil</span>
+                      <span className="text-gray-500 text-xs">fora do perfil</span>
                     </div>
                   </td>
                 </tr>
-
-                {/* Atendimentos Realizados — ÚLTIMA LINHA */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
                   <td className="text-left py-2">
@@ -326,7 +308,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-teal-600 text-sm md:text-base">
                         {data.globalSummary?.totalNotes || 0}
                       </span>
-                      <span className="text-gray-500 text-xs">Novas anotações no período</span>
+                      <span className="text-gray-500 text-xs">novas anotações</span>
                     </div>
                   </td>
                 </tr>
@@ -335,20 +317,20 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== DIREITA: MAPA GRANDE E BONITO ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col h-full min-h-96">
+        {/* ===== DIREITA: MAPA GRANDE ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-h-96">
             {carregandoMapa ? (
-              <div className="flex items-center justify-center h-96 bg-gray-50">
+              <div className="flex h-96 items-center justify-center bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
               </div>
             ) : leadsMapa.length === 0 ? (
-              <div className="flex items-center justify-center h-96 bg-gray-50">
-                <p className="text-gray-500 text-lg">Nenhum cliente com coordenadas</p>
+              <div className="flex h-96 items-center justify-center bg-gray-50">
+                <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
               <ParanaMap
@@ -364,37 +346,48 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* ===== ABAIXO: ORIGEM DO LEAD + MOTIVOS DE PERDA ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Origem do Lead</h3>
-          <div className="space-y-4">
+      {/* ===== LINHA DE BAIXO: FUNIL VISUAL REAL + MOTIVOS DE PERDA ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* FUNIL DE ORIGEM DO LEAD — VISUAL INCRÍVEL */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <h3 className="text-xl font-bold text-gray-800 mb-8 text-center">Origem do Lead</h3>
+          <div className="max-w-md mx-auto">
             {[
-              { origem: 'Orgânico', field: 'organico', color: 'bg-gray-600' },
-              { origem: 'Indicação', field: 'indicacao', color: 'bg-blue-600' },
-              { origem: 'Facebook', field: 'facebook', color: 'bg-indigo-600' },
-              { origem: 'Google', field: 'google', color: 'bg-red-600' },
-              { origem: 'Instagram', field: 'instagram', color: 'bg-pink-600' },
-              { origem: 'Parceria', field: 'parceria', color: 'bg-green-600' },
-            ].map((item) => {
-              const count = data.originStats?.[item.field] || 0;
-              const percent = productivity.totalLeads > 0 ? (count / productivity.totalLeads) * 100 : 0;
-              return (
-                <div key={item.origem} className="flex items-center justify-between group hover:bg-gray-50 p-4 rounded-xl transition">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-5 h-14 rounded-full ${item.color}`} />
-                    <span className="font-semibold text-gray-700 text-lg">{item.origem}</span>
+              { label: 'Orgânico', value: data.originStats?.organico || 0, color: 'bg-gray-600' },
+              { label: 'Indicação', value: data.originStats?.indicacao || 0, color: 'bg-blue-600' },
+              { label: 'Facebook', value: data.originStats?.facebook || 0, color: 'bg-indigo-600' },
+              { label: 'Google', value: data.originStats?.google || 0, color: 'bg-red-600' },
+              { label: 'Instagram', value: data.originStats?.instagram || 0, color: 'bg-pink-600' },
+              { label: 'Parceria', value: data.originStats?.parceria || 0, color: 'bg-green-600' },
+            ]
+              .sort((a, b) => b.value - a.value)
+              .map((item, index, array) => {
+                const percentage = productivity.totalLeads > 0 ? (item.value / productivity.totalLeads) * 100 : 0;
+                const widthPercentage = 100 - (index * 15); // efeito funil decrescente
+                return (
+                  <div key={item.label} className="mb-4">
+                    <div className="relative h-16 flex items-center justify-center rounded-lg overflow-hidden" style={{ width: `${widthPercentage}%`, marginLeft: 'auto', marginRight: 'auto' }}>
+                      <div className={`absolute inset-0 ${item.color} opacity-90`}></div>
+                      <div className="relative z-10 text-white font-bold text-lg">
+                        {item.value}
+                      </div>
+                    </div>
+                    <div className="text-center mt-2">
+                      <span className="font-semibold text-gray-700">{item.label}</span>
+                      <span className="text-gray-500 text-sm ml-2">({percentage.toFixed(1)}%)</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-gray-800">{count}</div>
-                    <div className="text-sm text-gray-500">{percent.toFixed(1)}%</div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
+          <div className="text-center mt-6 text-3xl font-extrabold text-gray-800">
+            {fmtNumber(productivity.totalLeads)}
+          </div>
+          <div className="text-center text-sm text-gray-600">Total de Leads no Período</div>
         </div>
 
+        {/* MOTIVOS DE PERDA — MANTIDO */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <LostReasonsTable lostLeadsAnalysis={lostReasons} />
         </div>
