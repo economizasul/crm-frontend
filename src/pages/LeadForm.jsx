@@ -427,7 +427,8 @@ const handleSubmit = async (e) => {
           <div><label className="block text-sm font-semibold text-gray-700 mb-2">Origem <span className="text-red-500">*</span></label>
             <select name="origin" value={formData.origin} onChange={handleChange} className="w-full p-4 border-2 border-gray-300 rounded-xl text-lg focus:border-indigo-500">
               <option value="Orgânico">Orgânico</option>
-              <option value="Indicado">Indicado</option>
+              <option value="Indicação">Indicação</option>
+              <option value="Parceria">Parceria</option>
               <option value="Facebook">Facebook</option>
               <option value="Google">Google</option>
               <option value="Instagram">Instagram</option>
