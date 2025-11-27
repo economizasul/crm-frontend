@@ -378,7 +378,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="text-lg">{item.label}</span>
                       <div className="text-right">
                         <div className="text-2xl">{item.value}</div>
-                        <div className="text-sm opacity-90 -mt-1">{percent}%</div>
+                        <div className="text-sm opacity-70 -mt-1">{percent}%</div>
                       </div>
                     </div>
                   </div>
