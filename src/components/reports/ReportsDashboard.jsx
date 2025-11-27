@@ -210,15 +210,15 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — RESUMO SEM ESPAÇO + FUNIL MODERNO E DINÂMICO ===== */}
+      {/* ===== LAYOUT FINAL — RESUMO SEM ESPAÇO + FUNIL COMPACTO E DINÂMICO ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== RESUMO DE PRODUTIVIDADE — SEM ESPAÇO VAZIO EMBAIXO ===== */}
+        {/* ===== RESUMO DE PRODUTIVIDADE — TERMINA EXATAMENTE NA ÚLTIMA LINHA ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
-          <div className="p-5 pb-6"> {/* pb-6 pra não colar na borda */}
+          <div className="p-5 pb-3"> {/* Só reduzi o padding inferior pra eliminar o espaço vazio */}
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
                 <tr className="hover:bg-gray-50">
@@ -264,7 +264,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-purple-600 text-base">{fmtPercent(productivity.conversionRate)}</span>
-                      <span className="text-gray-500 text-xs">leads → vendas</span>
+                      <span className="text-gray-500 text-xs">leads to vendas</span>
                     </div>
                   </td>
                 </tr>
@@ -275,7 +275,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-orange-600 text-base">
                         {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
                       </span>
-                      <span className="text-gray-500 text-xs">cadastro → ganho</span>
+                      <span className="text-gray-500 text-xs">cadastro to ganho</span>
                     </div>
                   </td>
                 </tr>
@@ -301,7 +301,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                <tr className="hover:bg-gray-50 border-b-0"> {/* Última linha sem borda extra */}
+                {/* ÚLTIMA LINHA — SEM ESPAÇO DEPOIS */}
+                <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
@@ -317,7 +318,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== MAPA ===== */}
+        {/* ===== MAPA — INALTERADO ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
@@ -346,55 +347,52 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* ===== FUNIL MODERNO, COMPACTO E DINÂMICO (COM TEXTO DENTRO) ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
-          <h3 className="text-2xl font-bold text-center text-gray-800 mb-8">Origem do Lead</h3>
+      {/* ===== FUNIL MAIS COMPACTO, FONTE 20% MENOR, TEXTO DENTRO — LOGO ABAIXO ===== */}
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+          <h3 className="text-xl font-bold text-center text-gray-800 mb-6">Origem do Lead</h3>
           
-          <div className="space-y-3 max-w-sm mx-auto">
+          <div className="space-y-2 max-w-xs mx-auto">
             {[
-              { label: 'Orgânico',   field: 'organico',   color: 'from-gray-500 to-gray-700' },
-              { label: 'Indicação',  field: 'indicacao',  color: 'from-blue-500 to-blue-700' },
-              { label: 'Facebook',   field: 'facebook',   color: 'from-indigo-500 to-indigo-700' },
-              { label: 'Google',     field: 'google',     color: 'from-red-500 to-red-700' },
-              { label: 'Instagram',  field: 'instagram',  color: 'from-pink-500 to-pink-700' },
-              { label: 'Parceria',   field: 'parceria',   color: 'from-green-500 to-green-700' },
+              { label: 'Orgânico',   field: 'organico',   color: 'bg-gray-600' },
+              { label: 'Indicação',  field: 'indicacao',  color: 'bg-blue-600' },
+              { label: 'Facebook',   field: 'facebook',   color: 'bg-indigo-600' },
+              { label: 'Google',     field: 'google',     color: 'bg-red-600' },
+              { label: 'Instagram',  field: 'instagram',  color: 'bg-pink-600' },
+              { label: 'Parceria',   field: 'parceria',   color: 'bg-green-600' },
             ]
-              .map(item => ({
-                ...item,
-                value: data.originStats?.[item.field] || 0
-              }))
-              .sort((a, b) => b.value - a.value) // Ordem dinâmica: maior no topo
-              .map((item, index, array) => {
-                const percent = productivity.totalLeads > 0 ? (item.value / productivity.totalLeads * 100).toFixed(1) : '0.0';
-                const widthPercent = 100 - (index * 14); // funil decrescente lindo
+              .map(item => ({ ...item, value: data.originStats?.[item.field] || 0 }))
+              .sort((a, b) => b.value - a.value)
+              .map((item, index) => {
+                const percent = productivity.totalLeads > 0 
+                  ? (item.value / productivity.totalLeads * 100).toFixed(1) 
+                  : '0.0';
+                const width = 100 - (index * 13);
                 return (
                   <div
                     key={item.field}
-                    className={`relative h-16 bg-gradient-to-r ${item.color} rounded-lg shadow-md transition-all hover:scale-105 cursor-pointer`}
-                    style={{ width: `${widthPercent}%`, marginLeft: 'auto', marginRight: 'auto' }}
+                    className={`h-11 ${item.color} rounded-lg shadow-sm flex items-center justify-between px-5 text-white`}
+                    style={{ width: `${width}%`, margin: '0 auto' }}
                   >
-                    <div className="absolute inset-0 flex items-center justify-between px-6 text-white font-bold">
-                      <span className="text-lg">{item.label}</span>
-                      <div className="text-right">
-                        <div className="text-2xl">{item.value}</div>
-                        <div className="text-sm opacity-70 -mt-1">{percent}%</div>
-                      </div>
+                    <span className="text-sm font-semibold">{item.label}</span>
+                    <div className="text-right">
+                      <span className="text-lg font-bold">{item.value}</span>
+                      <span className="text-xs ml-2 opacity-90">{percent}%</span>
                     </div>
                   </div>
                 );
               })}
           </div>
 
-          <div className="text-center mt-8">
-            <div className="text-4xl font-extrabold text-gray-800">
+          <div className="text-center mt-6">
+            <div className="text-3xl font-extrabold text-gray-800">
               {fmtNumber(productivity.totalLeads)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Total de leads no período</div>
+            <div className="text-sm text-gray-600">Total de leads no período</div>
           </div>
         </div>
 
-        {/* MOTIVOS DE PERDA */}
+        {/* MOTIVOS DE PERDA — INALTERADO */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <LostReasonsTable lostLeadsAnalysis={lostReasons} />
         </div>
