@@ -210,7 +210,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      {/* ===== LAYOUT FINAL — RESUMO SEM ESPAÇO + FUNIL COMPACTO E DINÂMICO ===== */}
+      {/* ===== LAYOUT FINAL — RESUMO TERMINA COLADINHO + FUNIL PERFEITO ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== RESUMO DE PRODUTIVIDADE — TERMINA EXATAMENTE NA ÚLTIMA LINHA ===== */}
@@ -218,7 +218,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
           </div>
-          <div className="p-5 pb-3"> {/* Só reduzi o padding inferior pra eliminar o espaço vazio */}
+          
+          <div className="px-5 pt-4 pb-0">
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
                 <tr className="hover:bg-gray-50">
@@ -264,7 +265,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-purple-600 text-base">{fmtPercent(productivity.conversionRate)}</span>
-                      <span className="text-gray-500 text-xs">leads to vendas</span>
+                      <span className="text-gray-500 text-xs">leads → vendas</span>
                     </div>
                   </td>
                 </tr>
@@ -275,7 +276,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-orange-600 text-base">
                         {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
                       </span>
-                      <span className="text-gray-500 text-xs">cadastro to ganho</span>
+                      <span className="text-gray-500 text-xs">cadastro → ganho</span>
                     </div>
                   </td>
                 </tr>
@@ -301,10 +302,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     </div>
                   </td>
                 </tr>
-                {/* ÚLTIMA LINHA — SEM ESPAÇO DEPOIS */}
                 <tr className="hover:bg-gray-50">
                   <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
-                  <td className="text-left py-2">
+                  <td className="text-left py-2 pb-5">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-teal-600 text-base">
                         {data.globalSummary?.totalNotes || 0}
@@ -315,10 +315,11 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
               </tbody>
             </table>
+            <div className="h-0"></div>
           </div>
         </div>
 
-        {/* ===== MAPA — INALTERADO ===== */}
+        {/* ===== MAPA ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
@@ -347,11 +348,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* ===== FUNIL MAIS COMPACTO, FONTE 20% MENOR, TEXTO DENTRO — LOGO ABAIXO ===== */}
+      {/* ===== FUNIL + MOTIVOS DE PERDA ===== */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-center text-gray-800 mb-6">Origem do Lead</h3>
-          
           <div className="space-y-2 max-w-xs mx-auto">
             {[
               { label: 'Orgânico',   field: 'organico',   color: 'bg-gray-600' },
@@ -359,7 +359,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
               { label: 'Facebook',   field: 'facebook',   color: 'bg-indigo-600' },
               { label: 'Google',     field: 'google',     color: 'bg-red-600' },
               { label: 'Instagram',  field: 'instagram',  color: 'bg-pink-600' },
-              { label: 'Parceria',   field: 'parceria',   color: 'bg-green-600' },
+              { label: 'Parceria',   field: 'parceria',   color: 'bg-green-600' }
             ]
               .map(item => ({ ...item, value: data.originStats?.[item.field] || 0 }))
               .sort((a, b) => b.value - a.value)
@@ -392,7 +392,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* MOTIVOS DE PERDA — INALTERADO */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <LostReasonsTable lostLeadsAnalysis={lostReasons} />
         </div>
