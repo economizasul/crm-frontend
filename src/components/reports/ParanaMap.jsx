@@ -112,7 +112,7 @@ const ParanaMap = ({ leads = [] }) => {
 
   // Carrega as regiões intermediárias do PR
   useEffect(() => {
-    fetch('/geo/regioes-intermediarias.json')
+    fetch('/geo/regioes-parana.json')
       .then(r => r.json())
       .then(setRegioesData)
       .catch(err => console.error("Erro ao carregar regiões intermediárias:", err));
