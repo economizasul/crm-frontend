@@ -320,9 +320,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* ===== MAPA ===== */}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start">
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 text-center rounded-t-2xl">
           <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
-          <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
+          <p className="text-2xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
         </div>
 
         {/* 🔥 Altura controlada, não quebra layout, não corta conteúdo */}
