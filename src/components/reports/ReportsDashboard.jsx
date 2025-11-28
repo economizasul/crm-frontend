@@ -256,7 +256,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 <td className="text-left py-2">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="font-extrabold text-green-600 text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
-                    <span className="text-gray-600 font-medium text-xs">kW vendidos</span>
+                    <span className="text-gray-500 font-medium text-xs">kW vendidos</span>
                   </div>
                 </td>
               </tr>
