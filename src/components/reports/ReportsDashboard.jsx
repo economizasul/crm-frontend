@@ -214,12 +214,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
       {/* ===== RESUMO DE PRODUTIVIDADE — TERMINA COLADINHO NA ÚLTIMA LINHA (GARANTIDO) ===== */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible">
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
           <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
         </div>
         
-        <div className="px-5 pt-4 -mb-px">
+        <div className="px-5 pt-4 pb-0">
           <table className="w-full text-sm">
             <tbody className="divide-y divide-gray-100">
               <tr className="hover:bg-gray-50">
