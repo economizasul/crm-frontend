@@ -251,12 +251,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                   </div>
                 </td>
               </tr>
-              <tr className="hover:bg-gray-50 bg-green-50">
+              <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado</td>
                 <td className="text-left py-2">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="font-extrabold text-green-600 text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
-                    <span className="text-gray-500 font-medium text-xs">kW vendidos</span>
+                    <span className="text-gray-500 font-medium text-xs">kW fechados no período</span>
                   </div>
                 </td>
               </tr>
