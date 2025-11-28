@@ -142,7 +142,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   }
 
   return (
-    <div className="space-y-8 p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="space-y-8 p-4 md:p-6 bg-gray-50 dark:bg-gray-900">
 
       {/* FILTRO REGIÃO — só aparece quando selecionar uma região */}
       <AnimatePresence>
@@ -211,7 +211,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
       {/* ===== LAYOUT FINAL — RESUMO TERMINA COLADINHO + FUNIL PERFEITO ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start auto-rows-min">
 
         {/* ===== RESUMO DE PRODUTIVIDADE ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible self-start">
@@ -326,24 +326,26 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* 🔥 Altura controlada, não quebra layout, não corta conteúdo */}
-        <div className="w-full h-52 lg:h-96">
+        <div>
           {carregandoMapa ? (
-            <div className="flex h-full items-center justify-center bg-gray-50">
+            <div className="flex items-center justify-center bg-gray-50 py-6">
               <FaSpinner className="animate-spin text-6xl text-purple-600" />
             </div>
           ) : leadsMapa.length === 0 ? (
-            <div className="flex h-full items-center justify-center bg-gray-50">
+            <div className="flex items-center justify-center bg-gray-50 py-6">
               <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
             </div>
           ) : (
-            <ParanaMap
-              leadsGanho={leadsVisiveis}
-              onRegiaoClick={setRegiaoSelecionada}
-              regiaoAtiva={regiaoSelecionada}
-              center={{ lat: -24.8, lng: -51.5 }}
-              zoom={7}
-              className="w-full h-full"
-            />
+            <div className="w-full" style={{ minHeight: 280 }}>
+              <ParanaMap
+                leadsGanho={leadsVisiveis}
+                onRegiaoClick={setRegiaoSelecionada}
+                regiaoAtiva={regiaoSelecionada}
+                center={{ lat: -24.8, lng: -51.5 }}
+                zoom={7}
+                className="w-full h-full"
+              />
+            </div>
           )}
         </div>
       </div>
