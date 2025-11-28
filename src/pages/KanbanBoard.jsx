@@ -293,7 +293,7 @@ const KanbanBoard = () => {
             .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
 
           // LIMITA APENAS "Ganho" e "Perdido" aos 10 mais recentes
-          if (status === 'Ganho' || status === 'Perdido') {
+          if (status === 'Ganho' || status === 'Perdido' || status === 'Inapto') {
             statusLeads = statusLeads.slice(0, 10);
           }
 
