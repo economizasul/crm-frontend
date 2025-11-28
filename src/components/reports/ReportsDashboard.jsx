@@ -326,7 +326,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* 🔥 Altura controlada, não quebra layout, não corta conteúdo */}
-        <div className="w-full h-72 lg:h-96">
+        <div className="w-full h-52 lg:h-96">
           {carregandoMapa ? (
             <div className="flex h-full items-center justify-center bg-gray-50">
               <FaSpinner className="animate-spin text-6xl text-purple-600" />
