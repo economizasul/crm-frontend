@@ -87,7 +87,7 @@ const ParanaMap = ({ leads = [] }) => {
   const [regioesData, setRegioesData] = useState(null);
 
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/tmotta/parana-regioes-geojson/main/regioes-parana.json')
+    fetch('https://cdn.jsdelivr.net/gh/rafaelchiconi/parana-geojson/regioes-parana.json')
       .then(r => r.json())
       .then(setRegioesData)
       .catch(() => console.log("Regiões não carregaram, mas o mapa funciona"));
