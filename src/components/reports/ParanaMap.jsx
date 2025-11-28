@@ -85,13 +85,24 @@ const createCustomMarker = (count) => {
 
 const ParanaMap = ({ leads = [] }) => {
   const [regioesData, setRegioesData] = useState(null);
+  const [paranaShape, setParanaShape] = useState(null);
 
-  useEffect(() => {
-    fetch('https://cdn.jsdelivr.net/gh/rafaelchiconi/parana-geojson/regioes-parana.json')
-      .then(r => r.json())
-      .then(setRegioesData)
-      .catch(() => console.log("Regiões não carregaram, mas o mapa funciona"));
-  }, []);
+  // Carrega apenas o contorno do Estado do Paraná
+    useEffect(() => {
+      fetch('/geo/parana-contorno.json')
+        .then(r => r.json())
+        .then(setParanaShape)
+        .catch(err => console.error("Erro ao carregar o contorno do PR:", err));
+    }, []);
+
+
+    useEffect(() => {
+      fetch('/geo/regioes-intermediarias.json')
+        .then(r => r.json())
+        .then(setRegioesData)
+        .catch(err => console.error("Erro ao carregar regiões intermediárias:", err));
+    }, []);
+
 
   // AGRUPA POR CIDADE E USA A PRIMEIRA COORDENADA VÁLIDA
   const leadsPorCidade = leads.reduce((acc, lead) => {
@@ -151,6 +162,25 @@ const ParanaMap = ({ leads = [] }) => {
     weight: 2.5,
     opacity: 0.9,
   });
+
+  {/* CONTORNO DO PARANÁ EM ALTO RELEVO */}
+  {paranaShape && (
+    <GeoJSON
+      data={paranaShape}
+      style={{
+        fillColor: "#e0e0e0",
+        fillOpacity: 0.45,
+        color: "#000",
+        weight: 4,
+        opacity: 0.9,
+        shadowColor: "rgba(0,0,0,0.8)",
+        shadowBlur: 25,
+        shadowOffsetX: 6,
+        shadowOffsetY: 6,
+      }}
+    />
+  )}
+
 
   return (
     // TAMANHO FIXO + À DIREITA (o que você pediu!)
