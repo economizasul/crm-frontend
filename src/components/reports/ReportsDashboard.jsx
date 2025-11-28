@@ -213,7 +213,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       {/* ===== LAYOUT FINAL — RESUMO TERMINA COLADINHO + FUNIL PERFEITO ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
-        {/* ===== RESUMO DE PRODUTIVIDADE — NÃO SERÁ ESTICADO PELA COLUNA DO MAPA ===== */}
+        {/* ===== RESUMO DE PRODUTIVIDADE ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible self-start">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
             <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
@@ -319,33 +319,31 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
 
       {/* ===== MAPA ===== */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start">
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-6 text-center rounded-t-2xl">
           <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
           <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
         </div>
 
-        {/* area do mapa: não força min-height na grid, apenas usa alturas responsivas para placeholder/iframe */}
-        <div>
+        {/* 🔥 Altura controlada, não quebra layout, não corta conteúdo */}
+        <div className="w-full h-72 lg:h-96">
           {carregandoMapa ? (
-            <div className="flex h-64 lg:h-96 items-center justify-center bg-gray-50">
+            <div className="flex h-full items-center justify-center bg-gray-50">
               <FaSpinner className="animate-spin text-6xl text-purple-600" />
             </div>
           ) : leadsMapa.length === 0 ? (
-            <div className="flex h-64 lg:h-96 items-center justify-center bg-gray-50">
+            <div className="flex h-full items-center justify-center bg-gray-50">
               <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
             </div>
           ) : (
-            <div className="w-full h-64 lg:h-96">
-              <ParanaMap
-                leadsGanho={leadsVisiveis}
-                onRegiaoClick={setRegiaoSelecionada}
-                regiaoAtiva={regiaoSelecionada}
-                center={{ lat: -24.8, lng: -51.5 }}
-                zoom={7}
-                className="w-full h-full"
-              />
-            </div>
+            <ParanaMap
+              leadsGanho={leadsVisiveis}
+              onRegiaoClick={setRegiaoSelecionada}
+              regiaoAtiva={regiaoSelecionada}
+              center={{ lat: -24.8, lng: -51.5 }}
+              zoom={7}
+              className="w-full h-full"
+            />
           )}
         </div>
       </div>
