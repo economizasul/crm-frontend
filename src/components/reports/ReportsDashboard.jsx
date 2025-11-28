@@ -324,7 +324,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
-          <div className="flex-1 min-h-96">
+          <div className="flex-1">
             {carregandoMapa ? (
               <div className="flex h-96 items-center justify-center bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
