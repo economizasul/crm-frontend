@@ -213,111 +213,110 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       {/* ===== LAYOUT FINAL — RESUMO TERMINA COLADINHO + FUNIL PERFEITO ===== */}
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== RESUMO DE PRODUTIVIDADE — TERMINA EXATAMENTE NA ÚLTIMA LINHA ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
-            <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
-          </div>
-          
-          <div className="px-5 pt-4 pb-0">
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100">
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-indigo-600 text-base">
-                        {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
-                      </span>
-                      <span className="text-gray-500 text-xs">em atendimento</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-blue-600 text-base">{fmtNumber(productivity.totalLeads)}</span>
-                      <span className="text-gray-500 text-xs">no período</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-green-600 text-base">{fmtNumber(productivity.totalWonCount || 0)}</span>
-                      <span className="text-gray-500 text-xs">status Ganho</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50 bg-green-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-extrabold text-green-600 text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
-                      <span className="text-gray-600 font-medium text-xs">kW vendidos</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-purple-600 text-base">{fmtPercent(productivity.conversionRate)}</span>
-                      <span className="text-gray-500 text-xs">leads → vendas</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-orange-600 text-base">
-                        {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
-                      </span>
-                      <span className="text-gray-500 text-xs">cadastro → ganho</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-red-600 text-base">
-                        {productivity.totalLeads > 0 ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',') : '0,0'}%
-                      </span>
-                      <span className="text-gray-500 text-xs">status Perdido</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos</td>
-                  <td className="text-left py-2">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-gray-600 text-base">
-                        {productivity.totalLeads > 0 ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) : 0}%
-                      </span>
-                      <span className="text-gray-500 text-xs">fora do perfil</span>
-                    </div>
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
-                  <td className="text-left py-2 pb-5">
-                    <div className="flex flex-wrap items-baseline gap-2">
-                      <span className="font-bold text-teal-600 text-base">
-                        {data.globalSummary?.totalNotes || 0}
-                      </span>
-                      <span className="text-gray-500 text-xs">novas anotações</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="h-0"></div>
-          </div>
+      {/* ===== RESUMO DE PRODUTIVIDADE — TERMINA COLADINHO NA ÚLTIMA LINHA (GARANTIDO) ===== */}
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-5 rounded-t-2xl">
+          <h2 className="text-xl font-bold">Resumo de Produtividade</h2>
         </div>
+        
+        <div className="px-5 pt-4 -mb-px">
+          <table className="w-full text-sm">
+            <tbody className="divide-y divide-gray-100">
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-indigo-600 text-base">
+                      {fmtNumber(productivity.totalLeads - (productivity.totalWonCount || 0) - (productivity.totalLostCount || 0))}
+                    </span>
+                    <span className="text-gray-500 text-xs">em atendimento</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-blue-600 text-base">{fmtNumber(productivity.totalLeads)}</span>
+                    <span className="text-gray-500 text-xs">no período</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-green-600 text-base">{fmtNumber(productivity.totalWonCount || 0)}</span>
+                    <span className="text-gray-500 text-xs">status Ganho</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50 bg-green-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-extrabold text-green-600 text-lg">{fmtKw(productivity.totalWonValueKW)}</span>
+                    <span className="text-gray-600 font-medium text-xs">kW vendidos</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-purple-600 text-base">{fmtPercent(productivity.conversionRate)}</span>
+                    <span className="text-gray-500 text-xs">leads → vendas</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-orange-600 text-base">
+                      {(productivity.avgClosingTimeDays || 0).toFixed(1).replace('.', ',')} dias
+                    </span>
+                    <span className="text-gray-500 text-xs">cadastro → ganho</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-red-600 text-base">
+                      {productivity.totalLeads > 0 ? ((productivity.totalLostCount / productivity.totalLeads) * 100).toFixed(1).replace('.', ',') : '0,0'}%
+                    </span>
+                    <span className="text-gray-500 text-xs">status Perdido</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-gray-600 text-base">
+                      {productivity.totalLeads > 0 ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) : 0}%
+                    </span>
+                    <span className="text-gray-500 text-xs">fora do perfil</span>
+                  </div>
+                </td>
+              </tr>
+              <tr className="hover:bg-gray-50">
+                <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
+                <td className="text-left py-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-bold text-teal-600 text-base">
+                      {data.globalSummary?.totalNotes || 0}
+                    </span>
+                    <span className="text-gray-500 text-xs">novas anotações</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
         {/* ===== MAPA ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
