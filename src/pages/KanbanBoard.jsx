@@ -323,7 +323,7 @@ const KanbanBoard = () => {
                 <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
                   {statusLeads.length}
                   {/* Mostra "+" se tiver mais de 10 ocultos */}
-                  {(status === 'Ganho' || status === 'Perdido') && 
+                  {(status === 'Ganho' || status === 'Perdido' || status === 'Inapto') && 
                   leads.filter(l => l.status === status).length > 10 && '+'}
                 </span>
               </h2>
