@@ -11,18 +11,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// ===============================
-// LIMITA O MAPA AO ESTADO DO PR
-// ===============================
+// Limita ao Paraná + zoom mínimo/máximo
 function MapBounds({ marcadores }) {
   const map = useMap();
-
   useEffect(() => {
     const paranaBounds = L.latLngBounds(
       L.latLng(-26.8, -54.8),
       L.latLng(-22.4, -48.0)
     );
-
     map.setMaxBounds(paranaBounds);
     map.setMinZoom(7);
     map.setMaxZoom(16);
@@ -34,41 +30,33 @@ function MapBounds({ marcadores }) {
       map.setView([-24.5, -51.5], 7);
     }
   }, [marcadores, map]);
-
   return null;
 }
 
-// ===============================
-// PANES PARA RELEVO 3D
-// ===============================
+// Cria panes para máscara e relevo
 function MapPanes() {
   const map = useMap();
-
   useEffect(() => {
     if (!map.getPane('maskPane')) {
       map.createPane('maskPane');
       map.getPane('maskPane').style.zIndex = 400;
       map.getPane('maskPane').style.pointerEvents = 'none';
     }
-
     if (!map.getPane('reliefPane')) {
       map.createPane('reliefPane');
       map.getPane('reliefPane').style.zIndex = 420;
       map.getPane('reliefPane').style.pointerEvents = 'none';
     }
-
     if (!map.getPane('paranaTopPane')) {
       map.createPane('paranaTopPane');
       map.getPane('paranaTopPane').style.zIndex = 430;
+      map.getPane('paranaTopPane').style.pointerEvents = 'auto';
     }
   }, [map]);
-
   return null;
 }
 
-// ===============================
-// MARCADOR PERSONALIZADO
-// ===============================
+// MARCADOR COM NÚMERO
 const createCustomMarker = (count) => {
   return L.divIcon({
     html: `
@@ -95,22 +83,20 @@ const createCustomMarker = (count) => {
   });
 };
 
-// ===============================
-// COMPONENTE PRINCIPAL
-// ===============================
 const ParanaMap = ({ leads = [] }) => {
   const [regioesData, setRegioesData] = useState(null);
   const [paranaShape, setParanaShape] = useState(null);
+  const [municipiosData, setMunicipiosData] = useState(null);
 
-  // Carrega contorno do Paraná
+  // Contorno principal do Paraná
   useEffect(() => {
     fetch('/geo/parana-contorno.json')
       .then(r => r.json())
       .then(setParanaShape)
-      .catch(err => console.error("Erro ao carregar o contorno do PR:", err));
+      .catch(err => console.error("Erro ao carregar contorno do PR:", err));
   }, []);
 
-  // Carrega as regiões intermediárias do PR
+  // Regiões intermediárias (6 regiões)
   useEffect(() => {
     fetch('/geo/regioes-parana.json')
       .then(r => r.json())
@@ -118,45 +104,45 @@ const ParanaMap = ({ leads = [] }) => {
       .catch(err => console.error("Erro ao carregar regiões intermediárias:", err));
   }, []);
 
-  // Agrupa por cidade
+  // Municípios
+  useEffect(() => {
+    fetch('/geo/parana-municipios.json')
+      .then(r => r.json())
+      .then(setMunicipiosData)
+      .catch(err => console.error("Erro ao carregar municípios:", err));
+  }, []);
+
+  // Agrupa leads por cidade
   const leadsPorCidade = leads.reduce((acc, lead) => {
     const cidade = (lead.cidade || 'Sem cidade').trim();
-    if (!cidade || cidade === 'null') return acc;
-
     const lat = parseFloat(lead.lat);
     const lng = parseFloat(lead.lng);
-    if (isNaN(lat) || isNaN(lng)) return acc;
+    if (!cidade || isNaN(lat) || isNaN(lng)) return acc;
 
-    if (!acc[cidade]) {
-      acc[cidade] = { cidade, lat, lng, count: 0 };
-    }
+    if (!acc[cidade]) acc[cidade] = { cidade, lat, lng, count: 0 };
     acc[cidade].count += 1;
     return acc;
   }, {});
 
   const marcadores = Object.values(leadsPorCidade);
 
-  // Máscara escura global
+  // Máscara mundial
   const worldMask = useMemo(() => ({
     type: 'FeatureCollection',
-    features: [{
-      type: 'Feature',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [[
-          [-180, -90],
-          [180, -90],
-          [180, 90],
-          [-180, 90],
-          [-180, -90]
-        ]]
+    features: [
+      {
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [[
+            [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
+          ]]
+        }
       }
-    }]
+    ]
   }), []);
 
-  // ===============================
-  // RENDERIZAÇÃO
-  // ===============================
   return (
     <div style={{
       height: '680px',
@@ -181,75 +167,70 @@ const ParanaMap = ({ leads = [] }) => {
 
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution="&copy; OpenStreetMap"
         />
 
         <MapBounds marcadores={marcadores} />
 
-        {/* === Máscara escura do mundo === */}
+        {/* Máscara de escurecimento */}
         <GeoJSON
-          key="mask"
-          pane="maskPane"
           data={worldMask}
-          style={{
-            fillColor: 'black',
-            fillOpacity: 0.45,
+          pane="maskPane"
+          style={() => ({
+            fillColor: '#000',
+            fillOpacity: 0.4,
             color: 'transparent'
-          }}
+          })}
         />
 
-        {/* === Contorno REAL do Paraná (levemente elevado) === */}
-        {paranaShape && (
-          <GeoJSON
-            data={paranaShape}
-            pane="paranaTopPane"
-            style={{
-              fillColor: '#e0e0e0',
-              fillOpacity: 0.35,
-              color: '#000',
-              weight: 3,
-              opacity: 0.9,
-            }}
-          />
-        )}
-
-        {/* === Sombra / Extrusão (efeito 3D) === */}
+        {/* Relevo da região */}
         {regioesData && (
           <>
-            {[6,5,4,3].map((s, i) => (
+            {[6,5,4,3].map((s, idx) => (
               <GeoJSON
                 key={`shadow-${s}`}
                 data={regioesData}
                 pane="reliefPane"
-                style={{
+                style={() => ({
                   fillOpacity: 0,
-                  color: `rgba(0,0,0,${0.07 * (i + 1)})`,
+                  color: `rgba(0,0,0,${0.06 * (idx + 1)})`,
                   weight: s * 3,
                   opacity: 0.9,
                   lineJoin: 'round'
-                }}
+                })}
               />
             ))}
 
-            {/* Camada colorida superior */}
+            {/* Agora usando CD_RGINT para colorir */}
             <GeoJSON
-              key="regions-top"
               data={regioesData}
               pane="paranaTopPane"
               style={(feature) => ({
-                fillColor: ['#4CAF50','#2196F3','#FF9800','#F44336','#9C27B0','#00BCD4','#FFEB3B','#795548','#607D8B','#E91E63']
-                  [(feature.properties.id || 0) % 10],
+                fillColor: [
+                  '#4CAF50','#2196F3','#FF9800','#F44336','#9C27B0','#00BCD4'
+                ][parseInt(feature.properties.CD_RGINT) % 6],
                 fillOpacity: 0.95,
-                color: '#ffffff',
-                weight: 2.5,
-                opacity: 1,
-                lineJoin: 'round',
+                color: '#fff',
+                weight: 2,
+                opacity: 1
               })}
             />
           </>
         )}
 
-        {/* === Marcadores === */}
+        {/* Limites municipais */}
+        {municipiosData && (
+          <GeoJSON
+            data={municipiosData}
+            pane="paranaTopPane"
+            style={() => ({
+              fillOpacity: 0,
+              color: "rgba(0,0,0,0.35)",
+              weight: 0.8
+            })}
+          />
+        )}
+
+        {/* Marcadores */}
         {marcadores.map((item, i) => (
           <Marker
             key={i}
