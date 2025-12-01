@@ -319,7 +319,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
 
       {/* ===== MAPA ===== */}
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start">
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start"
+           style={{ height: "60%" }}>
+
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 text-center rounded-t-2xl">
           <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
           <p className="text-2xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
@@ -354,7 +356,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       {/* ===== FUNIL + MOTIVOS DE PERDA ===== */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-          <h3 className="text-xl font-bold text-center text-gray-800 mb-6">Origem do Lead</h3>
+          <h3 className="text-xl font-bold text-center text-gray-600 mb-6">Origem do Lead</h3>
           <div className="space-y-4 max-w-xs mx-auto">
             {[
               { label: 'Orgânico',   field: 'organico',   colorFrom: 'from-gray-600',   colorTo: 'to-gray-800' },
@@ -381,7 +383,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                   style={{
                     width: `${width}%`,
                     margin: '0 auto',
-                    backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))`,
+                    backgroundImage: `linear-gradient(to right, ${item.colorFrom}, ${item.colorTo})`,
+                    color: "#9d9d9dff"
+,
                   }}
                 >
                   <div className="font-semibold text-sm">{item.label}</div>

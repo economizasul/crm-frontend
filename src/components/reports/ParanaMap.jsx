@@ -96,7 +96,7 @@ const ParanaMap = ({ leads = [] }) => {
       .catch(err => console.error("Erro ao carregar contorno do PR:", err));
   }, []);
 
-  // Regiões intermediárias (6 regiões)
+  // Regiões intermediárias agora com 10 regiões (mesorregiões)
   useEffect(() => {
     fetch('/geo/regioes-parana.json')
       .then(r => r.json())
@@ -200,7 +200,7 @@ const ParanaMap = ({ leads = [] }) => {
               />
             ))}
 
-            {/* Regiões intermediárias — agora 10 regiões */}
+            {/* Regiões intermediárias (10 mesorregiões) */}
             <GeoJSON
               data={regioesData}
               pane="paranaTopPane"
@@ -210,13 +210,13 @@ const ParanaMap = ({ leads = [] }) => {
                   '#0c8a9bff', '#d7c843ff', '#795548', '#607D8B', '#E91E63'
                 ];
 
-                // Região do Paraná (4101–4110)
-                const cd = parseInt(feature.properties.CD_RGINT);
+                // Sua propriedade correta é CD_MESO (4101 a 4110)
+                const cd = parseInt(feature.properties.CD_MESO);
 
-                // Normaliza para 0–9
+                // Normaliza 4101→0, 4102→1, ..., 4110→9
                 const index = cd >= 4101 && cd <= 4110
                   ? cd - 4101
-                  : cd % regionColors.length; // fallback seguro
+                  : 0;
 
                 return {
                   fillColor: regionColors[index],
@@ -227,7 +227,6 @@ const ParanaMap = ({ leads = [] }) => {
                 };
               }}
             />
-
           </>
         )}
 
