@@ -6,8 +6,18 @@ import api from './api';
 // ==========================================================
 export const fetchDashboardMetrics = async (filters = {}) => {
   try {
-    // NOTE: backend espera { filters: {...} } no body — garantimos isso aqui
-    const response = await api.post('/reports/data', { filters });
+    // Tentativa 1: envio wrapper { filters } (seguro para controllers que esperam isso)
+    let response = await api.post('/reports/data', { filters });
+
+    // Se a resposta não for válida, tenta reenviar com o objeto filters 'puro'
+    if (!response?.data || response.data.success === false || typeof response.data.data === 'undefined') {
+      try {
+        response = await api.post('/reports/data', filters);
+      } catch (err) {
+        // fallback: manter o erro original
+      }
+    }
+
     if (!response.data || !response.data.success) {
       throw new Error(response.data?.message || 'Resposta de API de relatórios falhou.');
     }
@@ -21,19 +31,26 @@ export const fetchDashboardMetrics = async (filters = {}) => {
 // NOVO ENDPOINT PARA RELATÓRIOS FILTRADOS (RESPEITA DATA!)
 export const fetchFilteredReport = async (filters = {}) => {
   try {
-    // Também envia wrapped para o backend entender corretamente
-    const payload = {
-      filters: {
+    // Tenta primeiro com wrapper { filters } e cai back para pure filters se necessário
+    const payload = { filters: {
+      startDate: filters.startDate,
+      endDate: filters.endDate,
+      ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
+      source: filters.source === 'all' ? null : filters.source,
+      ...(filters.extra || {})
+    }};
+
+    let response = await api.post('/reports/data', payload);
+
+    if (!response?.data || response.data.success === false || typeof response.data.data === 'undefined') {
+      response = await api.post('/reports/data', {
         startDate: filters.startDate,
         endDate: filters.endDate,
         ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
         source: filters.source === 'all' ? null : filters.source,
-        // mantém qualquer outro campo
         ...(filters.extra || {})
-      }
-    };
-
-    const response = await api.post('/reports/data', payload);
+      });
+    }
 
     if (!response.data?.success) {
       throw new Error(response.data?.message || 'Erro na resposta da API');
@@ -43,6 +60,24 @@ export const fetchFilteredReport = async (filters = {}) => {
   } catch (error) {
     console.error('Erro ao carregar relatório filtrado:', error);
     throw error;
+  }
+};
+
+// ==========================================================
+// NOVO — Motivos de Perda (Dinâmico)
+// ==========================================================
+export const fetchLossReasons = async (filters = {}) => {
+  try {
+    const response = await api.post('/reports/motivos-perda', { filters });
+
+    if (!response?.data?.success) {
+      throw new Error('Erro ao carregar motivos de perda');
+    }
+
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Erro ao buscar motivos de perda:', error);
+    return [];
   }
 };
 

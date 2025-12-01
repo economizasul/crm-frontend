@@ -8,6 +8,7 @@ import LostReasonsTable from './LostReasonsTable.jsx';
 import DailyActivity from './DailyActivity.jsx';
 import ParanaMap from './ParanaMap.jsx';
 import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
+import MotivosPerdaChart from './MotivosPerdaChart.jsx';
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
@@ -384,8 +385,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                     width: `${width}%`,
                     margin: '0 auto',
                     backgroundImage: `linear-gradient(to right, ${item.colorFrom}, ${item.colorTo})`,
-                    color: "#9d9d9dff"
-,
+                    color: "#9d9d9dff",
                   }}
                 >
                   <div className="font-semibold text-sm">{item.label}</div>
@@ -408,7 +408,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-          <LostReasonsTable lostLeadsAnalysis={lostReasons} />
+          <MotivosPerdaChart data={lostReasons} />
+
         </div>
       </div>
     </div>

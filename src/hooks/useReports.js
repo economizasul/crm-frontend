@@ -8,9 +8,7 @@ import {
   fetchAnalyticNotes as fetchAnalyticNotesAPI
 } from '../services/ReportService';
 
-/**
- * Helpers para acessar caminhos possíveis em estruturas diferentes
- */
+/* --- helpers idênticos aos anteriores, mantive para segurança --- */
 const tryPathsNumber = (obj, paths = []) => {
   for (const p of paths) {
     if (!obj) continue;
@@ -47,11 +45,9 @@ const sumArrayField = (arr, fieldCandidates = []) => {
     const allHave = arr.every(item => item && (field in item) && !Number.isNaN(Number(item[field])));
     if (allHave) return arr.reduce((s, it) => s + Number(it[field] || 0), 0);
   }
-  // fallback: try to sum any numeric top-level values
   const numericValues = arr.map(item => {
     if (item == null) return 0;
     if (typeof item === 'number') return item;
-    // try first numeric prop
     const keys = Object.keys(item);
     for (const k of keys) {
       if (!Number.isNaN(Number(item[k]))) return Number(item[k]);
@@ -61,11 +57,8 @@ const sumArrayField = (arr, fieldCandidates = []) => {
   return numericValues.reduce((a,b) => a+b, 0);
 };
 
-/**
- * Normaliza e detecta originStats e funnel (funnelStages)
- */
+/* --- detecções de origin / funnel reforçadas --- */
 function detectOriginStats(raw) {
-  // Possíveis caminhos para origin stats (objeto chave→valor)
   const originCandidates = tryPathsAny(raw, [
     'originStats',
     'origin_stats',
@@ -79,7 +72,6 @@ function detectOriginStats(raw) {
     return originCandidates;
   }
 
-  // Às vezes vem como array de { source, count } ou { label, value }
   const arrayCandidates = tryPathsAny(raw, [
     'originList',
     'origin_list',
@@ -96,12 +88,10 @@ function detectOriginStats(raw) {
     });
     return obj;
   }
-
   return null;
 }
 
 function detectFunnelStages(raw) {
-  // Possíveis caminhos para um funil como array
   const funnelArr = tryPathsAny(raw, [
     'funnel',
     'funnelStages',
@@ -111,9 +101,7 @@ function detectFunnelStages(raw) {
     'stages_list',
     'funnels'
   ]);
-
   if (Array.isArray(funnelArr) && funnelArr.length > 0) {
-    // Normaliza cada item para { stageName, count }
     return funnelArr.map(item => {
       if (!item) return null;
       const stageName = item.stageName || item.stage || item.name || item.label || item.stage_name || item.nome || item.stage_title || item.title;
@@ -122,7 +110,6 @@ function detectFunnelStages(raw) {
     }).filter(Boolean);
   }
 
-  // fallback: sometimes funnel may be an object with keys => counts
   const funnelObj = tryPathsAny(raw, ['funnelObj', 'funnel_object', 'stagesObj']);
   if (funnelObj && typeof funnelObj === 'object' && !Array.isArray(funnelObj)) {
     return Object.keys(funnelObj).map(k => ({ stageName: k, count: Number(funnelObj[k] || 0) }));
@@ -131,14 +118,10 @@ function detectFunnelStages(raw) {
   return null;
 }
 
-/**
- * Formata dinamicamente o rawData em formato que o Dashboard espera.
- * Tentamos várias combinações de nomes (camelCase, snake_case, agregados).
- */
+/* --- função principal de format --- */
 function formatDashboardData(raw) {
   if (!raw) return null;
 
-  // POSSÍVEIS CAMINHOS (ordem de preferência)
   const totalLeads = tryPathsNumber(raw, [
     'globalSummary.totalLeads',
     'global_summary.total_leads',
@@ -152,37 +135,27 @@ function formatDashboardData(raw) {
 
   const totalWonValueKW = tryPathsNumber(raw, [
     'globalSummary.totalWonValueKW',
-    'globalSummary.total_won_value_kw',
     'totalWonValueKW',
     'total_won_value_kw',
     'totalWonValue',
     'totalKw',
-    'kw_total',
     'totals.kw',
-    'summary.totalKw',
-    'summary.total_won_value_kw',
-    'total_kw',
-    'kw'
+    'summary.totalKw'
   ]) || sumArrayField(tryPathsAny(raw, ['leads', 'wonLeads', 'ganhos']) || [], ['avg_consumption', 'potencia_kw', 'kw']);
 
   const conversionRate = tryPathsNumber(raw, [
     'globalSummary.conversionRate',
     'conversionRate',
     'conversion_rate',
-    'conversionRateHistory.rate',
     'summary.conversionRate'
   ]) || 0;
 
   const avgClosingTimeDays = tryPathsNumber(raw, [
     'globalSummary.avgClosingTimeDays',
     'avgClosingTimeDays',
-    'avg_closing_time_days',
-    'avgClosingTime',
-    'avgClosingTimeHistory.avgDays',
-    'summary.avgClosingTime'
+    'avg_closing_time_days'
   ]) || 0;
 
-  // NOVOS CAMPOS — KPIs DE TEMPO MÉDIO (backend já envia)
   const tempoMedioFechamentoHoras = tryPathsNumber(raw, [
     'globalSummary.tempoMedioFechamentoHoras',
     'tempoMedioFechamentoHoras',
@@ -195,7 +168,6 @@ function formatDashboardData(raw) {
     'tempo_medio_atendimento_horas'
   ]) || 0;
 
-  // Productivity: pode vir em varias chaves
   const productivityCandidates = tryPathsAny(raw, [
     'productivity',
     'productivityBySeller',
@@ -204,7 +176,6 @@ function formatDashboardData(raw) {
     'sellers'
   ]) || [];
 
-  // Normalize sellers list
   const sellers = Array.isArray(productivityCandidates) ? productivityCandidates : (productivityCandidates?.sellers || []);
 
   const productivity = {
@@ -213,7 +184,6 @@ function formatDashboardData(raw) {
     totalWonValueKW
   };
 
-  // Daily activity
   const dailyActivity = tryPathsAny(raw, [
     'dailyActivity',
     'activityDaily',
@@ -222,27 +192,22 @@ function formatDashboardData(raw) {
     'chart.daily'
   ]) || [];
 
-  // Lost reasons
   const lostReasons = tryPathsAny(raw, [
     'lostReasons',
     'lossReasons',
-    'lost_reasons',
-    'reasonsLost',
-    'reasons_lost'
+    'lost_reasons'
   ]) || [];
 
-  // Filters
   const filters = tryPathsAny(raw, [
     'filters',
     'meta.filters',
     'query.filters'
   ]) || {};
 
-  // Detect originStats (origem do lead) and funnelStages
+  // Detect originStats and funnelStages robustly
   const originStats = detectOriginStats(raw) || {};
-  const funnelStages = detectFunnelStages(raw) || (Array.isArray(raw.funnel) ? raw.funnel : []);
+  const funnelStages = detectFunnelStages(raw) || [];
 
-  // If the raw object already looks like the formatted shape, prefer it
   const looksLikeFormatted = raw.globalSummary || raw.productivity || raw.dailyActivity || raw.lostReasons;
   if (looksLikeFormatted) {
     return {
@@ -254,11 +219,10 @@ function formatDashboardData(raw) {
       lostReasons: raw.lostReasons || lostReasons,
       filters: raw.filters || filters,
       originStats: raw.originStats || originStats,
-      funnel: raw.funnel || funnelStages // funnel array normalized
+      funnel: raw.funnel || funnelStages
     };
   }
 
-  // fallback: try to detect fields inside raw.data
   const inner = raw.data || raw;
 
   return {
@@ -302,12 +266,15 @@ export function useReports(initialFilters = {}) {
     });
   }, []);
 
+  // fetchDashboardData aceita currentFilters pra evitar problemas com closures
   const fetchDashboardData = useCallback(async (currentFilters = {}) => {
     setLoading(true);
     setError(null);
     try {
-      // Passa os filtros alinhados com o ReportService (ele faz wrapper { filters })
-      const raw = await fetchDashboardMetrics(currentFilters || filters);
+      // const raw = await fetchDashboardMetrics(currentFilters || filters); == Temporariamente
+      const raw = await fetchFilteredReport(currentFilters || filters);
+
+
       if (!raw) {
         setData(null);
       } else {
@@ -329,7 +296,6 @@ export function useReports(initialFilters = {}) {
   }, [filters, fetchDashboardData]);
 
   useEffect(() => {
-    // Busca inicial usando os filtros iniciais passados ao hook
     fetchDashboardData(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -385,6 +351,6 @@ export function useReports(initialFilters = {}) {
     analyticError,
     fetchAnalyticNotes,
     clearAnalyticNotes,
-    fetchDashboardData // exportado caso precise chamar manualmente
+    fetchDashboardData
   };
 }
