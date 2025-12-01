@@ -201,7 +201,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
         const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
         
-        const initialMessage = `Olá, ${leadData.name || 'Lead'}, estou entrando em contato a respeito da sua proposta de energia solar.`;
+        const initialMessage = `Olá, ${leadData.name || 'Lead'}, só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`;
         const encodedMessage = encodeURIComponent(initialMessage);
 
         // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)

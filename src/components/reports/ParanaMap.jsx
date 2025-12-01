@@ -200,20 +200,34 @@ const ParanaMap = ({ leads = [] }) => {
               />
             ))}
 
-            {/* Agora usando CD_RGINT para colorir */}
+            {/* Regiões intermediárias — agora 10 regiões */}
             <GeoJSON
               data={regioesData}
               pane="paranaTopPane"
-              style={(feature) => ({
-                fillColor: [
-                  '#4CAF50','#2196F3','#FF9800','#F44336','#9C27B0','#00BCD4'
-                ][parseInt(feature.properties.CD_RGINT) % 6],
-                fillOpacity: 0.95,
-                color: '#fff',
-                weight: 2,
-                opacity: 1
-              })}
+              style={(feature) => {
+                const regionColors = [
+                  '#4CAF50', '#2196F3', '#FF9800', '#F44336', '#9C27B0',
+                  '#0c8a9bff', '#d7c843ff', '#795548', '#607D8B', '#E91E63'
+                ];
+
+                // Região do Paraná (4101–4110)
+                const cd = parseInt(feature.properties.CD_RGINT);
+
+                // Normaliza para 0–9
+                const index = cd >= 4101 && cd <= 4110
+                  ? cd - 4101
+                  : cd % regionColors.length; // fallback seguro
+
+                return {
+                  fillColor: regionColors[index],
+                  fillOpacity: 0.95,
+                  color: '#fff',
+                  weight: 2,
+                  opacity: 1
+                };
+              }}
             />
+
           </>
         )}
 

@@ -355,37 +355,45 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <h3 className="text-xl font-bold text-center text-gray-800 mb-6">Origem do Lead</h3>
-          <div className="space-y-2 max-w-xs mx-auto">
+          <div className="space-y-4 max-w-xs mx-auto">
             {[
-              { label: 'Orgânico',   field: 'organico',   color: 'bg-gray-600' },
-              { label: 'Indicação',  field: 'indicacao',  color: 'bg-blue-600' },
-              { label: 'Facebook',   field: 'facebook',   color: 'bg-indigo-600' },
-              { label: 'Google',     field: 'google',     color: 'bg-red-600' },
-              { label: 'Instagram',  field: 'instagram',  color: 'bg-pink-600' },
-              { label: 'Parceria',   field: 'parceria',   color: 'bg-green-600' }
+              { label: 'Orgânico',   field: 'organico',   colorFrom: 'from-gray-600',   colorTo: 'to-gray-800' },
+              { label: 'Indicação',  field: 'indicacao',  colorFrom: 'from-blue-500',   colorTo: 'to-blue-700' },
+              { label: 'Facebook',   field: 'facebook',   colorFrom: 'from-indigo-500', colorTo: 'to-indigo-700' },
+              { label: 'Google',     field: 'google',     colorFrom: 'from-red-500',    colorTo: 'to-red-700' },
+              { label: 'Instagram',  field: 'instagram',  colorFrom: 'from-pink-500',   colorTo: 'to-pink-700' },
+              { label: 'Parceria',   field: 'parceria',   colorFrom: 'from-green-500',  colorTo: 'to-green-700' }
             ]
-              .map(item => ({ ...item, value: data.originStats?.[item.field] || 0 }))
-              .sort((a, b) => b.value - a.value)
-              .map((item, index) => {
-                const percent = productivity.totalLeads > 0 
-                  ? (item.value / productivity.totalLeads * 100).toFixed(1) 
-                  : '0.0';
-                const width = 100 - (index * 13);
-                return (
-                  <div
-                    key={item.field}
-                    className={`h-11 ${item.color} rounded-lg shadow-sm flex items-center justify-between px-5 text-white`}
-                    style={{ width: `${width}%`, margin: '0 auto' }}
-                  >
-                    <span className="text-sm font-semibold">{item.label}</span>
-                    <div className="text-right">
-                      <span className="text-lg font-bold">{item.value}</span>
-                      <span className="text-xs ml-2 opacity-90">{percent}%</span>
-                    </div>
+            .map(item => ({ ...item, value: data.originStats?.[item.field] || 0 }))
+            .sort((a,b) => b.value - a.value)
+            .map((item, index) => {
+              const percent = productivity.totalLeads > 0 
+                ? (item.value / productivity.totalLeads * 100).toFixed(1) 
+                : '0.0';
+              const width = 100 - (index * 10); // largura decrescente para efeito de funil
+              return (
+                <motion.div
+                  key={item.field}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className={`h-12 rounded-xl shadow-lg flex items-center justify-between px-5 text-white`}
+                  style={{
+                    width: `${width}%`,
+                    margin: '0 auto',
+                    backgroundImage: `linear-gradient(to right, var(--tw-gradient-stops))`,
+                  }}
+                >
+                  <div className="font-semibold text-sm">{item.label}</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold">{item.value}</span>
+                    <span className="text-xs opacity-90">{percent}%</span>
                   </div>
-                );
-              })}
+                </motion.div>
+              );
+            })}
           </div>
+
 
           <div className="text-center mt-6">
             <div className="text-3xl font-extrabold text-gray-800">

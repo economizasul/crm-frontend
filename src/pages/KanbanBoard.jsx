@@ -253,7 +253,7 @@ const KanbanBoard = () => {
     if (!leadData.phone) return null;
     const phone = leadData.phone.replace(/\D/g, '');
     const formatted = phone.startsWith('55') ? phone : `55${phone}`;
-    const msg = encodeURIComponent(`Olá, ${leadData.name || 'Lead'}, estou entrando em contato sobre sua proposta de energia solar.`);
+    const msg = encodeURIComponent(`Olá, ${leadData.name || 'Lead'}, só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`);
     return `https://web.whatsapp.com/send?phone=${formatted}&text=${msg}`;
   };
 
