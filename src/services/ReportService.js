@@ -4,9 +4,10 @@ import api from './api';
 // ==========================================================
 // DASHBOARD PRINCIPAL
 // ==========================================================
-export const fetchDashboardMetrics = async (filters) => {
+export const fetchDashboardMetrics = async (filters = {}) => {
   try {
-    const response = await api.post('/reports/data', filters);
+    // NOTE: backend espera { filters: {...} } no body — garantimos isso aqui
+    const response = await api.post('/reports/data', { filters });
     if (!response.data || !response.data.success) {
       throw new Error(response.data?.message || 'Resposta de API de relatórios falhou.');
     }
@@ -18,15 +19,21 @@ export const fetchDashboardMetrics = async (filters) => {
 };
 
 // NOVO ENDPOINT PARA RELATÓRIOS FILTRADOS (RESPEITA DATA!)
-export const fetchFilteredReport = async (filters) => {
+export const fetchFilteredReport = async (filters = {}) => {
   try {
-    // Este é o endpoint correto que respeita startDate e endDate
-    const response = await api.post('/reports/data', {
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
-      source: filters.source === 'all' ? null : filters.source,
-    });
+    // Também envia wrapped para o backend entender corretamente
+    const payload = {
+      filters: {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
+        source: filters.source === 'all' ? null : filters.source,
+        // mantém qualquer outro campo
+        ...(filters.extra || {})
+      }
+    };
+
+    const response = await api.post('/reports/data', payload);
 
     if (!response.data?.success) {
       throw new Error(response.data?.message || 'Erro na resposta da API');
@@ -112,24 +119,23 @@ export const buscarLeadsGanhoParaMapa = async (filters = {}) => {
     const leadsComCoords = await Promise.all(
       leads.map(async (lead) => {
         let latitude = lead.lat || null;
-      let longitude = lead.lng || null;
+        let longitude = lead.lng || null;
 
-      if (!latitude || !longitude) {
-        const coords = await extrairCoordenadasDoLinkGoogleMaps(lead.google_maps_link);
-        if (coords) {
-          latitude = coords.lat;
-          longitude = coords.lng;
+        if (!latitude || !longitude) {
+          const coords = await extrairCoordenadasDoLinkGoogleMaps(lead.google_maps_link);
+          if (coords) {
+            latitude = coords.lat;
+            longitude = coords.lng;
+          }
         }
-      }
 
-      return {
-        ...lead,
-        lat: latitude,
-        lng: longitude,
-        cidade: lead.cidade || 'Cidade não informada',
-        regiao: lead.regiao || 'Outros',
-      };
-
+        return {
+          ...lead,
+          lat: latitude,
+          lng: longitude,
+          cidade: lead.cidade || 'Cidade não informada',
+          regiao: lead.regiao || 'Outros',
+        };
       })
     );
 

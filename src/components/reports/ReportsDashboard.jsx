@@ -320,7 +320,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* ===== MAPA ===== */}
       <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start"
-           style={{ height: "60%" }}>
+           style={{ height: 420 }}>
 
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 text-center rounded-t-2xl">
           <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
