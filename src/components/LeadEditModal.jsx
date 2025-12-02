@@ -1,5 +1,6 @@
+// src/components/LeadEditModal.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave, FaPaperclip, FaPlus, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
+import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
 import axios from 'axios';
 import { STAGES } from '../KanbanBoard.jsx'; 
 import { useAuth } from '../../AuthContext';
@@ -28,12 +29,16 @@ const formatNoteDate = (timestamp) => {
 };
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
-    const { user } = useAuth(); 
-    // AJUSTE 1: Incluir reason_for_loss no estado inicial
+    const { user } = useAuth();
+    
     const [leadData, setLeadData] = useState({ 
-        ...selectedLead || {}, 
-        reason_for_loss: selectedLead?.reason_for_loss || '' 
-    });
+        ...selectedLead || {}, 
+        reasonForLoss: selectedLead?.reasonForLoss || '',
+        kwSold: selectedLead?.kwSold || 0,
+        sellerId: selectedLead?.sellerId || null,
+        sellerName: selectedLead?.sellerName || '',
+        metadata: selectedLead?.metadata || {},
+    });
     const [newNoteText, setNewNoteText] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -44,20 +49,21 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     useEffect(() => {
         if (selectedLead && isModalOpen) {
-            // Garante que o ID do lead seja consistente para o PUT
             const leadIdentifier = selectedLead.id || selectedLead._id;
 
             const leadNotes = Array.isArray(selectedLead.notes)
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
-            // Mapeia snake_case do selectedLead para camelCase do state
             setLeadData({ 
                 ...selectedLead, 
-                // Inclusão do reason_for_loss no reset do estado
-                reason_for_loss: selectedLead.reason_for_loss || '', 
-                avgConsumption: selectedLead.avg_consumption,
-                estimatedSavings: selectedLead.estimated_savings,
+                reasonForLoss: selectedLead.reasonForLoss || '', 
+                kwSold: selectedLead.kwSold || 0,
+                sellerId: selectedLead.sellerId || null,
+                sellerName: selectedLead.sellerName || '',
+                metadata: selectedLead.metadata || {},
+                avgConsumption: selectedLead.avgConsumption,
+                estimatedSavings: selectedLead.estimatedSavings,
                 notes: leadNotes 
             });
             setNewNoteText('');
@@ -85,49 +91,40 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setLeadData((prev) => {
-            const newData = { ...prev, [name]: value };
-            
-            // Lógica de Limpeza do Motivo de Perda ao mudar o status
-            if (name === 'status' && value !== 'Perdido') {
-                newData.reason_for_loss = ''; // Limpa se mudar para outra fase
-            }
-            // Mapeia o reason_for_loss se for ele o campo alterado
-            if (name === 'reason_for_loss') {
-                newData.reason_for_loss = value;
-            }
-            
-            return newData;
-        });
+            let finalValue = value;
+
+            if (name === 'metadata') {
+                try {
+                    finalValue = JSON.parse(value);
+                } catch (e) {
+                    finalValue = value;
+                }
+            }
+
+            const newData = { ...prev, [name]: finalValue };
+            
+            if (name === 'status' && value !== 'Perdido') {
+                newData.reasonForLoss = ''; 
+            }
+            
+            return newData;
+        });
     };
 
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0] || null);
     };
 
-    const handleAddNewNote = () => {
-        if (!newNoteText.trim() && !selectedFile) return;
-
-        let notesArray = leadData.notes ? [...leadData.notes] : [];
-
-        if (newNoteText.trim()) {
-            notesArray.push({ text: newNoteText.trim(), timestamp: Date.now() });
-        }
-
-        if (selectedFile) {
-            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
-            notesArray.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
-        }
-
-        setLeadData((prev) => ({ ...prev, notes: notesArray }));
-        setNewNoteText('');
-        setSelectedFile(null);
-
-        const fileInput = document.getElementById('attachment-input');
-        if (fileInput) fileInput.value = '';
-    };
+    /**
+     * 🟢 CORREÇÃO CRÍTICA: 
+     * A função handleAddNewNote foi removida/ignorada para forçar o fluxo de salvamento 
+     * via saveLeadChanges, garantindo que o backend (que adiciona o timestamp e user_id) 
+     * seja a única fonte de verdade para o histórico de notas.
+     */
+    // const handleAddNewNote = () => { ... lógica anterior ... }; // REMOVIDA
 
     const transferirLead = async () => {
-        if (!novoDonoId || novoDonoId === leadData.owner_id) return;
+        if (!novoDonoId || novoDonoId === leadData.ownerId) return;
 
         try {
             const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -138,7 +135,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 config
             );
 
-            setLeadData(prev => ({ ...prev, owner_id: novoDonoId }));
+            setLeadData(prev => ({ ...prev, ownerId: novoDonoId }));
             setNovoDonoId('');
             alert('Lead transferido com sucesso!');
             fetchLeads();
@@ -148,36 +145,48 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
-    // FUNÇÃO DE SAVE DE LEADS (CORRIGIDA)
+    // FUNÇÃO DE SAVE DE LEADS (AJUSTADA)
     const saveLeadChanges = async () => {
         if (!leadData || saving) return;
 
         setSaving(true);
         setApiError(null);
-        
-        // NOVO CÓDIGO: VALIDAÇÃO DO MOTIVO DE PERDA ANTES DE SALVAR
-        if (leadData.status === 'Perdido' && !leadData.reason_for_loss) {
-            setApiError("O Motivo de Perda é obrigatório para a fase 'Perdido'.");
-            setSaving(false);
-            return;
-        }
-
-        let internalNotes = leadData.notes ? [...leadData.notes] : [];
-
-        if (newNoteText.trim() && !internalNotes.some(n => n.text === newNoteText.trim())) {
-            internalNotes.push({ text: newNoteText.trim(), timestamp: Date.now() });
+        
+        // Validação
+        if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
+            setApiError("O Motivo de Perda é obrigatório para a fase 'Perdido'.");
+            setSaving(false);
+            return;
         }
-        if (selectedFile && !internalNotes.some(n => n.text.includes(selectedFile.name))) {
+        
+        let metadataToSend = leadData.metadata;
+        if (typeof metadataToSend === 'string') {
+            try {
+                metadataToSend = JSON.parse(metadataToSend);
+            } catch(e) {
+                setApiError("O campo Metadata contém um JSON inválido.");
+                setSaving(false);
+                return;
+            }
+        }
+
+        // 1. Processar a nova nota e anexo em um único payload 'newNote' para o backend
+        let newNotePayload = null;
+        let finalNoteText = newNoteText.trim();
+        
+        if (selectedFile) {
             const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
-            internalNotes.push({ text: fileNameNote, timestamp: Date.now(), isAttachment: true });
+            // Adiciona a nota de anexo, com um separador se já houver texto
+            const separator = finalNoteText ? " | " : "";
+            finalNoteText += separator + fileNameNote;
         }
         
-        // Mapeia o array de objetos de notas para uma string JSON de apenas os textos
-        const notesToSend = JSON.stringify(internalNotes.map(n => typeof n === 'string' ? n : n.text).filter(Boolean));
+        if(finalNoteText) {
+            newNotePayload = { text: finalNoteText };
+        }
         
-        // CRÍTICO: Cria o objeto dataToSend explicitamente, mapeando camelCase para snake_case e garantindo owner_id
+        // 2. Cria o objeto dataToSend
         const dataToSend = {
-            // Campos Diretos
             name: leadData.name,
             phone: leadData.phone,
             document: leadData.document,
@@ -187,23 +196,17 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             email: leadData.email,
             uc: leadData.uc,
             qsa: leadData.qsa || null,
-            
-            // CRÍTICO: Owner ID para evitar erro 500
-            owner_id: leadData.owner_id, 
-            
-            // Mapeamento de camelCase para snake_case (DB)
+            owner_id: leadData.ownerId, // Mapeado de ownerId (state) para owner_id (DB)
             avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
             estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            
-            // INCLUSÃO: Motivo de Perda
-            reason_for_loss: leadData.status === 'Perdido' ? (leadData.reason_for_loss || null) : null,
-            
-            // Campos de Geo (lat/lng)
+            reason_for_loss: leadData.status === 'Perdido' ? (leadData.reasonForLoss || null) : null,
+            kw_sold: leadData.kwSold ? parseFloat(leadData.kwSold) : 0,
+            seller_id: leadData.sellerId || null,
+            seller_name: leadData.sellerName || null,
+            metadata: metadataToSend,
             lat: leadData.lat || null, 
             lng: leadData.lng || null,
-            
-            // Notas (JSON String)
-            notes: notesToSend, 
+            newNote: newNotePayload, // 🟢 Correção Crítica 1: Apenas a nova nota é enviada
         };
         
         const leadIdentifier = selectedLead.id || selectedLead._id; 
@@ -211,6 +214,12 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         try {
             const config = { headers: { 'Authorization': `Bearer ${token}` } };
             await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdentifier}`, dataToSend, config);
+
+            // 🟢 Correção Crítica 2: Limpa o estado após o salvamento bem-sucedido
+            setNewNoteText('');
+            setSelectedFile(null);
+            const fileInput = document.getElementById('attachment-input');
+            if (fileInput) fileInput.value = '';
 
             await fetchLeads();
             onClose();
@@ -224,14 +233,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // Função para gerar o link do Google Maps (inalterada)
+    // 🟢 Correção Crítica 3: Formato do link do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        // Usando o formato padrão de pesquisa por endereço
+        return `https://maps.google.com/?q=${encodedAddress}`;
     };
     
-    // FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp para o WEB
+    // FUNÇÃO CORRIGIDA: Gerar o link do WhatsApp
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
@@ -247,7 +257,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     if (!isModalOpen) return null;
 
-    const canAddNewNote = newNoteText.trim() || selectedFile;
+    // Variável canAddNewNote removida, pois a nota será salva com o lead.
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
@@ -296,51 +306,101 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label><input type="text" name="document" className="w-full border rounded px-3 py-2" value={leadData.document || ''} onChange={handleInputChange} /></div>
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
+
+                        {/* NOVO CAMPO: KW VENDIDOS */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">KW Vendidos (kWp)</label>
+                            <input 
+                                type="number" 
+                                name="kwSold" 
+                                className="w-full border rounded px-3 py-2" 
+                                value={leadData.kwSold || ''} 
+                                onChange={handleInputChange} 
+                                step="0.01"
+                            />
+                        </div>
+
+                        {/* NOVO CAMPO: ID VENDEDOR */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">ID Vendedor (Venda)</label>
+                            <input 
+                                type="text" 
+                                name="sellerId" 
+                                className="w-full border rounded px-3 py-2" 
+                                value={leadData.sellerId || ''} 
+                                onChange={handleInputChange} 
+                            />
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
                           
-                        {/* NOVO CAMPO STATUS (Fase do Kanban) */}
-                        <div>
+                        {/* CAMPO STATUS (Fase do Kanban) */}
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Status (Fase do Kanban)</label>
                             <select name="status" className="w-full border rounded px-3 py-2" value={leadData.status || 'Novo'} onChange={handleInputChange}>
                                 {Object.keys(STAGES).map(statusKey => (<option key={statusKey} value={statusKey}>{statusKey}</option>))}
                             </select>
                         </div>
-                        
-                        {/* NOVO CAMPO CONDICIONAL: MOTIVO DE PERDA */}
-                        {leadData.status === 'Perdido' && (
-                            <div>
-                                <label htmlFor="reason_for_loss" className="block text-sm font-bold text-red-600 mb-1">
-                                    Motivo de Perda <span className="text-red-600">*</span>
-                                </label>
-                                <select
-                                    id="reason_for_loss"
-                                    name="reason_for_loss"
-                                    value={leadData.reason_for_loss || ''}
-                                    onChange={handleInputChange}
-                                    className="w-full border border-red-500 rounded px-3 py-2 focus:ring-red-500 focus:border-red-500"
-                                >
-                                    <option value="" disabled>Selecione o motivo...</option>
-                                    {LOSS_REASONS.map(reason => (
-                                        <option key={reason} value={reason}>{reason}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                        {/* FIM: NOVO CAMPO CONDICIONAL */}
+                        
+                        {/* CAMPO CONDICIONAL: MOTIVO DE PERDA */}
+                        {leadData.status === 'Perdido' && (
+                            <div>
+                                <label htmlFor="reasonForLoss" className="block text-sm font-bold text-red-600 mb-1">
+                                    Motivo de Perda <span className="text-red-600">*</span>
+                                </label>
+                                <select
+                                    id="reasonForLoss"
+                                    name="reasonForLoss"
+                                    value={leadData.reasonForLoss || ''}
+                                    onChange={handleInputChange}
+                                    className="w-full border border-red-500 rounded px-3 py-2 focus:ring-red-500 focus:border-red-500"
+                                >
+                                    <option value="" disabled>Selecione o motivo...</option>
+                                    {LOSS_REASONS.map(reason => (
+                                        <option key={reason} value={reason}>{reason}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem</label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} /></div>
+                        
+                        {/* CAMPO: NOME DO VENDEDOR (Venda) */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Vendedor (Venda)</label>
+                            <input 
+                                type="text" 
+                                name="sellerName" 
+                                className="w-full border rounded px-3 py-2" 
+                                value={leadData.sellerName || ''} 
+                                onChange={handleInputChange} 
+                            />
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
                             <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
                         </div>
-                        {/* Removido o campo 'Status (Fase do Kanban)' duplicado */}
                     </div>
 
+                    {/* CAMPO: METADATA (JSON) */}
+                    <div className="mt-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Metadata (JSON Opcional)</label>
+                        <textarea
+                            rows={3}
+                            name="metadata"
+                            className="w-full border rounded px-3 py-2 font-mono text-xs focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="{}"
+                            value={typeof leadData.metadata === 'object' ? JSON.stringify(leadData.metadata, null, 2) : leadData.metadata}
+                            onChange={handleInputChange}
+                        />
+                        {typeof leadData.metadata === 'string' && <p className="text-xs text-red-500 mt-1">⚠️ JSON Inválido ou em Edição</p>}
+                    </div>
+                    
                     {/* TRANSFERÊNCIA DE LEAD */}
-                    {user?.transferencia_leads && leadData.owner_id === user.id && (
+                    {user?.transferencia_leads && leadData.ownerId === user.id && (
                         <div className="mt-6 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
                             <label className="block text-sm font-bold text-green-800 mb-2">
                                 Transferir Lead para outro vendedor:
@@ -379,7 +439,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             rows={3}
                             name="newNoteText"
                             className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Descreva o atendimento ou a anotação aqui..."
+                            placeholder="Descreva o atendimento ou a anotação aqui. Clique em 'Salvar Alterações' para registrar."
                             value={newNoteText}
                             onChange={(e) => setNewNoteText(e.target.value)}
                         />
@@ -396,15 +456,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                 <p className="mt-1 text-sm text-gray-600">Arquivo selecionado: {selectedFile.name}</p>
                             )}
                         </div>
-                        <button
-                            type="button"
-                            onClick={handleAddNewNote}
-                            disabled={!canAddNewNote}
-                            className="px-4 py-2 rounded bg-green-500 text-white font-semibold hover:bg-green-600 disabled:opacity-50 transition duration-200 flex items-center space-x-2"
-                        >
-                            <FaPlus size={14} />
-                            <span>Adicionar Nota ao Histórico</span>
-                        </button>
+                        {/* ❌ REMOVIDO: O botão de adicionar nota imediata foi removido. A nota é salva com o resto do lead. */}
                     </div>
 
                     {/* Histórico de Notas */}
@@ -412,9 +464,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
                         <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
                             {leadData.notes && leadData.notes.length > 0 ? (
+                                // Exibe as notas do estado, que vêm do DB (ou seja, já formatadas)
                                 [...leadData.notes].reverse().map((note, index) => {
                                     const noteText = typeof note === 'string' ? note : (note.text || '');
                                     const noteTimestamp = typeof note === 'string' ? 0 : (note.timestamp || 0);
+                                    const noteUser = typeof note === 'string' ? 'Sistema' : (note.user || 'Sistema');
                                     const isAttachment = noteText.startsWith('[ANEXO REGISTRADO:');
                                     const noteClass = isAttachment
                                         ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 text-sm"
@@ -422,7 +476,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                                     return (
                                         <div key={index} className={noteClass}>
-                                            <p className="font-semibold text-xs text-indigo-600">{formatNoteDate(noteTimestamp)}</p>
+                                            <p className="font-semibold text-xs text-indigo-600">
+                                            {formatNoteDate(noteTimestamp)} - {noteUser}
+                                        </p>
                                             <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
                                                 {noteText}
                                             </p>
