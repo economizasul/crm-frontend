@@ -64,22 +64,46 @@ export const fetchFilteredReport = async (filters = {}) => {
 };
 
 // ==========================================================
-// NOVO — Motivos de Perda (Dinâmico)
+// NOVO — Motivos de Perda (Dinâmico) — versão corretta
 // ==========================================================
 export const fetchLossReasons = async (filters = {}) => {
   try {
-    const response = await api.post('/reports/motivos-perda', { filters });
+    // Mesma estrutura inteligente que você já usa no fetchFilteredReport
+    const payload = {
+      filters: {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
+        source: filters.source === 'all' ? null : filters.source,
+        ...(filters.extra || {})
+      }
+    };
+
+    let response = await api.post('/reports/motivos-perda', payload);
+
+    // fallback em caso de API que não aceita wrapper
+    if (!response?.data || !response.data.success) {
+      response = await api.post('/reports/motivos-perda', {
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
+        source: filters.source === 'all' ? null : filters.source,
+        ...(filters.extra || {})
+      });
+    }
 
     if (!response?.data?.success) {
       throw new Error('Erro ao carregar motivos de perda');
     }
 
+    // O backend retorna: [{ motivo: "Sem interesse", total: 5 }]
     return response.data.data || [];
   } catch (error) {
     console.error('Erro ao buscar motivos de perda:', error);
     return [];
   }
 };
+
 
 // ==========================================================
 // NOTAS ANALÍTICAS
