@@ -7,524 +7,559 @@ import { useAuth } from '../../AuthContext';
 
 // Motivos de Perda
 const LOSS_REASONS = [
-    'Oferta Melhor', 'Incerteza', 'Geração Própria', 'Burocracia', 'Contrato',
-    'Restrições Técnicas', 'Não é o Responsavel', 'Silêncio', 'Já Possui GD',
-    'Outro Estado'
+    'Oferta Melhor', 'Incerteza', 'Geração Própria', 'Burocracia', 'Contrato',
+    'Restrições Técnicas', 'Não é o Responsavel', 'Silêncio', 'Já Possui GD',
+    'Outro Estado'
 ];
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://crm-app-cnf7.onrender.com';
 
 const formatNoteDate = (timestamp) => {
-    if (timestamp === 0 || !timestamp) return 'Sem Data';
-    try {
-        const date = new Date(timestamp);
-        if (isNaN(date.getTime())) return 'Data Inválida';
-        return new Intl.DateTimeFormat('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit', hour12: false,
-        }).format(date);
-    } catch (e) {
-        return 'Erro de Formato';
-    }
+    if (timestamp === 0 || !timestamp) return 'Sem Data';
+    try {
+        const date = new Date(timestamp);
+        if (isNaN(date.getTime())) return 'Data Inválida';
+        return new Intl.DateTimeFormat('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', hour12: false,
+        }).format(date);
+    } catch (e) {
+        return 'Erro de Formato';
+    }
 };
 
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
-    const { user } = useAuth();
-    
-    const [leadData, setLeadData] = useState({ 
-        ...selectedLead || {}, 
-        reasonForLoss: selectedLead?.reasonForLoss || '', // 🟢 Estado inicializado
-        kwSold: selectedLead?.kwSold || 0,
-        sellerId: selectedLead?.sellerId || null,
-        sellerName: selectedLead?.sellerName || '',
-        metadata: selectedLead?.metadata || {},
-    });
-    const [newNoteText, setNewNoteText] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [saving, setSaving] = useState(false);
-    const [apiError, setApiError] = useState(null);
+    const { user } = useAuth(); 
+    
+    // ✅ CORREÇÃO 1: Inicialização do Estado (useState)
+    // Garante que campos numéricos e o novo 'reasonForLoss' tenham um fallback seguro (0 ou '').
+    const [leadData, setLeadData] = useState({ 
+        ...selectedLead || {}, 
+        reasonForLoss: selectedLead?.reasonForLoss || '', // 🟢 Novo campo
+        kwSold: selectedLead?.kwSold || 0,
+        avgConsumption: selectedLead?.avgConsumption || 0, // 👈 Correção: Fallback para 0
+        estimatedSavings: selectedLead?.estimatedSavings || 0, // 👈 Correção: Fallback para 0
+    });
+    
+    const [newNoteText, setNewNoteText] = useState('');
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState(null);
+    const [isTransferring, setIsTransferring] = useState(false);
+    const [users, setUsers] = useState([]);
+    const [newOwnerId, setNewOwnerId] = useState('');
 
-    const [vendedores, setVendedores] = useState([]);
-    const [novoDonoId, setNovoDonoId] = useState('');
+    const isDirty = useCallback(() => {
+        if (!selectedLead) return false;
+        
+        // Compara campos simples
+        const simpleFieldsChanged = Object.keys(leadData).some(key => {
+            if (['notes', 'metadata', 'document', 'lat', 'lng', 'cidade', 'regiao', 'google_maps_link', 'qsa'].includes(key)) return false;
+            
+            // Lógica para valores numéricos, comparando com 0 se forem nulos na origem
+            const leadValue = selectedLead[key] === null || selectedLead[key] === undefined ? 
+                (typeof leadData[key] === 'number' ? 0 : '') : selectedLead[key];
+                
+            return String(leadValue) !== String(leadData[key]);
+        });
+        
+        // Compara notas (simplesmente se o array mudou de tamanho ou se houve alteração nos textos)
+        const currentNotesText = (leadData.notes || []).map(n => n.text).join('|');
+        const originalNotesText = (selectedLead.notes || []).map(n => typeof n === 'string' ? n : n.text).join('|');
+        
+        const notesChanged = currentNotesText !== originalNotesText;
+        
+        return simpleFieldsChanged || notesChanged;
+    }, [leadData, selectedLead]);
 
-    useEffect(() => {
-        if (selectedLead && isModalOpen) {
-            const leadIdentifier = selectedLead.id || selectedLead._id;
+    const fetchUsers = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/leads/users-for-reassignment`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setUsers(response.data);
+            if (leadData.owner_id) {
+                setNewOwnerId(leadData.owner_id);
+            }
+        } catch (err) {
+            console.error('Erro ao buscar usuários:', err);
+            setError('Erro ao buscar usuários para transferência.');
+        }
+    }, [token, leadData.owner_id]);
 
-            const leadNotes = Array.isArray(selectedLead.notes)
-                ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
-                : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
+    useEffect(() => {
+        if (selectedLead && isModalOpen) {
+            const leadIdentifier = selectedLead.id || selectedLead._id;
 
-            setLeadData({ 
-                ...selectedLead, 
-                reasonForLoss: selectedLead.reasonForLoss || '', // 🟢 Inicialização do motivo
-                kwSold: selectedLead.kwSold || 0,
-                sellerId: selectedLead.sellerId || null,
-                sellerName: selectedLead.sellerName || '',
-                metadata: selectedLead.metadata || {},
-                avgConsumption: selectedLead.avgConsumption,
-                estimatedSavings: selectedLead.estimatedSavings,
-                notes: leadNotes 
-            });
-            setNewNoteText('');
-            setSelectedFile(null);
-            setApiError(null);
-            setNovoDonoId(''); 
+            const leadNotes = Array.isArray(selectedLead.notes)
+                ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
+                : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
-            const carregarVendedores = async () => {
-                try {
-                    const res = await axios.get(`${API_BASE_URL}/api/v1/users`, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setVendedores(res.data.filter(u => u.id !== user?.id && u.role !== 'Admin'));
-                } catch (err) {
-                    console.error('Erro ao carregar vendedores', err);
-                }
-            };
-
-            if (user?.transferencia_leads) {
-                carregarVendedores();
-            }
-        }
-    }, [selectedLead, token, user, isModalOpen]);
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setLeadData((prev) => {
-            let finalValue = value;
-
-            if (name === 'metadata') {
-                try {
-                    finalValue = JSON.parse(value);
-                } catch (e) {
-                    finalValue = value;
-                }
-            }
-
-            const newData = { ...prev, [name]: finalValue };
-            
-            // 🟢 Lógica: Limpar motivo da perda se o status for alterado para diferente de 'Perdido'
-            if (name === 'status' && value !== 'Perdido') {
-                newData.reasonForLoss = ''; 
-            }
-            
-            return newData;
-        });
-    };
-
-    const handleFileChange = (e) => {
-        setSelectedFile(e.target.files[0] || null);
-    };
-
-    const transferirLead = async () => {
-        if (!novoDonoId || novoDonoId === leadData.ownerId) return;
-
-        try {
-            const config = { headers: { Authorization: `Bearer ${token}` } };
-            const leadIdentifier = selectedLead.id || selectedLead._id; 
-            await axios.put(
-                `${API_BASE_URL}/api/v1/leads/${leadIdentifier}`,
-                { owner_id: novoDonoId },
-                config
-            );
-
-            setLeadData(prev => ({ ...prev, ownerId: novoDonoId }));
-            setNovoDonoId('');
-            alert('Lead transferido com sucesso!');
-            fetchLeads();
-        } catch (err) {
-            const msg = err.response?.data?.error || err.message;
-            alert('Erro ao transferir lead: ' + msg);
-        }
-    };
-
-    // FUNÇÃO DE SAVE DE LEADS
-    const saveLeadChanges = async () => {
-        if (!leadData || saving) return;
-
-        setSaving(true);
-        setApiError(null);
-        
-        // Validação: Motivo da Perda é obrigatório se o status for 'Perdido'
-        if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
-            setApiError("O Motivo de Perda é obrigatório para a fase 'Perdido'.");
-            setSaving(false);
-            return;
-        }
-        
-        let metadataToSend = leadData.metadata;
-        if (typeof metadataToSend === 'string') {
-            try {
-                metadataToSend = JSON.parse(metadataToSend);
-            } catch(e) {
-                setApiError("O campo Metadata contém um JSON inválido.");
-                setSaving(false);
-                return;
-            }
-        }
-
-        // 1. Processar a nova nota e anexo em um único payload 'newNote' para o backend
-        let newNotePayload = null;
-        let finalNoteText = newNoteText.trim();
-        
-        if (selectedFile) {
-            const fileNameNote = `[ANEXO REGISTRADO: ${selectedFile.name}]`;
-            // Adiciona a nota de anexo, com um separador se já houver texto
-            const separator = finalNoteText ? " | " : "";
-            finalNoteText += separator + fileNameNote;
-        }
-        
-        if(finalNoteText) {
-            newNotePayload = { text: finalNoteText };
-        }
-        
-        // 2. Cria o objeto dataToSend
-        const dataToSend = {
-            name: leadData.name,
-            phone: leadData.phone,
-            document: leadData.document,
-            address: leadData.address,
-            status: leadData.status,
-            origin: leadData.origin,
-            email: leadData.email,
-            uc: leadData.uc,
-            qsa: leadData.qsa || null,
-            owner_id: leadData.ownerId, // Mapeado de ownerId (state) para owner_id (DB)
-            avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-            estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-            // 🟢 Lógica de envio: Manda o valor se 'Perdido', senão manda null
-            reason_for_loss: leadData.status === 'Perdido' ? (leadData.reasonForLoss || null) : null, 
-            kw_sold: leadData.kwSold ? parseFloat(leadData.kwSold) : 0,
-            seller_id: leadData.sellerId || null,
-            seller_name: leadData.sellerName || null,
-            metadata: metadataToSend,
-            lat: leadData.lat || null, 
-            lng: leadData.lng || null,
-            newNote: newNotePayload, 
-        };
-        
-        const leadIdentifier = selectedLead.id || selectedLead._id; 
-
-        try {
-            const config = { headers: { 'Authorization': `Bearer ${token}` } };
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadIdentifier}`, dataToSend, config);
-
-            setNewNoteText('');
-            setSelectedFile(null);
-            const fileInput = document.getElementById('attachment-input');
-            if (fileInput) fileInput.value = '';
-
-            await fetchLeads();
-            onClose();
-            onSave(true, 'Lead salvo com sucesso!');
-        } catch (error) {
-            console.error('Erro ao salvar lead:', error.response?.data || error.message);
-            const serverError = error.response?.data?.error || 'Erro desconhecido';
-            setApiError(`Falha ao salvar: ${serverError}`);
-        } finally {
-            setSaving(false);
-        }
-    };
-    
-    // 🛠️ FIX 1: Adicionada a chave de fechamento '}' que estava faltando, corrigindo o erro de sintaxe em cascata.
-    // 🛠️ FIX 2: Corrigida a URL de retorno e o template literal.
-    const getGoogleMapsLink = () => {
-        if (!leadData.address) return null;
-        const encodedAddress = encodeURIComponent(leadData.address);
-        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-    }; 
-    
-    const getWhatsAppLink = () => {
-        if (!leadData.phone) return null;
-        const onlyNumbers = leadData.phone.replace(/[\D]/g, '');
-        const formattedPhone = onlyNumbers.startsWith('55') ? onlyNumbers : `55${onlyNumbers}`;
-        
-        const initialMessage = `Olá, ${leadData.name || 'Lead'}, só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`;
-        const encodedMessage = encodeURIComponent(initialMessage);
-
-        // Protocolo WA WEB CORRIGIDO (usa web.whatsapp.com)
-        return `https://web.whatsapp.com/send?phone=${formattedPhone}&text=${encodedMessage}`;
-    };
+            // ✅ CORREÇÃO 2: Sincronização do Estado (useEffect)
+            // Garante que campos numéricos e o novo 'reasonForLoss' tenham um fallback seguro (0 ou '').
+            setLeadData({ 
+                ...selectedLead, 
+                reasonForLoss: selectedLead.reasonForLoss || '', 
+                kwSold: selectedLead.kwSold || 0,
+                sellerId: selectedLead.sellerId || null,
+                sellerName: selectedLead.sellerName || '',
+                metadata: selectedLead.metadata || {},
+                avgConsumption: selectedLead.avgConsumption || 0, // 👈 Correção: Fallback para 0
+                estimatedSavings: selectedLead.estimatedSavings || 0, // 👈 Correção: Fallback para 0
+                notes: leadNotes 
+            });
+            
+            setError(null);
+            setNewNoteText('');
+            setSelectedFile(null);
+            
+            if (user.role === 'Admin') {
+                fetchUsers();
+            }
+        }
+    }, [selectedLead, token, user, isModalOpen, fetchUsers]);
 
 
-    if (!isModalOpen) return null;
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setLeadData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleOwnerChange = (e) => {
+        setNewOwnerId(e.target.value);
+    };
+
+    const handleFileChange = (e) => {
+        setSelectedFile(e.target.files[0]);
+    };
+
+    const handleAddNote = () => {
+        if (newNoteText.trim() === '') return;
+        
+        const note = {
+            text: newNoteText.trim(),
+            timestamp: Date.now(),
+            user: user.name || 'Usuário Desconhecido'
+        };
+
+        setLeadData(prev => ({
+            ...prev,
+            notes: [...(prev.notes || []), note]
+        }));
+        setNewNoteText('');
+    };
+    
+    const handleAddAttachmentNote = async () => {
+        if (!selectedFile) return;
+
+        setSaving(true);
+        setError(null);
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('leadId', leadData.id || leadData._id);
+        formData.append('user', user.name || 'Usuário Desconhecido');
+
+        try {
+            // Supondo que você tem um endpoint para upload e ele retorna a URL do arquivo
+            const response = await axios.post(`${API_BASE_URL}/leads/upload-attachment`, formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+
+            const fileUrl = response.data.url; 
+            const fileName = selectedFile.name;
+
+            const note = {
+                text: `[ANEXO: ${fileName}] - URL: ${fileUrl}`,
+                timestamp: Date.now(),
+                user: user.name || 'Usuário Desconhecido',
+                isAttachment: true
+            };
+
+            setLeadData(prev => ({
+                ...prev,
+                notes: [...(prev.notes || []), note]
+            }));
+            
+            setSelectedFile(null);
+            alert('Anexo enviado com sucesso e nota adicionada!');
+
+        } catch (err) {
+            console.error('Erro ao enviar anexo:', err);
+            setError('Erro ao enviar o anexo. Tente novamente.');
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    const saveLeadChanges = async () => {
+        if (saving || !isDirty()) return;
+
+        // Validação condicional para 'Motivo da Perda'
+        if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
+            setError('O Motivo da Perda é obrigatório quando a fase é "Perdido".');
+            return;
+        }
+
+        setSaving(true);
+        setError(null);
+        
+        // Remove campos que não devem ser enviados ou que são calculados
+        const payload = { ...leadData };
+        delete payload._id; 
+        delete payload.owner_name;
+        delete payload.created_at;
+        delete payload.updated_at;
+        delete payload.__v;
+        
+        // Converte o array de notes para string JSON para salvar no banco
+        payload.notes = JSON.stringify(payload.notes || []);
+
+        try {
+            await axios.put(`${API_BASE_URL}/leads/${leadData.id || leadData._id}`, payload, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            // Se houver mudança de fase para "Ganho", registra a data
+            if (leadData.status === 'Ganho' && !selectedLead.date_won) {
+                 await axios.put(`${API_BASE_URL}/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
 
 
-    return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-                <div className="flex justify-between items-center border-b pb-3 mb-4">
-                    <h2 className="text-2xl font-bold text-indigo-800">Editar Lead: {leadData.name}</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><FaTimes size={20} /></button>
-                </div>
+            onSave(leadData); // Atualiza o estado no KanbanBoard
+            fetchLeads(); // Força a busca para atualizar dados na tela principal
+            onClose(); // Fecha o modal
+        } catch (err) {
+            console.error('Erro ao salvar lead:', err);
+            setError(err.response?.data?.error || 'Erro ao salvar alterações.');
+        } finally {
+            setSaving(false);
+        }
+    };
+    
+    const transferLead = async () => {
+        if (!newOwnerId) return;
 
-                {apiError && <p className="text-red-500 mb-3 p-2 bg-red-50 rounded">{apiError}</p>}
+        setIsTransferring(true);
+        setError(null);
+        
+        try {
+            await axios.post(`${API_BASE_URL}/leads/reassign/${leadData.id || leadData._id}`, 
+                { newOwnerId }, 
+                {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }
+            );
+            
+            alert('Lead transferido com sucesso!');
+            fetchLeads();
+            onClose();
+        } catch (err) {
+            console.error('Erro ao transferir lead:', err);
+            setError(err.response?.data?.error || 'Erro ao transferir lead.');
+        } finally {
+            setIsTransferring(false);
+        }
+    };
+    
+    // ✅ CORREÇÃO 3: URL do Google Maps
+    const getGoogleMapsLink = () => {
+        if (!leadData.address) return null;
+        const encodedAddress = encodeURIComponent(leadData.address);
+        // Uso do formato correto do Google Maps para pesquisa
+        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    };
 
-                <div className="space-y-4">
-                    
-                    {/* Container para os links */}
-                    <div className="flex flex-wrap gap-3">
-                        {/* Link Google Maps */}
-                        {leadData.address && (
-                            <a 
-                                href={getGoogleMapsLink()} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150"
-                            >
-                                <FaMapMarkerAlt className="mr-2" />
-                                Ver Endereço no Google Maps
-                            </a>
-                        )}
-                        {/* Link WhatsApp */}
-                        {leadData.phone && (
-                            <a 
-                                href={getWhatsAppLink()} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150"
-                            >
-                                <FaWhatsapp className="mr-2" />
-                                Iniciar Conversa
-                            </a>
-                        )}
-                    </div>
-                    
-                    {/* Linha 1: Nome, Email, Telefone, Documento */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Nome <span className="text-red-500">*</span></label><input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} required /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" name="email" className="w-full border rounded px-3 py-2" value={leadData.email || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label><input type="text" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} required /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Documento</label><input type="text" name="document" className="w-full border rounded px-3 py-2" value={leadData.document || ''} onChange={handleInputChange} /></div>
-                    </div>
+    const getWhatsAppLink = () => {
+        if (!leadData.phone) return null;
+        const normalizedPhone = leadData.phone.replace(/\D/g, ''); // Remove todos os não-dígitos
+        return `https://api.whatsapp.com/send?phone=55${normalizedPhone}`; // Assumindo código do país 55 (Brasil)
+    };
 
-                    {/* Linha 2: Endereço, UC, Origem */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label><input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">UC</label><input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} /></div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Origem <span className="text-red-500">*</span></label><input type="text" name="origin" className="w-full border rounded px-3 py-2" value={leadData.origin || ''} onChange={handleInputChange} required /></div>
-                    </div>
+    if (!isModalOpen || !selectedLead) return null;
 
-                    {/* ========================================================================= */}
-                    {/* 🟢 LINHA REORGANIZADA (4 COLUNAS): Consumo, Economia, Status, Motivo da Perda */}
-                    {/* ========================================================================= */}
-                    <div className="flex flex-wrap -mx-2 mb-4">
-                        
-                        {/* Consumo Médio (Kwh) - 25% */}
-                        <div className="w-full md:w-1/4 px-2 mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
-                            <input 
-                                type="number" 
-                                name="avgConsumption" 
-                                className="w-full border rounded px-3 py-2" 
-                                value={leadData.avgConsumption || ''} 
-                                onChange={handleInputChange} 
-                            />
-                        </div>
+    return (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                {/* Cabeçalho */}
+                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                        Editar Lead: {leadData.name || 'Sem Nome'}
+                    </h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                        <FaTimes size={20} />
+                    </button>
+                </div>
 
-                        {/* Economia Estimada (R$) - 25% */}
-                        <div className="w-full md:w-1/4 px-2 mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada (R$)</label>
-                            <input 
-                                type="number" 
-                                name="estimatedSavings" 
-                                className="w-full border rounded px-3 py-2" 
-                                value={leadData.estimatedSavings || ''} 
-                                onChange={handleInputChange} 
-                            />
-                        </div>
+                {/* Conteúdo do Modal */}
+                <div className="p-6 overflow-y-auto flex-grow">
+                    {error && (
+                        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                            <p className="font-bold">Erro:</p>
+                            <p>{error}</p>
+                        </div>
+                    )}
+                    
+                    <form onSubmit={(e) => { e.preventDefault(); saveLeadChanges(); }}>
+                        
+                        {/* Status Bar */}
+                        <div className="mb-4 p-3 rounded-lg flex justify-between items-center text-sm font-semibold"
+                            style={{ backgroundColor: STAGES[leadData.status]?.replace('100', '200') || '#f3f4f6', color: STAGES[leadData.status]?.replace('bg-', 'text-') || '#1f2937' }}>
+                            <span>Fase Atual: {leadData.status}</span>
+                            <span>ID: {leadData.id || leadData._id}</span>
+                            <span>Proprietário: {leadData.sellerName || 'N/A'}</span>
+                        </div>
+                        
+                        {/* Ações Rápidas */}
+                        <div className="flex space-x-3 mb-4">
+                            {leadData.address && (
+                                <a href={getGoogleMapsLink()} target="_blank" rel="noopener noreferrer" 
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+                                    <FaMapMarkerAlt size={16} /> Abrir no Maps
+                                </a>
+                            )}
+                            {leadData.phone && (
+                                <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" 
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                                    <FaWhatsapp size={16} /> Chamar no WhatsApp
+                                </a>
+                            )}
+                        </div>
 
-                        {/* Status/Fase (Conta) - 25% */}
-                        <div className="w-full md:w-1/4 px-2 mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Fase (Conta) <span className="text-red-500">*</span></label>
-                            <select
-                                name="status"
-                                className="w-full border rounded px-3 py-2 bg-white"
-                                value={leadData.status}
-                                onChange={handleInputChange}
-                                required
-                            >
-                                {STAGES.map(stage => (
-                                    <option key={stage} value={stage}>{stage}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* Campos de Informação Principal */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                <input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                                <input type="email" name="email" className="w-full border rounded px-3 py-2" value={leadData.email || ''} onChange={handleInputChange} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                <input type="tel" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">UC (Unidade Consumidora)</label>
+                                <input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
 
-                        {/* 🟢 NOVO CAMPO: Motivo da Perda - 25% */}
-                        <div className="w-full md:w-1/4 px-2 mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Perda</label>
-                            <select
-                                name="reasonForLoss"
-                                className={`w-full border rounded px-3 py-2 ${
-                                    leadData.status !== 'Perdido' 
-                                        ? 'bg-gray-100 cursor-not-allowed' 
-                                        : 'bg-white border-red-500' // Destaca se estiver ativo e for importante
-                                }`}
-                                value={leadData.reasonForLoss || ''}
-                                onChange={handleInputChange}
-                                disabled={leadData.status !== 'Perdido'}
-                                required={leadData.status === 'Perdido'} // Torna obrigatório se for 'Perdido'
-                            >
-                                <option value="" disabled>
-                                    {leadData.status !== 'Perdido' ? 'Desabilitado' : 'Selecione o motivo *'}
-                                </option>
-                                {LOSS_REASONS.map(reason => (
-                                    <option key={reason} value={reason}>{reason}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-                    {/* ========================================================================= */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Endereço (Rua, Número, Cidade, Estado)</label>
+                            <input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} />
+                        </div>
+                        
+                        {/* Linha de 4 Colunas: Consumo, Economia, Status, Motivo da Perda */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
+                            
+                            {/* Consumo Médio (Kwh) - 25% */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
+                                <input 
+                                    type="number" 
+                                    name="avgConsumption" 
+                                    className="w-full border rounded px-3 py-2" 
+                                    value={leadData.avgConsumption || ''} 
+                                    onChange={handleInputChange} 
+                                />
+                            </div>
 
+                            {/* Economia Estimada (R$) - 25% */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada (R$)</label>
+                                <input 
+                                    type="number" 
+                                    name="estimatedSavings" 
+                                    className="w-full border rounded px-3 py-2" 
+                                    value={leadData.estimatedSavings || ''} 
+                                    onChange={handleInputChange} 
+                                />
+                            </div>
 
-                    {/* Linha 3: QSA (Observações) */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">QSA (Quadro de Sócios e Administradores)</label>
-                        <textarea name="qsa" className="w-full border rounded px-3 py-2" value={leadData.qsa || ''} onChange={handleInputChange}></textarea>
-                    </div>
+                            {/* Status/Fase (Conta) - 25% */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Fase (Conta) <span className="text-red-500">*</span></label>
+                                <select
+                                    name="status"
+                                    className="w-full border rounded px-3 py-2 bg-white"
+                                    value={leadData.status}
+                                    onChange={handleInputChange}
+                                    required
+                                >
+                                    {Object.keys(STAGES).map(stage => (
+                                        <option key={stage} value={stage}>{stage}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                    {/* Linha 4: KW Vendidos, Nome do Vendedor */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">KW Vendidos (kWp)</label>
-                            <input 
-                                type="number" 
-                                name="kwSold" 
-                                className="w-full border rounded px-3 py-2" 
-                                value={leadData.kwSold || ''} 
-                                onChange={handleInputChange} 
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Vendedor</label>
-                            <input 
-                                type="text" 
-                                name="sellerName" 
-                                className="w-full border rounded px-3 py-2" 
-                                value={leadData.sellerName || ''} 
-                                onChange={handleInputChange} 
-                            />
-                        </div>
-                    </div>
+                            {/* 🟢 NOVO CAMPO: Motivo da Perda - 25% */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Perda</label>
+                                <select
+                                    name="reasonForLoss"
+                                    className={`w-full border rounded px-3 py-2 ${
+                                        leadData.status !== 'Perdido' 
+                                            ? 'bg-gray-100 cursor-not-allowed' 
+                                            : 'bg-white' 
+                                    }`}
+                                    value={leadData.reasonForLoss || ''}
+                                    onChange={handleInputChange}
+                                    disabled={leadData.status !== 'Perdido'}
+                                    required={leadData.status === 'Perdido'} // Torna obrigatório se for 'Perdido'
+                                >
+                                    <option value="" disabled>
+                                        {leadData.status !== 'Perdido' ? 'Desabilitado' : 'Selecione o motivo *'}
+                                    </option>
+                                    {LOSS_REASONS.map(reason => (
+                                        <option key={reason} value={reason}>{reason}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Observações/QSA</label>
+                            <textarea name="qsa" className="w-full border rounded px-3 py-2" rows="2" value={leadData.qsa || ''} onChange={handleInputChange}></textarea>
+                        </div>
+                        
+                        {/* Transferência de Lead (Apenas para Admin) */}
+                        {user.role === 'Admin' && users.length > 0 && (
+                            <div className="mb-4 p-4 border rounded-lg bg-yellow-50 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <label className="text-sm font-medium text-gray-800">Transferir Lead para:</label>
+                                    <select
+                                        name="newOwner"
+                                        className="border rounded px-3 py-2 bg-white"
+                                        value={newOwnerId}
+                                        onChange={handleOwnerChange}
+                                    >
+                                        <option value="">Selecione um Proprietário</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>
+                                                {u.name} ({u.role})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={transferLead} 
+                                    disabled={isTransferring || newOwnerId === leadData.owner_id}
+                                    className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {isTransferring ? 'Transferindo...' : 'Transferir'}
+                                </button>
+                            </div>
+                        )}
+                        
+                    </form>
 
-                    {/* Linha 5: Metadata, Lat, Lng */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Metadata (JSON)</label>
-                            <textarea 
-                                name="metadata" 
-                                rows={2} 
-                                className="w-full border rounded px-3 py-2" 
-                                value={typeof leadData.metadata === 'string' ? leadData.metadata : JSON.stringify(leadData.metadata, null, 2)} 
-                                onChange={handleInputChange} 
-                            />
-                            {typeof leadData.metadata === 'string' && <p className="text-xs text-red-500 mt-1">⚠️ JSON Inválido ou em Edição</p>}
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                            <input type="text" name="lat" className="w-full border rounded px-3 py-2" value={leadData.lat || ''} onChange={handleInputChange} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                            <input type="text" name="lng" className="w-full border rounded px-3 py-2" value={leadData.lng || ''} onChange={handleInputChange} />
-                        </div>
-                    </div>
-                    
-                    {/* TRANSFERÊNCIA DE LEAD */}
-                    {user?.transferencia_leads && leadData.ownerId === user.id && (
-                        <div className="mt-6 p-4 border-2 border-dashed border-green-300 rounded-lg bg-green-50">
-                            <h4 className="text-lg font-bold text-green-700 mb-3">Transferir Lead</h4>
-                            <p className="text-sm text-gray-700 mb-3">Reatribua este lead para outro vendedor.</p>
-                            <div className="flex space-x-3">
-                                <select
-                                    className="w-3/4 border rounded px-3 py-2"
-                                    value={novoDonoId}
-                                    onChange={(e) => setNovoDonoId(e.target.value)}
-                                >
-                                    <option value="">Selecione um Vendedor</option>
-                                    {vendedores.map(v => (
-                                        <option key={v.id} value={v.id}>
-                                            {v.name} ({v.email}) 
-                                        </option>
-                                    ))}
-                                </select>
-                                <button
-                                    onClick={transferirLead}
-                                    disabled={!novoDonoId}
-                                    className="w-1/4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
-                                >
-                                    Transferir
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    {/* Seção de Notas e Anexos */}
+                    <h3 className="text-lg font-semibold border-b pb-2 mt-6 mb-4 text-gray-800">Histórico e Notas</h3>
+                    
+                    {/* Adicionar Nota */}
+                    <div className="mb-4 border p-4 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Nova Nota:</label>
+                        <div className="flex space-x-2 mb-2">
+                            <textarea 
+                                className="w-full border rounded px-3 py-2" 
+                                rows="2" 
+                                value={newNoteText} 
+                                onChange={(e) => setNewNoteText(e.target.value)} 
+                                placeholder="Digite sua anotação..."
+                            ></textarea>
+                            <button 
+                                type="button" 
+                                onClick={handleAddNote} 
+                                disabled={newNoteText.trim() === ''}
+                                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                                Adicionar
+                            </button>
+                        </div>
+                        
+                        {/* Anexo */}
+                        <div className="flex items-center space-x-2 mt-2">
+                            <input 
+                                type="file" 
+                                onChange={handleFileChange} 
+                                className="text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+                            />
+                            {selectedFile && (
+                                <button 
+                                    type="button" 
+                                    onClick={handleAddAttachmentNote} 
+                                    disabled={saving}
+                                    className="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <FaPaperclip size={16} /> 
+                                    {saving ? 'Enviando...' : 'Anexar & Notar'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-                    {/* Adicionar Nova Nota/Anexo */}
-                    <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-                        <label htmlFor="newNoteText" className="block text-sm font-bold text-indigo-800 mb-3 flex items-center space-x-2"><FaPaperclip size={16} /><span>Adicionar Novo Atendimento / Anexo</span></label>
-                        <textarea
-                            rows={3}
-                            name="newNoteText"
-                            className="w-full border rounded px-3 py-2 mb-3 focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Descreva o atendimento ou a anotação aqui. Clique em 'Salvar Alterações' para registrar."
-                            value={newNoteText}
-                            onChange={(e) => setNewNoteText(e.target.value)}
-                        />
-                        <input 
-                            type="file" 
-                            id="attachment-input"
-                            onChange={handleFileChange} 
-                            className="text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                        />
-                        {selectedFile && <span className="ml-3 text-indigo-600 text-sm">Arquivo Selecionado: {selectedFile.name}</span>}
-                    </div>
-
-                    {/* Histórico de Notas */}
-                    <div>
-                        <h3 className="text-md font-bold text-gray-800 mb-2">Histórico de Notas ({leadData.notes?.length || 0})</h3>
-                        <div className="max-h-40 overflow-y-auto border p-3 rounded-lg bg-white shadow-inner">
-                            {Array.isArray(leadData.notes) && leadData.notes.length > 0 ? (
-                                leadData.notes.slice().reverse().map((note, index) => {
-                                    const noteTimestamp = note.timestamp || 0;
-                                    const noteUser = note.user || 'Sistema';
-                                    const noteText = note.text || '';
-                                    const isAttachment = noteText.includes('[ANEXO REGISTRADO:');
-                                    
-                                    const noteClass = isAttachment
-                                        ? "mb-2 p-2 border-l-4 border-yellow-500 bg-yellow-50 rounded text-sm"
-                                        : "mb-2 p-2 border-b last:border-b-0 text-sm";
-                                        
-                                    return (
-                                        <div key={index} className={noteClass}>
-                                            <p className="font-semibold text-xs text-indigo-600">
-                                                {formatNoteDate(noteTimestamp)} - {noteUser}
-                                            </p>
-                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
-                                                {noteText}
-                                            </p>
-                                        </div>
+                    {/* Lista de Notas */}
+                    <div className="max-h-60 overflow-y-auto border rounded-lg p-4 bg-white">
+                        <div className="space-y-3">
+                            {leadData.notes && leadData.notes.length > 0 ? (
+                                [...leadData.notes].reverse().map((note, index) => {
+                                    const noteText = note.text;
+                                    const noteTimestamp = note.timestamp || 0;
+                                    const noteUser = note.user || 'Sistema';
+                                    const isAttachment = note.isAttachment;
+                                    
+                                    // Determina a cor do cabeçalho da nota
+                                    let headerBg = 'bg-gray-100';
+                                    if (noteUser === 'Sistema') {
+                                        headerBg = 'bg-indigo-50';
+                                    } else if (isAttachment) {
+                                        headerBg = 'bg-yellow-100';
+                                    }
+                                    
+                                    return (
+                                        <div key={index} className="p-3 border rounded-lg shadow-sm">
+                                            <p className={`text-xs font-semibold ${headerBg} p-1 rounded inline-block mb-1`}>
+                                                {formatNoteDate(noteTimestamp)} - {noteUser}
+                                            </p>
+                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
+                                                {noteText}
+                                            </p>
+                                        </div>
                                     );
-                                })
-                            ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
-                        </div>
-                    </div>
-                </div>
+                                })
+                            ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
+                        </div>
+                    </div>
+                </div>
 
-                <div className="mt-6 flex justify-end space-x-2">
-                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
-                    <button
-                        type="button"
-                        onClick={saveLeadChanges}
-                        disabled={saving}
-                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
-                    >
-                        <FaSave size={16} />
-                        <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+                {/* Footer / Botões de Ação */}
+                <div className="mt-6 p-4 border-t flex justify-end space-x-2 sticky bottom-0 bg-white z-10">
+                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
+                    <button
+                        type="button"
+                        onClick={saveLeadChanges}
+                        disabled={saving || !isDirty()} // Desabilita se não houver alterações
+                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                    >
+                        <FaSave size={16} />
+                        <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default LeadEditModal;
