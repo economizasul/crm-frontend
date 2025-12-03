@@ -11,10 +11,10 @@ import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
 import MotivosPerdaChart from './MotivosPerdaChart.jsx';
 
 const SkeletonCard = () => (
-  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
-    <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-4"></div>
-    <div className="h-10 bg-gray-400 dark:bg-gray-500 rounded w-24"></div>
-  </div>
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+    <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-4"></div>
+    <div className="h-10 bg-gray-400 dark:bg-gray-500 rounded w-24"></div>
+  </div>
 );
 
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
@@ -32,7 +32,7 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
     <motion.p className="mt-1 text-xl font-semibold text-gray-900 dark:text-white leading-tight">
       {value}
     </motion.p>
-
+  
     <p className="mt-0 text-[10px] text-gray-400 dark:text-gray-500">{subtext}</p>
   </motion.div>
 );
@@ -43,11 +43,18 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const [regiaoSelecionada, setRegiaoSelecionada] = useState(null);
   const [vendedorSelecionado, setVendedorSelecionado] = useState('todos');
   const [carregandoMapa, setCarregandoMapa] = useState(true);
-
-  // PROTEÇÃO TOTAL CONTRA DADOS NULOS
+ 
+  // Pega os dados do objeto 'data' (que vem do useReports/ReportController)
+  const globalSummary = data?.globalSummary || {};
+  const funnel = data?.funnel || {};
+  const originStats = data?.funnelOrigins || []; 
+   
+  // Variáveis de Relatório
   const productivity = data?.productivity || {};
   const dailyActivity = data?.dailyActivity || {};
-  const lostReasons = data?.lostReasons || {};
+  const lostReasonsData = data?.lostReasons || [];
+   
+  // Variáveis de Configuração/Filtros
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
@@ -101,29 +108,29 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
-  const leadsVisiveis = regiaoSelecionada
-    ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)
-    : leadsMapa;
+      const leadsVisiveis = regiaoSelecionada
+        ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)
+        : leadsMapa;
 
-  const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
-  const fmtKw = (v) => `${Number(v || 0).toLocaleString('pt-BR')} kW`;
-  const fmtPercent = (v) => `${(Number(v || 0) * 100).toFixed(1).replace('.', ',')}%`;
-  const fmtDays = (v) => `${Number(v || 0).toFixed(1).replace('.', ',')} dias`;
+      const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
+      const fmtKw = (v) => `${Number(v || 0).toLocaleString('pt-BR')} kW`;
+      const fmtPercent = (v) => `${(Number(v || 0) * 100).toFixed(1).replace('.', ',')}%`;
+      const fmtDays = (v) => `${Number(v || 0).toFixed(1).replace('.', ',')} dias`;
 
-  // ESTADOS DE CARREGAMENTO
-  if (loading) {
-    return (
-      <div className="p-6 space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-        <div className="text-center py-20">
-          <FaSpinner className="animate-spin text-6xl text-indigo-600 mx-auto mb-4" />
-          <p className="text-xl text-gray-600 dark:text-gray-300">Carregando relatório...</p>
-        </div>
-      </div>
-    );
-  }
+      // ESTADOS DE CARREGAMENTO
+      if (loading) {
+        return (
+          <div className="p-6 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+            <div className="text-center py-20">
+              <FaSpinner className="animate-spin text-6xl text-indigo-600 mx-auto mb-4" />
+              <p className="text-xl text-gray-600 dark:text-gray-300">Carregando relatório...</p>
+            </div>
+          </div>
+        );
+      }
 
   if (error) {
     return (
@@ -172,43 +179,43 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-  <DashboardCard
-    title="Leads Totais"
-    value={fmtNumber(productivity.totalLeads)}
-    icon={FaTags}
-    colorClass="text-indigo-600 dark:text-indigo-400"
-  />
+        <DashboardCard
+          title="Leads Totais"
+          value={fmtNumber(productivity.totalLeads)}
+          icon={FaTags}
+          colorClass="text-indigo-600 dark:text-indigo-400"
+        />
 
-  <DashboardCard
-    title="KW Vendido"
-    value={fmtKw(productivity.totalWonValueKW)}
-    icon={FaDollarSign}
-    colorClass="text-green-600 dark:text-green-400"
-  />
+        <DashboardCard
+          title="KW Vendido"
+          value={fmtKw(productivity.totalWonValueKW)}
+          icon={FaDollarSign}
+          colorClass="text-green-600 dark:text-green-400"
+        />
 
-  <DashboardCard
-    title="Taxa Conversão"
-    value={fmtPercent(productivity.conversionRate)}
-    icon={FaChartLine}
-    colorClass="text-blue-600 dark:text-blue-400"
-  />
+        <DashboardCard
+          title="Taxa Conversão"
+          value={fmtPercent(productivity.conversionRate)}
+          icon={FaChartLine}
+          colorClass="text-blue-600 dark:text-blue-400"
+        />
 
-  {/* 🔥 NOVO KPI: Tempo Médio de Fechamento em Horas */}
-  <DashboardCard
-    title="Tempo Médio Fechamento"
-    value={`${Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h`}
-    icon={FaClock}
-    colorClass="text-orange-600 dark:text-orange-400"
-  />
+        {/* 🔥 NOVO KPI: Tempo Médio de Fechamento em Horas */}
+        <DashboardCard
+          title="Tempo Médio Fechamento"
+          value={`${Number(data.globalSummary?.tempoMedioFechamentoHoras || 0).toFixed(1).replace('.', ',')} h`}
+          icon={FaClock}
+          colorClass="text-orange-600 dark:text-orange-400"
+        />
 
-  {/* 🔥 NOVO KPI: Tempo Médio de Atendimento */}
-  <DashboardCard
-    title="Tempo Médio Atendimento"
-    value={`${Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h`}
-    icon={FaUserTie}
-    colorClass="text-purple-600 dark:text-purple-400"
-  />
-</div>
+        {/* 🔥 NOVO KPI: Tempo Médio de Atendimento */}
+        <DashboardCard
+          title="Tempo Médio Atendimento"
+          value={`${Number(data.globalSummary?.tempoMedioAtendimentoHoras || 0).toFixed(1).replace('.', ',')} h`}
+          icon={FaUserTie}
+          colorClass="text-purple-600 dark:text-purple-400"
+        />
+      </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
       {/* ===== LAYOUT FINAL — RESUMO TERMINA COLADINHO + FUNIL PERFEITO ===== */}
@@ -401,7 +408,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
 
           <div className="text-center mt-6">
-            <div className="text-3xl font-extrabold text-gray-800">
+            <div className="text-3xl font-extrabold text-gray-600">
               {fmtNumber(productivity.totalLeads)}
             </div>
             <div className="text-sm text-gray-600">Total de leads no período</div>

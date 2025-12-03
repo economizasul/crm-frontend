@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
 import axios from 'axios';
-import { STAGES } from '../KanbanBoard.jsx'; 
+import { STAGES } from '../pages/KanbanBoard.jsx'; // 🟢 CORRIGIDO: Adicionado /pages/
 import { useAuth } from '../../AuthContext';
 
 // Motivos de Perda
@@ -81,7 +81,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     const fetchUsers = useCallback(async () => {
         try {
-            // 🔴 CORREÇÃO #1: Rota para buscar usuários com /api
+            // ✅ Rota para buscar usuários com /api
             const response = await axios.get(`${API_BASE_URL}/api/leads/users-for-reassignment`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -177,7 +177,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         formData.append('user', user.name || 'Usuário Desconhecido');
 
         try {
-            // 🔴 CORREÇÃO #2: Adicionando o prefixo /api para upload de anexo.
+            // ✅ Rota para upload de anexo com /api
             const response = await axios.post(`${API_BASE_URL}/api/leads/upload-attachment`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -235,7 +235,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         payload.notes = JSON.stringify(payload.notes || []);
 
         try {
-            // 🔴 CORREÇÃO #3: Adicionando o prefixo /api à rota PUT principal
+            // ✅ Rota PUT principal com /api
             await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -244,7 +244,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             
             // Se houver mudança de fase para "Ganho", registra a data
             if (leadData.status === 'Ganho' && !selectedLead.date_won) {
-                 // 🔴 CORREÇÃO #4: Adicionando o prefixo /api à rota PUT de atualização de data
+                 // ✅ Rota PUT de atualização de data com /api
                  await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -268,7 +268,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setError(null);
         
         try {
-            // 🔴 CORREÇÃO #5: Adicionando o prefixo /api à rota POST de reassign
+            // ✅ Rota POST de reassign com /api
             await axios.post(`${API_BASE_URL}/api/leads/reassign/${leadData.id || leadData._id}`, 
                 { newOwnerId }, 
                 {
@@ -290,14 +290,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // ✅ Correção Google Maps
+        // ✅ Link Google Maps
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
 
     const getWhatsAppLink = () => {
         if (!leadData.phone) return null;
         const normalizedPhone = leadData.phone.replace(/\D/g, ''); 
-        // ✅ Correção WhatsApp (link web)
+        // ✅ Link WhatsApp (versão Web)
         return `https://web.whatsapp.com/send?phone=55${normalizedPhone}`; 
     };
 
