@@ -11,10 +11,10 @@ import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
 import MotivosPerdaChart from './MotivosPerdaChart.jsx';
 
 const SkeletonCard = () => (
-  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
-    <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-4"></div>
-    <div className="h-10 bg-gray-400 dark:bg-gray-500 rounded w-24"></div>
-  </div>
+  <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
+    <div className="h-5 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-4"></div>
+    <div className="h-10 bg-gray-400 dark:bg-gray-500 rounded w-24"></div>
+  </div>
 );
 
 const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600', subtext = '' }) => (
@@ -43,17 +43,18 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const [regiaoSelecionada, setRegiaoSelecionada] = useState(null);
   const [vendedorSelecionado, setVendedorSelecionado] = useState('todos');
   const [carregandoMapa, setCarregandoMapa] = useState(true);
- 
+
   // Pega os dados do objeto 'data' (que vem do useReports/ReportController)
   const globalSummary = data?.globalSummary || {};
   const funnel = data?.funnel || {};
+  // CORREÇÃO: Usa 'funnelOrigins' do backend e atribui a 'originStats' para o gráfico.
   const originStats = data?.funnelOrigins || []; 
-   
+
   // Variáveis de Relatório
   const productivity = data?.productivity || {};
   const dailyActivity = data?.dailyActivity || {};
   const lostReasonsData = data?.lostReasons || [];
-   
+    
   // Variáveis de Configuração/Filtros
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
@@ -61,6 +62,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   // MAPA — FORÇADO E COM LOG OBRIGATÓRIO
   useEffect(() => {
     console.log('EXECUTANDO BUSCA DE LEADS PARA O MAPA AGORA...');
+
 
     const carregarMapa = async () => {
       try {
@@ -105,8 +107,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
     carregarMapa();
   }, []);
-
-      //console.log('Status encontrados nos leads:', [...new Set(data.leads.map(l => l.status))]);
 
       const leadsVisiveis = regiaoSelecionada
         ? leadsMapa.filter(l => l.regiao === regiaoSelecionada)

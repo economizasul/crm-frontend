@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
 import axios from 'axios';
 import { STAGES } from '../pages/KanbanBoard.jsx'; // 🟢 CORRIGIDO: Adicionado /pages/
-import { useAuth } from '../../AuthContext';
+import { useAuth } from '../AuthContext.jsx';
 
 // Motivos de Perda
 const LOSS_REASONS = [
