@@ -81,8 +81,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     const fetchUsers = useCallback(async () => {
         try {
-            // ✅ Rota para buscar usuários com /api
-            const response = await axios.get(`${API_BASE_URL}/api/leads/users-for-reassignment`, {
+            // ❌ CORREÇÃO 404: Adicionado /v1/ e corrigido o endpoint para users/reassignment
+            const response = await axios.get(`${API_BASE_URL}/api/v1/leads/users/reassignment`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -177,8 +177,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         formData.append('user', user.name || 'Usuário Desconhecido');
 
         try {
-            // ✅ Rota para upload de anexo com /api
-            const response = await axios.post(`${API_BASE_URL}/api/leads/upload-attachment`, formData, {
+            // ❌ CORREÇÃO 404: Adicionado /v1/
+            const response = await axios.post(`${API_BASE_URL}/api/v1/leads/upload-attachment`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
@@ -235,8 +235,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         payload.notes = JSON.stringify(payload.notes || []);
 
         try {
-            // ✅ Rota PUT principal com /api
-            await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, payload, {
+            // ❌ CORREÇÃO 404: Adicionado /v1/
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}`, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -244,8 +244,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             
             // Se houver mudança de fase para "Ganho", registra a data
             if (leadData.status === 'Ganho' && !selectedLead.date_won) {
-                 // ✅ Rota PUT de atualização de data com /api
-                 await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
+                 // ❌ CORREÇÃO 404: Adicionado /v1/
+                 await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
             }
@@ -263,13 +263,12 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     
     const transferLead = async () => {
         if (!newOwnerId) return;
-
         setIsTransferring(true);
         setError(null);
-        
+
         try {
-            // ✅ Rota POST de reassign com /api
-            await axios.post(`${API_BASE_URL}/api/leads/reassign/${leadData.id || leadData._id}`, 
+            // ❌ CORREÇÃO 404: Adicionado /api/v1/ e garantido que é PUT
+            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}/reassign`, 
                 { newOwnerId }, 
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -281,32 +280,70 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             onClose();
         } catch (err) {
             console.error('Erro ao transferir lead:', err);
-            setError(err.response?.data?.error || 'Erro ao transferir lead.');
+            setError(err.response?.data?.error || 'Erro ao transferir o lead.');
         } finally {
             setIsTransferring(false);
         }
     };
-    
+
+
     const getGoogleMapsLink = () => {
-        if (!leadData.address) return null;
-        const encodedAddress = encodeURIComponent(leadData.address);
-        // ✅ Link Google Maps
-        return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+        if (leadData.google_maps_link) return leadData.google_maps_link;
+        if (leadData.address) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(leadData.address)}`;
+        return '#';
     };
 
     const getWhatsAppLink = () => {
-        if (!leadData.phone) return null;
-        const normalizedPhone = leadData.phone.replace(/\D/g, ''); 
-        // ✅ Link WhatsApp (versão Web)
-        return `https://web.whatsapp.com/send?phone=55${normalizedPhone}`; 
+        if (leadData.phone) {
+            // Remove tudo que não for dígito e adiciona código do país (55 - Brasil)
+            const cleanPhone = leadData.phone.replace(/\D/g, '');
+            const finalPhone = cleanPhone.length === 13 ? cleanPhone : `55${cleanPhone}`;
+            return `https://wa.me/${finalPhone}`;
+        }
+        return '#';
     };
 
-    if (!isModalOpen || !selectedLead) return null;
+
+    if (!isModalOpen) return null;
+
+    // Função para renderizar os campos de KW e Motivo de Perda
+    const renderConditionalFields = () => {
+        if (leadData.status === 'Ganho') {
+            return (
+                <div className="w-full md:w-1/4 px-2 mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">KW Vendido</label>
+                    <input type="number" name="kwSold" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.kwSold || ''} onChange={handleInputChange} />
+                </div>
+            );
+        }
+        if (leadData.status === 'Perdido') {
+            return (
+                <div className="w-full md:w-1/4 px-2 mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Motivo da Perda <span className="text-red-500">*</span></label>
+                    <select 
+                        name="reasonForLoss" 
+                        className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                        value={leadData.reasonForLoss} 
+                        onChange={handleInputChange} 
+                        required={leadData.status === 'Perdido'}
+                    >
+                        <option value="">Selecione...</option>
+                        {LOSS_REASONS.map(reason => (
+                            <option key={reason} value={reason}>{reason}</option>
+                        ))}
+                    </select>
+                </div>
+            );
+        }
+        return null;
+    };
+
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col dark:bg-gray-900">
-                {/* Cabeçalho */}
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-start justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl transform transition-all my-8 dark:bg-gray-900 flex flex-col max-h-[90vh]">
+                
+                {/* Header do Modal */}
                 <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10 dark:bg-gray-900 dark:border-gray-700">
                     <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                         Editar Lead: {leadData.name || 'Sem Nome'}
@@ -324,241 +361,210 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             <p>{error}</p>
                         </div>
                     )}
-                    
                     <form onSubmit={(e) => { e.preventDefault(); saveLeadChanges(); }}>
-                        
                         {/* Status Bar */}
-                        <div className="mb-4 p-3 rounded-lg flex justify-between items-center text-sm font-semibold"
-                            style={{ backgroundColor: STAGES[leadData.status]?.replace('100', '200') || '#f3f4f6', color: STAGES[leadData.status]?.replace('bg-', 'text-') || '#1f2937' }}>
+                        <div 
+                            className="mb-4 p-3 rounded-lg flex justify-between items-center text-sm font-semibold" 
+                            style={{ 
+                                backgroundColor: STAGES[leadData.status]?.replace('100', '200') || '#f3f4f6', 
+                                color: STAGES[leadData.status]?.replace('bg-', 'text-') || '#1f2937' 
+                            }}
+                        >
                             <span>Fase Atual: {leadData.status}</span>
                             <span>ID: {leadData.id || leadData._id}</span>
                             <span>Proprietário: {leadData.sellerName || 'N/A'}</span>
                         </div>
-                        
+
                         {/* Ações Rápidas */}
                         <div className="flex space-x-3 mb-4">
                             {leadData.address && (
-                                <a href={getGoogleMapsLink()} target="_blank" rel="noopener noreferrer" 
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
+                                <a href={getGoogleMapsLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2">
                                     <FaMapMarkerAlt size={16} /> Abrir no Maps
                                 </a>
                             )}
                             {leadData.phone && (
-                                <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" 
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
+                                <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2">
                                     <FaWhatsapp size={16} /> Chamar no WhatsApp
                                 </a>
                             )}
                         </div>
 
-                        {/* Campos de Informação Principal */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Nome</label>
+                        {/* Linha 1: Nome e Email */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Nome <span className="text-red-500">*</span></label>
                                 <input type="text" name="name" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.name || ''} onChange={handleInputChange} required />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">E-mail</label>
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Email</label>
                                 <input type="email" name="email" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.email || ''} onChange={handleInputChange} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Telefone Principal</label>
-                                <input type="tel" name="phone" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone || ''} onChange={handleInputChange} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Segundo Telefone</label>
-                                <input type="tel" name="phone2" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone2 || ''} onChange={handleInputChange} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">UC (Unidade Consumidora)</label>
-                                <input type="text" name="uc" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.uc || ''} onChange={handleInputChange} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Documento (CPF/CNPJ)</label>
-                                <input type="text" name="document" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.document || ''} onChange={handleInputChange} />
                             </div>
                         </div>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Endereço (Rua, Número, Cidade, Estado)</label>
-                            <input type="text" name="address" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.address || ''} onChange={handleInputChange} />
+                        {/* Linha 2: Telefone 1 e Telefone 2 */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Telefone <span className="text-red-500">*</span></label>
+                                <input type="text" name="phone" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone || ''} onChange={handleInputChange} required />
+                            </div>
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Telefone 2</label>
+                                <input type="text" name="phone2" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone2 || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
+
+                        {/* Linha 3: Endereço e Cidade/Região */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Endereço</label>
+                                <input type="text" name="address" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.address || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="w-full md:w-1/2 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Cidade/Região</label>
+                                <input type="text" name="cidade" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.cidade || ''} onChange={handleInputChange} />
+                            </div>
                         </div>
                         
-                        {/* Linha de 4 Colunas: Consumo, Economia, Status, Motivo da Perda */}
+                        {/* Linha 4: UC, QSA e Origem */}
                         <div className="flex flex-wrap -mx-2 mb-4">
-                            
+                            <div className="w-full md:w-1/3 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">UC</label>
+                                <input type="text" name="uc" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.uc || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="w-full md:w-1/3 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">QSA</label>
+                                <input type="text" name="qsa" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.qsa || ''} onChange={handleInputChange} />
+                            </div>
+                            <div className="w-full md:w-1/3 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Origem</label>
+                                <input type="text" name="origin" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.origin || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
+                        
+                        {/* Linha de 4 Colunas: Consumo, Economia, Status, KW/Motivo */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
                             {/* Consumo Médio (Kwh) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Consumo Médio (kWh)</label>
-                                <input 
-                                    type="number" 
-                                    name="avgConsumption" 
-                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                    value={leadData.avgConsumption || ''} 
-                                    onChange={handleInputChange} 
-                                />
+                                <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
                             </div>
-
                             {/* Economia Estimada (R$) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Economia Estimada (R$)</label>
-                                <input 
-                                    type="number" 
-                                    name="estimatedSavings" 
-                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                    value={leadData.estimatedSavings || ''} 
-                                    onChange={handleInputChange} 
-                                />
+                                <input type="number" name="estimatedSavings" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.estimatedSavings || ''} onChange={handleInputChange} />
                             </div>
-
                             {/* Status/Fase (Conta) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Fase (Conta) <span className="text-red-500">*</span></label>
-                                <select
-                                    name="status"
-                                    className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    value={leadData.status}
-                                    onChange={handleInputChange}
-                                    required
+                                <select 
+                                    name="status" 
+                                    className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                    value={leadData.status} 
+                                    onChange={handleInputChange} 
+                                    required 
                                 >
                                     {Object.keys(STAGES).map(stage => (
                                         <option key={stage} value={stage}>{stage}</option>
                                     ))}
                                 </select>
                             </div>
+                            {/* KW Vendido / Motivo da Perda (Condicional) - 25% */}
+                            {renderConditionalFields()}
+                        </div>
 
-                            {/* Motivo da Perda - 25% */}
-                            <div className="w-full md:w-1/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Motivo da Perda</label>
-                                <select
-                                    name="reasonForLoss"
-                                    className={`w-full border rounded px-3 py-2 ${
-                                        leadData.status !== 'Perdido' 
-                                            ? 'bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500' 
-                                            : 'bg-white dark:bg-gray-700 dark:text-white' 
-                                    }`}
-                                    value={leadData.reasonForLoss || ''}
-                                    onChange={handleInputChange}
-                                    disabled={leadData.status !== 'Perdido'}
-                                    required={leadData.status === 'Perdido'} 
-                                >
-                                    <option value="" disabled>
-                                        {leadData.status !== 'Perdido' ? 'Desabilitado' : 'Selecione o motivo *'}
-                                    </option>
-                                    {LOSS_REASONS.map(reason => (
-                                        <option key={reason} value={reason}>{reason}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Observações/QSA</label>
-                            <textarea name="qsa" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" rows="2" value={leadData.qsa || ''} onChange={handleInputChange}></textarea>
-                        </div>
-                        
-                        {/* Transferência de Lead (Apenas para Admin) */}
-                        {user.role === 'Admin' && users.length > 0 && (
-                            <div className="mb-4 p-4 border rounded-lg bg-yellow-50 flex items-center justify-between dark:bg-yellow-900 dark:border-yellow-700">
-                                <div className="flex items-center gap-4">
-                                    <label className="text-sm font-medium text-gray-800 dark:text-white">Transferir Lead para:</label>
-                                    <select
-                                        name="newOwner"
-                                        className="border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        value={newOwnerId}
+                        {/* Transferência (Somente Admin) */}
+                        {user.role === 'Admin' && (
+                            <div className="mb-4 p-3 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                                <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Transferir Lead:</label>
+                                <div className="flex space-x-2">
+                                    <select 
+                                        name="newOwnerId" 
+                                        className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                        value={newOwnerId} 
                                         onChange={handleOwnerChange}
+                                        disabled={isTransferring}
                                     >
-                                        <option value="">Selecione um Proprietário</option>
+                                        <option value="">Selecione Novo Proprietário...</option>
                                         {users.map(u => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.name} ({u.role})
-                                            </option>
+                                            <option key={u.id} value={u.id}>{u.name}</option>
                                         ))}
                                     </select>
+                                    <button 
+                                        type="button" 
+                                        onClick={transferLead}
+                                        disabled={!newOwnerId || isTransferring}
+                                        className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                        {isTransferring ? 'Transferindo...' : 'Transferir'}
+                                    </button>
                                 </div>
-                                <button 
-                                    type="button" 
-                                    onClick={transferLead} 
-                                    disabled={isTransferring || newOwnerId === leadData.owner_id}
-                                    className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                                >
-                                    {isTransferring ? 'Transferindo...' : 'Transferir'}
-                                </button>
                             </div>
                         )}
                         
                     </form>
 
-                    {/* Seção de Notas e Anexos */}
-                    <h3 className="text-lg font-semibold border-b pb-2 mt-6 mb-4 text-gray-800 dark:text-white dark:border-gray-700">Histórico e Notas</h3>
-                    
-                    {/* Adicionar Nota */}
-                    <div className="mb-4 border p-4 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-                        <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Adicionar Nova Nota:</label>
-                        <div className="flex space-x-2 mb-2">
-                            <textarea 
-                                className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                rows="2" 
-                                value={newNoteText} 
-                                onChange={(e) => setNewNoteText(e.target.value)} 
-                                onKeyDown={handleNoteKeyDown}
-                                placeholder="Digite sua anotação (Shift + Enter para quebra de linha)..."
-                            ></textarea>
-                            <button 
-                                type="button" 
-                                onClick={handleAddNote} 
-                                disabled={newNoteText.trim() === ''}
-                                className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
-                            >
-                                Adicionar
-                            </button>
-                        </div>
-                        
-                        {/* Anexo */}
-                        <div className="flex items-center space-x-2 mt-2">
-                            <input 
-                                type="file" 
-                                onChange={handleFileChange} 
-                                className="text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 dark:file:bg-yellow-800 dark:file:text-white"
-                            />
-                            {selectedFile && (
+                    {/* Área de Anotações */}
+                    <div className="mt-6">
+                        {/* Nova Nota / Anexo */}
+                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg dark:border-gray-700">
+                            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Adicionar Nova Nota:</label>
+                            <div className="flex space-x-2 mb-2">
+                                <textarea 
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                                    rows="2" 
+                                    value={newNoteText} 
+                                    onChange={(e) => setNewNoteText(e.target.value)}
+                                    onKeyDown={handleNoteKeyDown}
+                                    placeholder="Digite sua anotação (Shift + Enter para quebra de linha)..."
+                                ></textarea>
+                                <button 
+                                    type="button" 
+                                    onClick={handleAddNote} 
+                                    disabled={newNoteText.trim() === ''} 
+                                    className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                                >
+                                    Adicionar
+                                </button>
+                            </div>
+                            {/* Anexo */}
+                            <div className="flex items-center space-x-2 border-t border-gray-200 pt-2 mt-2">
+                                <input type="file" onChange={handleFileChange} className="text-sm dark:text-gray-300" />
                                 <button 
                                     type="button" 
                                     onClick={handleAddAttachmentNote} 
-                                    disabled={saving}
-                                    className="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700 flex items-center gap-2 disabled:opacity-50"
+                                    disabled={!selectedFile || saving} 
+                                    className="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50 flex items-center space-x-2"
                                 >
-                                    <FaPaperclip size={16} /> 
-                                    {saving ? 'Enviando...' : 'Anexar & Notar'}
+                                    <FaPaperclip size={16} />
+                                    <span>{saving ? 'Enviando...' : 'Anexar e Adicionar Nota'}</span>
                                 </button>
-                            )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Lista de Notas */}
-                    <div className="max-h-60 overflow-y-auto border rounded-lg p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                        <div className="space-y-3">
+                        {/* Lista de Notas */}
+                        <div className="mt-6 space-y-4">
+                            <h3 className="text-lg font-semibold border-b pb-2 text-gray-800 dark:text-white dark:border-gray-700">Histórico de Anotações</h3>
                             {leadData.notes && leadData.notes.length > 0 ? (
                                 [...leadData.notes].reverse().map((note, index) => {
-                                    const noteText = note.text;
+                                    const noteText = note.text || note;
                                     const noteTimestamp = note.timestamp || 0;
                                     const noteUser = note.user || 'Sistema';
-                                    const isAttachment = note.isAttachment;
-                                    
-                                    // Determina a cor de fundo e texto do cabeçalho da nota para Dark Mode
-                                    let headerBg = 'bg-gray-100 dark:bg-gray-700';
-                                    let headerText = 'text-gray-800 dark:text-gray-200';
-                                    
-                                    if (noteUser === 'Sistema') {
-                                        headerBg = 'bg-indigo-50 dark:bg-indigo-900';
-                                        headerText = 'text-indigo-800 dark:text-indigo-300';
-                                    } else if (isAttachment) {
-                                        headerBg = 'bg-yellow-100 dark:bg-yellow-900';
-                                        headerText = 'text-yellow-800 dark:text-yellow-200';
+                                    const isAttachment = note.isAttachment || noteText.includes('[ANEXO:');
+
+                                    // Determina a cor de fundo do cabeçalho
+                                    let headerBg = 'bg-gray-200 dark:bg-gray-700';
+                                    let headerText = 'text-gray-800 dark:text-gray-300';
+                                    if (isAttachment) {
+                                        headerBg = 'bg-yellow-200 dark:bg-yellow-900';
+                                        headerText = 'text-yellow-900 dark:text-yellow-300';
                                     }
-                                    
+
                                     return (
-                                        <div key={index} className="p-3 border rounded-lg shadow-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                                        // 🎨 CORREÇÃO DE ESTILO: Fundo cinza claro para o quadro da nota
+                                        <div 
+                                            key={index} 
+                                            className="p-3 border rounded-lg shadow-sm bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                                        >
                                             <p className={`text-xs font-semibold ${headerBg} ${headerText} p-1 rounded inline-block mb-1`}>
                                                 {formatNoteDate(noteTimestamp)} - {noteUser}
                                             </p>
