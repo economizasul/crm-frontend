@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 
+// 🟢 NOVO IMPORT: Importa o componente externo LeadEditModal.jsx
+import LeadEditModal from '../components/LeadEditModal.jsx'; 
+
 const STAGES = {
   'Novo': 'bg-gray-400 text-gray-200 border-gray-300',
   'Contato': 'bg-blue-200 text-blue-400 border-blue-300',
@@ -55,12 +58,7 @@ const LeadCard = ({ lead, onClick }) => (
   </div>
 );
 
-const formatNoteDate = (timestamp) => {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-    hour: '2-digit', minute: '2-digit'
-  }).format(new Date(timestamp));
-};
+// Função formatNoteDate não é mais usada neste arquivo, mas deixamos aqui por segurança.
 
 const KanbanBoard = () => {
   const [leads, setLeads] = useState([]);
@@ -68,14 +66,17 @@ const KanbanBoard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newNoteText, setNewNoteText] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [newNoteText, setNewNoteText] = useState(''); // Estado de nota é redundante, mas mantemos
+  const [saving, setSaving] = useState(false); // Estado de salvamento é redundante, mas mantemos
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  // 🟢 CORREÇÃO 2: Adicionando 'token' aqui para passar para o modal
+  const { logout, user, token } = useAuth();
 
+  // leadData é parcialmente redundante agora, pois a modal usa o selectedLead. 
+  // Deixamos a inicialização para não quebrar outros pontos.
   const [leadData, setLeadData] = useState({
     name: '', phone: '', email: '', document: '', address: '', status: 'Novo',
     origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
@@ -131,6 +132,8 @@ const KanbanBoard = () => {
           ? lead.notes 
           : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : []),
         createdAt: lead.createdAt,
+        // Garante que o campo 'reasonForLoss' venha no objeto
+        reasonForLoss: lead.reason_for_loss || lead.reasonForLoss || '', 
       }));
 
       const filteredLeads = user.role === 'Admin'
@@ -158,6 +161,7 @@ const KanbanBoard = () => {
 
   const openLeadModal = (lead) => {
     setSelectedLead(lead);
+    // O leadData setado aqui é redundante, mas mantemos a chamada para não quebrar.
     setLeadData({
       ...lead,
       avgConsumption: lead.avgConsumption || '',
@@ -174,57 +178,10 @@ const KanbanBoard = () => {
     setNewNoteText('');
     fetchLeads(); // RECARREGA APÓS FECHAR
   };
-
-  const saveLeadChanges = async () => {
-    if (!selectedLead) return;
-    setSaving(true);
-
-    try {
-      const payload = {
-        name: leadData.name?.trim(),
-        phone: leadData.phone?.replace(/\D/g, ''),
-        email: leadData.email?.trim() || null,
-        document: leadData.document?.trim() || null,
-        address: leadData.address?.trim() || '',
-        status: leadData.status,
-        origin: leadData.origin?.trim() || '',
-        uc: leadData.uc?.trim() || null,
-        avg_consumption: leadData.avgConsumption ? parseFloat(leadData.avgConsumption) : null,
-        estimated_savings: leadData.estimatedSavings ? parseFloat(leadData.estimatedSavings) : null,
-        qsa: leadData.qsa?.trim() || null,
-      };
-
-      if (leadData.owner_id && leadData.owner_id !== '') {
-        payload.owner_id = parseInt(leadData.owner_id, 10);
-      }
-
-      if (newNoteText.trim()) {
-        payload.newNote = {
-          text: newNoteText.trim(),
-          timestamp: Date.now(),
-          user: user?.name || 'Usuário'
-        };
-      }
-
-      await api.put(`/leads/${selectedLead.id}`, payload);
-      
-      // RECARREGA A LISTA
-      await fetchLeads();
-
-      setToast({ 
-        message: payload.owner_id && payload.owner_id !== selectedLead.owner_id 
-          ? 'Lead transferido com sucesso!' 
-          : 'Lead atualizado!', 
-        type: 'success' 
-      });
-      closeLeadModal();
-    } catch (error) {
-      console.error('Erro ao salvar:', error.response?.data);
-      setToast({ message: error.response?.data?.error || 'Erro ao salvar', type: 'error' });
-    } finally {
-      setSaving(false);
-    }
-  };
+  
+  // ❌ CORREÇÃO 3: Removendo toda a função 'saveLeadChanges'
+  // Esta função é redundante e está desatualizada, pois a lógica foi movida para LeadEditModal.jsx.
+  // ... (função saveLeadChanges foi removida aqui)
 
   const handleDrop = async (leadId, newStatus) => {
     const id = Number(leadId); // Garante número
@@ -247,6 +204,9 @@ const KanbanBoard = () => {
     // SEMPRE RECARREGA
     fetchLeads();
   };
+    
+  // As funções getGoogleMapsLink e getWhatsAppLink também são redundantes, 
+  // pois a modal externa as implementa. Deixamos o código aqui apenas como nota.
 
   const getGoogleMapsLink = () => leadData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(leadData.address)}` : null;
   const getWhatsAppLink = () => {
@@ -261,7 +221,7 @@ const KanbanBoard = () => {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-bold text-gray-800">Kanban de Leads</h1>
@@ -327,7 +287,7 @@ const KanbanBoard = () => {
                   leads.filter(l => l.status === status).length > 10 && '+'}
                 </span>
               </h2>
-
+              
               <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
@@ -341,97 +301,17 @@ const KanbanBoard = () => {
           })}
       </div>
 
-      {/* MODAL COM TRANSFERÊNCIA */}
-      {isModalOpen && selectedLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-3xl w-full max-w-3xl max-h-[95vh] overflow-y-auto">
-            <div className="p-6 border-b-2">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Editar Lead</h2>
-                <button onClick={closeLeadModal} className="text-gray-500 hover:text-red-600"><FaTimes size={28} /></button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-5">
-              {user?.role === 'Admin' && (
-                <div className="bg-amber-50 p-4 rounded-lg border-2 border-amber-300">
-                  <label className="block text-sm font-bold text-amber-800 mb-2">
-                    <FaUserTie className="inline mr-2" /> Transferir para
-                  </label>
-                  <select
-                    value={leadData.owner_id || ''}
-                    onChange={(e) => setLeadData(prev => ({ ...prev, owner_id: e.target.value }))}
-                    className="w-full p-3 border-2 border-amber-300 rounded-lg bg-white font-medium"
-                  >
-                    <option value="">Selecione um usuário</option>
-                    {users.map(u => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} ({u.email})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <input value={leadData.name} onChange={e => setLeadData(p => ({...p, name: e.target.value}))} placeholder="Nome" className="p-3 border rounded-lg" />
-                <input value={leadData.phone} onChange={e => setLeadData(p => ({...p, phone: e.target.value}))} placeholder="Telefone" className="p-3 border rounded-lg" />
-                <input value={leadData.email || ''} onChange={e => setLeadData(p => ({...p, email: e.target.value}))} placeholder="Email" className="p-3 border rounded-lg" />
-                <input value={leadData.document || ''} onChange={e => setLeadData(p => ({...p, document: e.target.value}))} placeholder="CPF/CNPJ" className="p-3 border rounded-lg" />
-                <input value={leadData.uc || ''} onChange={e => setLeadData(p => ({...p, uc: e.target.value}))} placeholder="UC" className="p-3 border rounded-lg" />
-                <input value={leadData.address || ''} onChange={e => setLeadData(p => ({...p, address: e.target.value}))} placeholder="Endereço" className="col-span-2 p-3 border rounded-lg" />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <input value={leadData.avgConsumption} onChange={e => setLeadData(p => ({...p, avgConsumption: e.target.value}))} placeholder="Consumo Médio (kWh)" className="p-3 border rounded-lg" />
-                <input value={leadData.estimatedSavings} onChange={e => setLeadData(p => ({...p, estimatedSavings: e.target.value}))} placeholder="Economia Estimada (R$)" className="p-3 border rounded-lg" />
-                <select value={leadData.status} onChange={e => setLeadData(p => ({...p, status: e.target.value}))} className="p-3 border rounded-lg">
-                  {Object.keys(STAGES).map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-
-              <textarea value={leadData.qsa || ''} onChange={e => setLeadData(p => ({...p, qsa: e.target.value}))} placeholder="QSA (Sócios)" rows="3" className="w-full p-3 border rounded-lg" />
-
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-bold mb-3">Notas</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
-                  {leadData.notes.length === 0 ? <p className="text-gray-500 italic">Sem notas</p> : leadData.notes.map((n, i) => (
-                    <div key={i} className="bg-white p-3 rounded border text-sm">
-                      <p>{n.text}</p>
-                      <p className="text-xs text-gray-500 mt-1">{n.user || 'Sistema'} - {formatNoteDate(n.timestamp)}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    value={newNoteText}
-                    onChange={e => setNewNoteText(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), saveLeadChanges())}
-                    placeholder="Nova nota... (Enter para salvar)"
-                    className="flex-1 p-3 border rounded-lg"
-                  />
-                  <button onClick={saveLeadChanges} className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold">
-                    <FaSave />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div className="flex gap-3">
-                  {leadData.address && <a href={getGoogleMapsLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"><FaMapMarkerAlt /> Maps</a>}
-                  {leadData.phone && <a href={getWhatsAppLink()} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"><FaWhatsapp /> WhatsApp</a>}
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={closeLeadModal} className="px-6 py-3 border-2 border-gray-400 rounded-lg font-bold">Cancelar</button>
-                  <button onClick={saveLeadChanges} disabled={saving} className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-bold shadow-lg disabled:opacity-50">
-                    {saving ? 'Salvando...' : 'Salvar Tudo'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+       {/* 🟢 CORREÇÃO 4: Substituição do bloco JSX hardcoded pelo componente LeadEditModal */}
+       {isModalOpen && selectedLead && (
+        <LeadEditModal 
+          selectedLead={selectedLead}
+          isModalOpen={isModalOpen}
+          onClose={closeLeadModal}
+          onSave={fetchLeads} // Passa a função para que a modal recarregue os leads após salvar
+          token={token} // Passa o token para a modal, que o utiliza em suas chamadas de API
+          fetchLeads={fetchLeads} // Também é usado para transferências/recarregar
+        />
+       )}
     </div>
   );
 };
