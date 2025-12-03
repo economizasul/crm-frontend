@@ -4,6 +4,7 @@ import { FaSearch, FaPlus, FaTimes, FaSave, FaMapMarkerAlt, FaWhatsapp, FaUserTi
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
+import LeadEditModal from '../components/LeadEditModal.jsx';
 
 // 🟢 CORREÇÃO: Adicionado 'export' para que LeadEditModal possa importar.
 export const STAGES = {
