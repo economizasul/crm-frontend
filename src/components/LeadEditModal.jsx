@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
 import axios from 'axios';
-import { STAGES } from '../KanbanBoard.jsx'; 
+import { STAGES } from '../pages/KanbanBoard.jsx'; 
 import { useAuth } from '../../AuthContext';
 
 // Motivos de Perda
@@ -31,14 +31,14 @@ const formatNoteDate = (timestamp) => {
 const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetchLeads }) => {
     const { user } = useAuth(); 
     
-    // ✅ CORREÇÃO 1: Inicialização do Estado (useState)
-    // Garante que campos numéricos e o novo 'reasonForLoss' tenham um fallback seguro (0 ou '').
+    // ✅ 1. Adicionado phone2 na inicialização do estado (useState)
     const [leadData, setLeadData] = useState({ 
         ...selectedLead || {}, 
-        reasonForLoss: selectedLead?.reasonForLoss || '', // 🟢 Novo campo
+        reasonForLoss: selectedLead?.reasonForLoss || '', 
         kwSold: selectedLead?.kwSold || 0,
-        avgConsumption: selectedLead?.avgConsumption || 0, // 👈 Correção: Fallback para 0
-        estimatedSavings: selectedLead?.estimatedSavings || 0, // 👈 Correção: Fallback para 0
+        avgConsumption: selectedLead?.avgConsumption || 0,
+        estimatedSavings: selectedLead?.estimatedSavings || 0,
+        phone2: selectedLead?.phone2 || '', // 🟢 NOVO CAMPO
     });
     
     const [newNoteText, setNewNoteText] = useState('');
@@ -97,8 +97,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
-            // ✅ CORREÇÃO 2: Sincronização do Estado (useEffect)
-            // Garante que campos numéricos e o novo 'reasonForLoss' tenham um fallback seguro (0 ou '').
+            // ✅ 1. Adicionado phone2 na sincronização do estado (useEffect)
             setLeadData({ 
                 ...selectedLead, 
                 reasonForLoss: selectedLead.reasonForLoss || '', 
@@ -106,8 +105,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 sellerId: selectedLead.sellerId || null,
                 sellerName: selectedLead.sellerName || '',
                 metadata: selectedLead.metadata || {},
-                avgConsumption: selectedLead.avgConsumption || 0, // 👈 Correção: Fallback para 0
-                estimatedSavings: selectedLead.estimatedSavings || 0, // 👈 Correção: Fallback para 0
+                avgConsumption: selectedLead.avgConsumption || 0,
+                estimatedSavings: selectedLead.estimatedSavings || 0,
+                phone2: selectedLead.phone2 || '', // 🟢 NOVO CAMPO
                 notes: leadNotes 
             });
             
@@ -133,6 +133,21 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0]);
+    };
+    
+    // 🟢 2. NOVA FUNÇÃO: Lida com Enter e Shift+Enter no campo de notas
+    const handleNoteKeyDown = (e) => {
+        // Verifica se a tecla é Enter
+        if (e.key === 'Enter') {
+            // Se Shift estiver pressionado, permite o comportamento padrão (quebra de linha)
+            if (e.shiftKey) {
+                return;
+            }
+            // Se for apenas Enter, previne o comportamento padrão (quebra de linha)
+            e.preventDefault();
+            // Chama a função que adiciona a nota (simula o clique no botão)
+            handleAddNote();
+        }
     };
 
     const handleAddNote = () => {
@@ -217,6 +232,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         delete payload.updated_at;
         delete payload.__v;
         
+        // 1. O campo phone2 já está no payload porque ele foi incluído no leadData (pela spread operation)
+        
         // Converte o array de notes para string JSON para salvar no banco
         payload.notes = JSON.stringify(payload.notes || []);
 
@@ -271,7 +288,6 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
     
-    // ✅ CORREÇÃO 3: URL do Google Maps
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
@@ -280,6 +296,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     };
 
     const getWhatsAppLink = () => {
+        // Importante: O botão WhatsApp continua usando APENAS o campo 'phone'
         if (!leadData.phone) return null;
         const normalizedPhone = leadData.phone.replace(/\D/g, ''); // Remove todos os não-dígitos
         return `https://api.whatsapp.com/send?phone=55${normalizedPhone}`; // Assumindo código do país 55 (Brasil)
@@ -346,9 +363,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                 <input type="email" name="email" className="w-full border rounded px-3 py-2" value={leadData.email || ''} onChange={handleInputChange} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Principal</label>
                                 <input type="tel" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} />
                             </div>
+                            {/* 🟢 1. NOVO CAMPO: Segundo Telefone */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Telefone</label>
+                                <input type="tel" name="phone2" className="w-full border rounded px-3 py-2" value={leadData.phone2 || ''} onChange={handleInputChange} />
+                            </div>
+                            {/* UC continua após o novo campo */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">UC (Unidade Consumidora)</label>
                                 <input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} />
@@ -403,7 +426,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                 </select>
                             </div>
 
-                            {/* 🟢 NOVO CAMPO: Motivo da Perda - 25% */}
+                            {/* Motivo da Perda - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Perda</label>
                                 <select
@@ -472,12 +495,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     <div className="mb-4 border p-4 rounded-lg bg-gray-50">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Nova Nota:</label>
                         <div className="flex space-x-2 mb-2">
+                            {/* 🟢 2. Adicionado onKeyDown para o handler de quebra de linha */}
                             <textarea 
                                 className="w-full border rounded px-3 py-2" 
                                 rows="2" 
                                 value={newNoteText} 
                                 onChange={(e) => setNewNoteText(e.target.value)} 
-                                placeholder="Digite sua anotação..."
+                                onKeyDown={handleNoteKeyDown}
+                                placeholder="Digite sua anotação (Shift + Enter para quebra de linha)..."
                             ></textarea>
                             <button 
                                 type="button" 
@@ -533,6 +558,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                             <p className={`text-xs font-semibold ${headerBg} p-1 rounded inline-block mb-1`}>
                                                 {formatNoteDate(noteTimestamp)} - {noteUser}
                                             </p>
+                                            {/* O whitespace-pre-wrap garante que as quebras de linha (Shift+Enter) sejam exibidas */}
                                             <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
                                                 {noteText}
                                             </p>

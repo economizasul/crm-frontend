@@ -5,10 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 
-// 🟢 NOVO IMPORT: Importa o componente externo LeadEditModal.jsx
-import LeadEditModal from '../components/LeadEditModal.jsx'; 
-
-const STAGES = {
+// 🟢 CORREÇÃO: Adicionado 'export' para que LeadEditModal possa importar.
+export const STAGES = {
   'Novo': 'bg-gray-400 text-gray-200 border-gray-300',
   'Contato': 'bg-blue-200 text-blue-400 border-blue-300',
   'Rechame': 'bg-blue-100 text-blue-800 border-blue-300',
@@ -58,25 +56,18 @@ const LeadCard = ({ lead, onClick }) => (
   </div>
 );
 
-// Função formatNoteDate não é mais usada neste arquivo, mas deixamos aqui por segurança.
-
 const KanbanBoard = () => {
   const [leads, setLeads] = useState([]);
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newNoteText, setNewNoteText] = useState(''); // Estado de nota é redundante, mas mantemos
-  const [saving, setSaving] = useState(false); // Estado de salvamento é redundante, mas mantemos
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const navigate = useNavigate();
-  // 🟢 CORREÇÃO 2: Adicionando 'token' aqui para passar para o modal
-  const { logout, user, token } = useAuth();
+  const { logout, user, token } = useAuth(); // token é necessário para o Modal
 
-  // leadData é parcialmente redundante agora, pois a modal usa o selectedLead. 
-  // Deixamos a inicialização para não quebrar outros pontos.
   const [leadData, setLeadData] = useState({
     name: '', phone: '', email: '', document: '', address: '', status: 'Novo',
     origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
@@ -105,7 +96,7 @@ const KanbanBoard = () => {
     try {
       const response = await api.get('/leads');
       const rawLeads = response.data || [];
-
+      
       const userId = user?.id || user?._id;
       if (userId === undefined) {
         setLeads([]);
@@ -168,20 +159,14 @@ const KanbanBoard = () => {
       estimatedSavings: lead.estimatedSavings || '',
       owner_id: lead.owner_id || ''
     });
-    setNewNoteText('');
     setIsModalOpen(true);
   };
 
   const closeLeadModal = () => {
     setIsModalOpen(false);
     setSelectedLead(null);
-    setNewNoteText('');
     fetchLeads(); // RECARREGA APÓS FECHAR
   };
-  
-  // ❌ CORREÇÃO 3: Removendo toda a função 'saveLeadChanges'
-  // Esta função é redundante e está desatualizada, pois a lógica foi movida para LeadEditModal.jsx.
-  // ... (função saveLeadChanges foi removida aqui)
 
   const handleDrop = async (leadId, newStatus) => {
     const id = Number(leadId); // Garante número
@@ -204,24 +189,12 @@ const KanbanBoard = () => {
     // SEMPRE RECARREGA
     fetchLeads();
   };
-    
-  // As funções getGoogleMapsLink e getWhatsAppLink também são redundantes, 
-  // pois a modal externa as implementa. Deixamos o código aqui apenas como nota.
-
-  const getGoogleMapsLink = () => leadData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(leadData.address)}` : null;
-  const getWhatsAppLink = () => {
-    if (!leadData.phone) return null;
-    const phone = leadData.phone.replace(/\D/g, '');
-    const formatted = phone.startsWith('55') ? phone : `55${phone}`;
-    const msg = encodeURIComponent(`Olá, ${leadData.name || 'Lead'}, só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`);
-    return `https://web.whatsapp.com/send?phone=${formatted}&text=${msg}`;
-  };
 
   if (isLoading) return <div className="flex justify-center items-center h-screen text-3xl text-indigo-600">Carregando...</div>;
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
-       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-4xl font-bold text-gray-800">Kanban de Leads</h1>
@@ -301,17 +274,18 @@ const KanbanBoard = () => {
           })}
       </div>
 
-       {/* 🟢 CORREÇÃO 4: Substituição do bloco JSX hardcoded pelo componente LeadEditModal */}
-       {isModalOpen && selectedLead && (
+      {/* MODAL DE EDIÇÃO EXTERNA */}
+      {isModalOpen && selectedLead && (
         <LeadEditModal 
           selectedLead={selectedLead}
           isModalOpen={isModalOpen}
           onClose={closeLeadModal}
           onSave={fetchLeads} // Passa a função para que a modal recarregue os leads após salvar
-          token={token} // Passa o token para a modal, que o utiliza em suas chamadas de API
-          fetchLeads={fetchLeads} // Também é usado para transferências/recarregar
+          token={token} // Passa o token
+          fetchLeads={fetchLeads} // Para recarregar após drag and drop
+          users={users} // Passa a lista de usuários para a transferência
         />
-       )}
+      )}
     </div>
   );
 };
