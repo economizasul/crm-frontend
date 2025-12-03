@@ -2,8 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
 import axios from 'axios';
-import { STAGES } from '../pages/KanbanBoard.jsx'; 
-import { useAuth } from '../AuthContext.jsx';
+import { STAGES } from '../KanbanBoard.jsx'; 
+import { useAuth } from '../../AuthContext';
 
 // Motivos de Perda
 const LOSS_REASONS = [
@@ -52,18 +52,25 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const isDirty = useCallback(() => {
         if (!selectedLead) return false;
         
-        // Compara campos simples
-        const simpleFieldsChanged = Object.keys(leadData).some(key => {
-            if (['notes', 'metadata', 'document', 'lat', 'lng', 'cidade', 'regiao', 'google_maps_link', 'qsa'].includes(key)) return false;
-            
-            // Lógica para valores numéricos, comparando com 0 se forem nulos na origem
-            const leadValue = selectedLead[key] === null || selectedLead[key] === undefined ? 
-                (typeof leadData[key] === 'number' ? 0 : '') : selectedLead[key];
-                
-            return String(leadValue) !== String(leadData[key]);
+        // Campos editáveis que devem ser comparados.
+        const editableFields = [
+            'name', 'email', 'phone', 'phone2', 'document', 'address', 'status', 'origin', 
+            'owner_id', 'uc', 'avgConsumption', 'estimatedSavings', 'qsa', 
+            'lat', 'lng', 'cidade', 'regiao', 'google_maps_link', 'kwSold', 
+            'reasonForLoss', 'sellerId', 'sellerName'
+        ];
+        
+        // 🔴 Otimização: Comparação de campos simples de forma mais concisa
+        const simpleFieldsChanged = editableFields.some(field => {
+            // Garante que null/undefined se tornem strings vazias para comparação consistente
+            const leadValue = String(leadData[field] ?? '');
+            const originalValue = String(selectedLead[field] ?? '');
+
+            // Compara o valor do formulário com o valor original
+            return leadValue.trim() !== originalValue.trim();
         });
         
-        // Compara notas (simplesmente se o array mudou de tamanho ou se houve alteração nos textos)
+        // Compara notas (verifica se o array de notas foi alterado)
         const currentNotesText = (leadData.notes || []).map(n => n.text).join('|');
         const originalNotesText = (selectedLead.notes || []).map(n => typeof n === 'string' ? n : n.text).join('|');
         
@@ -74,7 +81,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     const fetchUsers = useCallback(async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/leads/users-for-reassignment`, {
+            // 🔴 CORREÇÃO #1: Rota para buscar usuários com /api
+            const response = await axios.get(`${API_BASE_URL}/api/leads/users-for-reassignment`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -91,13 +99,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     useEffect(() => {
         if (selectedLead && isModalOpen) {
-            const leadIdentifier = selectedLead.id || selectedLead._id;
-
+            // Normalização das notas
             const leadNotes = Array.isArray(selectedLead.notes)
                 ? selectedLead.notes.map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n)
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
-            // ✅ 1. Adicionado phone2 na sincronização do estado (useEffect)
             setLeadData({ 
                 ...selectedLead, 
                 reasonForLoss: selectedLead.reasonForLoss || '', 
@@ -107,7 +113,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 metadata: selectedLead.metadata || {},
                 avgConsumption: selectedLead.avgConsumption || 0,
                 estimatedSavings: selectedLead.estimatedSavings || 0,
-                phone2: selectedLead.phone2 || '', // 🟢 NOVO CAMPO
+                phone2: selectedLead.phone2 || '',
                 notes: leadNotes 
             });
             
@@ -135,17 +141,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setSelectedFile(e.target.files[0]);
     };
     
-    // 🟢 2. NOVA FUNÇÃO: Lida com Enter e Shift+Enter no campo de notas
+    // Lida com Enter e Shift+Enter no campo de notas
     const handleNoteKeyDown = (e) => {
-        // Verifica se a tecla é Enter
-        if (e.key === 'Enter') {
-            // Se Shift estiver pressionado, permite o comportamento padrão (quebra de linha)
-            if (e.shiftKey) {
-                return;
-            }
-            // Se for apenas Enter, previne o comportamento padrão (quebra de linha)
+        if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            // Chama a função que adiciona a nota (simula o clique no botão)
             handleAddNote();
         }
     };
@@ -161,7 +160,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
         setLeadData(prev => ({
             ...prev,
-            notes: [...(prev.notes || []), note]
+            notes: [...(prev.notes || []), note] 
         }));
         setNewNoteText('');
     };
@@ -178,8 +177,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         formData.append('user', user.name || 'Usuário Desconhecido');
 
         try {
-            // Supondo que você tem um endpoint para upload e ele retorna a URL do arquivo
-            const response = await axios.post(`${API_BASE_URL}/leads/upload-attachment`, formData, {
+            // 🔴 CORREÇÃO #2: Adicionando o prefixo /api para upload de anexo.
+            const response = await axios.post(`${API_BASE_URL}/api/leads/upload-attachment`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
@@ -224,21 +223,20 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setSaving(true);
         setError(null);
         
-        // Remove campos que não devem ser enviados ou que são calculados
         const payload = { ...leadData };
+        // Campos que NÃO devem ser enviados
         delete payload._id; 
         delete payload.owner_name;
         delete payload.created_at;
         delete payload.updated_at;
         delete payload.__v;
         
-        // 1. O campo phone2 já está no payload porque ele foi incluído no leadData (pela spread operation)
-        
         // Converte o array de notes para string JSON para salvar no banco
         payload.notes = JSON.stringify(payload.notes || []);
 
         try {
-            await axios.put(`${API_BASE_URL}/leads/${leadData.id || leadData._id}`, payload, {
+            // 🔴 CORREÇÃO #3: Adicionando o prefixo /api à rota PUT principal
+            await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, payload, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -246,15 +244,15 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             
             // Se houver mudança de fase para "Ganho", registra a data
             if (leadData.status === 'Ganho' && !selectedLead.date_won) {
-                 await axios.put(`${API_BASE_URL}/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
+                 // 🔴 CORREÇÃO #4: Adicionando o prefixo /api à rota PUT de atualização de data
+                 await axios.put(`${API_BASE_URL}/api/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
             }
 
-
-            onSave(leadData); // Atualiza o estado no KanbanBoard
-            fetchLeads(); // Força a busca para atualizar dados na tela principal
-            onClose(); // Fecha o modal
+            onSave(leadData);
+            fetchLeads();
+            onClose();
         } catch (err) {
             console.error('Erro ao salvar lead:', err);
             setError(err.response?.data?.error || 'Erro ao salvar alterações.');
@@ -270,7 +268,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         setError(null);
         
         try {
-            await axios.post(`${API_BASE_URL}/leads/reassign/${leadData.id || leadData._id}`, 
+            // 🔴 CORREÇÃO #5: Adicionando o prefixo /api à rota POST de reassign
+            await axios.post(`${API_BASE_URL}/api/leads/reassign/${leadData.id || leadData._id}`, 
                 { newOwnerId }, 
                 {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -291,28 +290,28 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const getGoogleMapsLink = () => {
         if (!leadData.address) return null;
         const encodedAddress = encodeURIComponent(leadData.address);
-        // Uso do formato correto do Google Maps para pesquisa
+        // ✅ Correção Google Maps
         return `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     };
 
     const getWhatsAppLink = () => {
-        // Importante: O botão WhatsApp continua usando APENAS o campo 'phone'
         if (!leadData.phone) return null;
-        const normalizedPhone = leadData.phone.replace(/\D/g, ''); // Remove todos os não-dígitos
-        return `https://api.whatsapp.com/send?phone=55${normalizedPhone}`; // Assumindo código do país 55 (Brasil)
+        const normalizedPhone = leadData.phone.replace(/\D/g, ''); 
+        // ✅ Correção WhatsApp (link web)
+        return `https://web.whatsapp.com/send?phone=55${normalizedPhone}`; 
     };
 
     if (!isModalOpen || !selectedLead) return null;
 
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col dark:bg-gray-900">
                 {/* Cabeçalho */}
-                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10">
-                    <h2 className="text-2xl font-bold text-gray-800">
+                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10 dark:bg-gray-900 dark:border-gray-700">
+                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                         Editar Lead: {leadData.name || 'Sem Nome'}
                     </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">
                         <FaTimes size={20} />
                     </button>
                 </div>
@@ -355,32 +354,34 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         {/* Campos de Informação Principal */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                                <input type="text" name="name" className="w-full border rounded px-3 py-2" value={leadData.name || ''} onChange={handleInputChange} required />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Nome</label>
+                                <input type="text" name="name" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.name || ''} onChange={handleInputChange} required />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                                <input type="email" name="email" className="w-full border rounded px-3 py-2" value={leadData.email || ''} onChange={handleInputChange} />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">E-mail</label>
+                                <input type="email" name="email" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.email || ''} onChange={handleInputChange} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone Principal</label>
-                                <input type="tel" name="phone" className="w-full border rounded px-3 py-2" value={leadData.phone || ''} onChange={handleInputChange} />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Telefone Principal</label>
+                                <input type="tel" name="phone" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone || ''} onChange={handleInputChange} />
                             </div>
-                            {/* 🟢 1. NOVO CAMPO: Segundo Telefone */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Segundo Telefone</label>
-                                <input type="tel" name="phone2" className="w-full border rounded px-3 py-2" value={leadData.phone2 || ''} onChange={handleInputChange} />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Segundo Telefone</label>
+                                <input type="tel" name="phone2" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.phone2 || ''} onChange={handleInputChange} />
                             </div>
-                            {/* UC continua após o novo campo */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">UC (Unidade Consumidora)</label>
-                                <input type="text" name="uc" className="w-full border rounded px-3 py-2" value={leadData.uc || ''} onChange={handleInputChange} />
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">UC (Unidade Consumidora)</label>
+                                <input type="text" name="uc" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.uc || ''} onChange={handleInputChange} />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Documento (CPF/CNPJ)</label>
+                                <input type="text" name="document" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.document || ''} onChange={handleInputChange} />
                             </div>
                         </div>
 
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Endereço (Rua, Número, Cidade, Estado)</label>
-                            <input type="text" name="address" className="w-full border rounded px-3 py-2" value={leadData.address || ''} onChange={handleInputChange} />
+                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Endereço (Rua, Número, Cidade, Estado)</label>
+                            <input type="text" name="address" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.address || ''} onChange={handleInputChange} />
                         </div>
                         
                         {/* Linha de 4 Colunas: Consumo, Economia, Status, Motivo da Perda */}
@@ -388,11 +389,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             
                             {/* Consumo Médio (Kwh) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Consumo Médio (kWh)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Consumo Médio (kWh)</label>
                                 <input 
                                     type="number" 
                                     name="avgConsumption" 
-                                    className="w-full border rounded px-3 py-2" 
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                                     value={leadData.avgConsumption || ''} 
                                     onChange={handleInputChange} 
                                 />
@@ -400,11 +401,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                             {/* Economia Estimada (R$) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Economia Estimada (R$)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Economia Estimada (R$)</label>
                                 <input 
                                     type="number" 
                                     name="estimatedSavings" 
-                                    className="w-full border rounded px-3 py-2" 
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                                     value={leadData.estimatedSavings || ''} 
                                     onChange={handleInputChange} 
                                 />
@@ -412,10 +413,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                             {/* Status/Fase (Conta) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Fase (Conta) <span className="text-red-500">*</span></label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Fase (Conta) <span className="text-red-500">*</span></label>
                                 <select
                                     name="status"
-                                    className="w-full border rounded px-3 py-2 bg-white"
+                                    className="w-full border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     value={leadData.status}
                                     onChange={handleInputChange}
                                     required
@@ -428,18 +429,18 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                             {/* Motivo da Perda - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Perda</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Motivo da Perda</label>
                                 <select
                                     name="reasonForLoss"
                                     className={`w-full border rounded px-3 py-2 ${
                                         leadData.status !== 'Perdido' 
-                                            ? 'bg-gray-100 cursor-not-allowed' 
-                                            : 'bg-white' 
+                                            ? 'bg-gray-100 cursor-not-allowed dark:bg-gray-800 dark:text-gray-500' 
+                                            : 'bg-white dark:bg-gray-700 dark:text-white' 
                                     }`}
                                     value={leadData.reasonForLoss || ''}
                                     onChange={handleInputChange}
                                     disabled={leadData.status !== 'Perdido'}
-                                    required={leadData.status === 'Perdido'} // Torna obrigatório se for 'Perdido'
+                                    required={leadData.status === 'Perdido'} 
                                 >
                                     <option value="" disabled>
                                         {leadData.status !== 'Perdido' ? 'Desabilitado' : 'Selecione o motivo *'}
@@ -452,18 +453,18 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
                         
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Observações/QSA</label>
-                            <textarea name="qsa" className="w-full border rounded px-3 py-2" rows="2" value={leadData.qsa || ''} onChange={handleInputChange}></textarea>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Observações/QSA</label>
+                            <textarea name="qsa" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" rows="2" value={leadData.qsa || ''} onChange={handleInputChange}></textarea>
                         </div>
                         
                         {/* Transferência de Lead (Apenas para Admin) */}
                         {user.role === 'Admin' && users.length > 0 && (
-                            <div className="mb-4 p-4 border rounded-lg bg-yellow-50 flex items-center justify-between">
+                            <div className="mb-4 p-4 border rounded-lg bg-yellow-50 flex items-center justify-between dark:bg-yellow-900 dark:border-yellow-700">
                                 <div className="flex items-center gap-4">
-                                    <label className="text-sm font-medium text-gray-800">Transferir Lead para:</label>
+                                    <label className="text-sm font-medium text-gray-800 dark:text-white">Transferir Lead para:</label>
                                     <select
                                         name="newOwner"
-                                        className="border rounded px-3 py-2 bg-white"
+                                        className="border rounded px-3 py-2 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                         value={newOwnerId}
                                         onChange={handleOwnerChange}
                                     >
@@ -489,15 +490,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     </form>
 
                     {/* Seção de Notas e Anexos */}
-                    <h3 className="text-lg font-semibold border-b pb-2 mt-6 mb-4 text-gray-800">Histórico e Notas</h3>
+                    <h3 className="text-lg font-semibold border-b pb-2 mt-6 mb-4 text-gray-800 dark:text-white dark:border-gray-700">Histórico e Notas</h3>
                     
                     {/* Adicionar Nota */}
-                    <div className="mb-4 border p-4 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Adicionar Nova Nota:</label>
+                    <div className="mb-4 border p-4 rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                        <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Adicionar Nova Nota:</label>
                         <div className="flex space-x-2 mb-2">
-                            {/* 🟢 2. Adicionado onKeyDown para o handler de quebra de linha */}
                             <textarea 
-                                className="w-full border rounded px-3 py-2" 
+                                className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                                 rows="2" 
                                 value={newNoteText} 
                                 onChange={(e) => setNewNoteText(e.target.value)} 
@@ -519,7 +519,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             <input 
                                 type="file" 
                                 onChange={handleFileChange} 
-                                className="text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+                                className="text-sm file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100 dark:file:bg-yellow-800 dark:file:text-white"
                             />
                             {selectedFile && (
                                 <button 
@@ -536,7 +536,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                     </div>
 
                     {/* Lista de Notas */}
-                    <div className="max-h-60 overflow-y-auto border rounded-lg p-4 bg-white">
+                    <div className="max-h-60 overflow-y-auto border rounded-lg p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                         <div className="space-y-3">
                             {leadData.notes && leadData.notes.length > 0 ? (
                                 [...leadData.notes].reverse().map((note, index) => {
@@ -545,34 +545,38 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                     const noteUser = note.user || 'Sistema';
                                     const isAttachment = note.isAttachment;
                                     
-                                    // Determina a cor do cabeçalho da nota
-                                    let headerBg = 'bg-gray-100';
+                                    // Determina a cor de fundo e texto do cabeçalho da nota para Dark Mode
+                                    let headerBg = 'bg-gray-100 dark:bg-gray-700';
+                                    let headerText = 'text-gray-800 dark:text-gray-200';
+                                    
                                     if (noteUser === 'Sistema') {
-                                        headerBg = 'bg-indigo-50';
+                                        headerBg = 'bg-indigo-50 dark:bg-indigo-900';
+                                        headerText = 'text-indigo-800 dark:text-indigo-300';
                                     } else if (isAttachment) {
-                                        headerBg = 'bg-yellow-100';
+                                        headerBg = 'bg-yellow-100 dark:bg-yellow-900';
+                                        headerText = 'text-yellow-800 dark:text-yellow-200';
                                     }
                                     
                                     return (
-                                        <div key={index} className="p-3 border rounded-lg shadow-sm">
-                                            <p className={`text-xs font-semibold ${headerBg} p-1 rounded inline-block mb-1`}>
+                                        <div key={index} className="p-3 border rounded-lg shadow-sm bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+                                            <p className={`text-xs font-semibold ${headerBg} ${headerText} p-1 rounded inline-block mb-1`}>
                                                 {formatNoteDate(noteTimestamp)} - {noteUser}
                                             </p>
                                             {/* O whitespace-pre-wrap garante que as quebras de linha (Shift+Enter) sejam exibidas */}
-                                            <p className={`text-gray-700 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800' : ''}`}>
+                                            <p className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800 dark:text-yellow-400' : ''}`}>
                                                 {noteText}
                                             </p>
                                         </div>
                                     );
                                 })
-                            ) : (<p className="text-gray-500 text-sm italic">Nenhuma nota registrada.</p>)}
+                            ) : (<p className="text-gray-500 text-sm italic dark:text-gray-400">Nenhuma nota registrada.</p>)}
                         </div>
                     </div>
                 </div>
 
                 {/* Footer / Botões de Ação */}
-                <div className="mt-6 p-4 border-t flex justify-end space-x-2 sticky bottom-0 bg-white z-10">
-                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700">Cancelar</button>
+                <div className="mt-6 p-4 border-t flex justify-end space-x-2 sticky bottom-0 bg-white z-10 dark:bg-gray-900 dark:border-gray-700">
+                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">Cancelar</button>
                     <button
                         type="button"
                         onClick={saveLeadChanges}
