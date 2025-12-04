@@ -321,11 +321,21 @@ const handleSubmit = async (e) => {
 
     const getGoogleMapsLink = () => formData.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}` : null;
     const getWhatsAppLink = () => {
-    if (!formData.phone) return null;
-    const phone = formData.phone.replace(/\D/g, '');
-    const formatted = phone.startsWith('55') ? phone : `55${phone}`;
-    const msg = encodeURIComponent(`Olá ${formData.name}, tudo bem? Estamos entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`);
-    return `https://web.whatsapp.com/send?phone=${formatted}&text=${msg}`;
+  if (!formData.phone) return null;
+
+  const phone = formData.phone.replace(/\D/g, '');
+  const formatted = phone.startsWith('55') ? phone : `55${phone}`;
+
+  const msg = encodeURIComponent(
+    `Olá ${formData.name}, Tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
+  );
+
+  // Força abrir no WhatsApp Web no desktop, e no app no celular
+  const base = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
+    ? 'https://api.whatsapp.com/send'
+    : 'https://web.whatsapp.com/send';
+
+    return `${base}?phone=${formatted}&text=${msg}`;
   };
 
   const formatNoteDate = (ts) => {
