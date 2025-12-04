@@ -53,7 +53,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   // Variáveis de Relatório
   const productivity = data?.productivity || {};
   const dailyActivity = data?.dailyActivity || {};
-  const lostReasonsData = data?.lostReasons || [];
+  const lostReasonsData = data?.lostReasons || { reasons: [], totalLost: 0 };
+  const lostReasons = lostReasonsData.reasons;        // agora sim é o array
+  const totalLost = lostReasonsData.totalLost;
     
   // Variáveis de Configuração/Filtros
   const vendedores = data?.vendedores || [];
