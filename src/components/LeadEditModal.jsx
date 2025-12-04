@@ -294,13 +294,21 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     };
 
     const getWhatsAppLink = () => {
-        if (leadData.phone) {
-            // Remove tudo que não for dígito e adiciona código do país (55 - Brasil)
-            const cleanPhone = leadData.phone.replace(/\D/g, '');
-            const finalPhone = cleanPhone.length === 13 ? cleanPhone : `55${cleanPhone}`;
-            return `https://wa.me/${finalPhone}`;
-        }
-        return '#';
+    if (!formData.phone) return null;
+
+    const phone = formData.phone.replace(/\D/g, '');
+    const formatted = phone.startsWith('55') ? phone : `55${phone}`;
+
+    const msg = encodeURIComponent(
+        `Olá ${formData.name}, Tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
+    );
+
+    // Força abrir no WhatsApp Web no desktop, e no app no celular
+    const base = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
+        ? 'https://api.whatsapp.com/send'
+        : 'https://web.whatsapp.com/send';
+
+    return `${base}?phone=${formatted}&text=${msg}`;
     };
 
 
@@ -505,35 +513,43 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                     {/* Área de Anotações */}
                     <div className="mt-6">
+
                         {/* Nova Nota / Anexo */}
-                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg dark:border-gray-700">
-                            <label className="block text-sm font-medium text-gray-700 mb-2 dark:text-gray-300">Adicionar Nova Nota:</label>
-                            <div className="flex space-x-2 mb-2">
-                                <textarea 
-                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                                    rows="2" 
-                                    value={newNoteText} 
+                        <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <label className="block text-sm font-medium text-gray-700 mb-3 dark:text-gray-300">
+                                Adicionar Nova Nota:
+                            </label>
+                            <div className="flex space-x-3 mb-4">
+                                <textarea
+                                    className="flex-1 border rounded-lg px-4 py-3 dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                    rows="3"
+                                    value={newNoteText}
                                     onChange={(e) => setNewNoteText(e.target.value)}
                                     onKeyDown={handleNoteKeyDown}
                                     placeholder="Digite sua anotação (Shift + Enter para quebra de linha)..."
-                                ></textarea>
-                                <button 
-                                    type="button" 
-                                    onClick={handleAddNote} 
-                                    disabled={newNoteText.trim() === ''} 
-                                    className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddNote}
+                                    disabled={newNoteText.trim() === ''}
+                                    className="px-6 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 transition"
                                 >
                                     Adicionar
                                 </button>
                             </div>
+
                             {/* Anexo */}
-                            <div className="flex items-center space-x-2 border-t border-gray-200 pt-2 mt-2">
-                                <input type="file" onChange={handleFileChange} className="text-sm dark:text-gray-300" />
-                                <button 
-                                    type="button" 
-                                    onClick={handleAddAttachmentNote} 
-                                    disabled={!selectedFile || saving} 
-                                    className="px-4 py-2 rounded bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50 flex items-center space-x-2"
+                            <div className="flex items-center space-x-3 border-t border-gray-300 dark:border-gray-600 pt-4">
+                                <input
+                                    type="file"
+                                    onChange={handleFileChange}
+                                    className="text-sm text-gray-600 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 dark:file:bg-gray-700 dark:file:text-indigo-300 hover:file:bg-indigo-100"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddAttachmentNote}
+                                    disabled={!selectedFile || saving}
+                                    className="px-5 py-2.5 rounded-lg bg-yellow-600 text-white font-medium hover:bg-yellow-700 disabled:opacity-50 flex items-center space-x-2 transition"
                                 >
                                     <FaPaperclip size={16} />
                                     <span>{saving ? 'Enviando...' : 'Anexar e Adicionar Nota'}</span>
@@ -542,54 +558,73 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         </div>
 
                         {/* Lista de Notas */}
-                        <div className="mt-6 space-y-4">
-                            <h3 className="text-lg font-semibold border-b pb-2 text-gray-800 dark:text-white dark:border-gray-700">Histórico de Anotações</h3>
+                        <div className="mt-8">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                Histórico de Anotações
+                            </h3>
+
                             {leadData.notes && leadData.notes.length > 0 ? (
-                                [...leadData.notes].reverse().map((note, index) => {
-                                    const noteText = note.text || note;
-                                    const noteTimestamp = note.timestamp || 0;
-                                    const noteUser = note.user || 'Sistema';
-                                    const isAttachment = note.isAttachment || noteText.includes('[ANEXO:');
+                                <div className="space-y-4">
+                                    {[...leadData.notes].reverse().map((note, index) => {
+                                        const noteText = note.text || note;
+                                        const noteTimestamp = note.timestamp || 0;
+                                        const noteUser = note.user || 'Sistema';
+                                        const isAttachment = note.isAttachment || noteText.includes('[ANEXO:');
 
-                                    // Determina a cor de fundo do cabeçalho
-                                    let headerBg = 'bg-gray-200 dark:bg-gray-700';
-                                    let headerText = 'text-gray-800 dark:text-gray-300';
-                                    if (isAttachment) {
-                                        headerBg = 'bg-yellow-200 dark:bg-yellow-900';
-                                        headerText = 'text-yellow-900 dark:text-yellow-300';
-                                    }
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="p-5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow"
+                                            >
+                                                {/* Cabeçalho: data + usuário */}
+                                                <div
+                                                    className={`inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-3
+                                                        ${isAttachment 
+                                                            ? 'bg-yellow-200 text-yellow-900 dark:bg-yellow-900 dark:text-yellow-300' 
+                                                            : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                                        }`}
+                                                >
+                                                    {formatNoteDate(noteTimestamp)} - {noteUser}
+                                                </div>
 
-                                    return (
-                                        // 🎨 CORREÇÃO DE ESTILO: Fundo cinza claro para o quadro da nota
-                                        <div 
-                                            key={index} 
-                                            className="p-3 border rounded-lg shadow-sm bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-                                        >
-                                            <p className={`text-xs font-semibold ${headerBg} ${headerText} p-1 rounded inline-block mb-1`}>
-                                                {formatNoteDate(noteTimestamp)} - {noteUser}
-                                            </p>
-                                            {/* O whitespace-pre-wrap garante que as quebras de linha (Shift+Enter) sejam exibidas */}
-                                            <p className={`text-gray-700 dark:text-gray-300 whitespace-pre-wrap ${isAttachment ? 'font-medium text-yellow-800 dark:text-yellow-400' : ''}`}>
-                                                {noteText}
-                                            </p>
-                                        </div>
-                                    );
-                                })
-                            ) : (<p className="text-gray-500 text-sm italic dark:text-gray-400">Nenhuma nota registrada.</p>)}
+                                                {/* Texto da nota */}
+                                                <p
+                                                    className={`whitespace-pre-wrap leading-relaxed
+                                                        ${isAttachment 
+                                                            ? 'text-yellow-800 dark:text-yellow-400 font-medium' 
+                                                            : 'text-gray-800 dark:text-gray-200'
+                                                        }`}
+                                                >
+                                                    {noteText}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-center text-gray-500 dark:text-gray-400 italic py-8">
+                                    Nenhuma nota registrada.
+                                </p>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* Footer / Botões de Ação */}
-                <div className="mt-6 p-4 border-t flex justify-end space-x-2 sticky bottom-0 bg-white z-10 dark:bg-gray-900 dark:border-gray-700">
-                    <button onClick={onClose} className="px-4 py-2 rounded border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">Cancelar</button>
+                <div className="mt-8 p-4 border-t flex justify-end space-x-3 sticky bottom-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 z-10">
+                    <button
+                        onClick={onClose}
+                        className="px-6 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium"
+                    >
+                        Cancelar
+                    </button>
                     <button
                         type="button"
                         onClick={saveLeadChanges}
-                        disabled={saving || !isDirty()} // Desabilita se não houver alterações
-                        className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-60 flex items-center space-x-2"
+                        disabled={saving || !isDirty()}
+                        className="px-8 py-3 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center space-x-2 transition shadow-lg"
                     >
-                        <FaSave size={16} />
+                        <FaSave size={18} />
                         <span>{saving ? 'Salvando...' : 'Salvar Alterações'}</span>
                     </button>
                 </div>
