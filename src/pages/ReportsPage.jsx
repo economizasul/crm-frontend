@@ -8,7 +8,7 @@ import { format, subDays } from 'date-fns';
 
 const today = new Date();
 const defaultEnd = format(today, 'yyyy-MM-dd');
-const defaultStart = format(subDays(today, 29), 'yyyy-MM-dd');
+const defaultStart = format(subDays(today, 29), 'yyyy-MM-dd'); // últimos 30 dias
 
 const initialFilters = {
   startDate: defaultStart,
@@ -24,7 +24,7 @@ const formatNumber = (value) => Number(value ?? 0).toLocaleString('pt-BR');
 
 export default function ReportsPage() {
   const {
-    data = {},
+    data = {},          
     filters = initialFilters,
     loading = false,
     error = null,
@@ -63,58 +63,41 @@ export default function ReportsPage() {
               />
             </div>
 
-            {/* KPIs RÁPIDOS - AGORA COM TAXA DE INAPTOS E ATENDIMENTOS */}
-            <div className="hidden lg:flex items-center gap-6 divide-x divide-gray-200">
-              {/* Leads Totais */}
-              <div className="text-center pr-6">
-                <div className="font-semibold text-2xl text-[#0F172A]">
-                  {formatNumber(summary?.totalLeads)}
+            <div className="hidden lg:flex items-center gap-6 divide-x divide-gray-200 pl-4">
+              <div className="text-sm text-gray-600 pr-6">
+                  <div className="font-semibold text-xl text-[#0F172A]">
+                      {formatNumber(summary?.totalLeads)}
+                  </div>
+                  <div className="text-xs">Leads Totais</div>
                 </div>
-                <div className="text-xs text-gray-600">Leads Totais</div>
-              </div>
 
-              {/* KW Vendido */}
-              <div className="text-center px-6">
-                <div className="font-semibold text-2xl text-green-600">
-                  {formatKw(summary?.totalWonValueKW)}
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-green-600">
+                      {formatKw(summary?.totalWonValueKW)}
+                  </div>
+                  <div className="text-xs">KW Vendido (Histórico)</div>
                 </div>
-                <div className="text-xs text-gray-600">KW Vendido</div>
-              </div>
 
-              {/* Taxa de Conversão */}
-              <div className="text-center px-6">
-                <div className="font-semibold text-2xl text-green-700">
-                  {formatPercent(summary?.conversionRate)}
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-blue-600">
+                      {formatPercent(summary?.conversionRate)}
+                  </div>
+                  <div className="text-xs">Conversão (Histórico)</div>
                 </div>
-                <div className="text-xs text-gray-600">Taxa de Conversão</div>
-              </div>
 
-              {/* NOVO: Taxa de Inaptos (vermelho forte) */}
-              <div className="text-center px-6">
-                <div className="font-semibold text-2xl text-red-600">
-                  {Number(summary?.taxaInapto ?? 0).toFixed(1).replace('.', ',')}%
-                  <span className="block text-sm font-normal text-red-500 mt-1">
-                    ({formatNumber(summary?.totalInaptoCount)} leads)
-                  </span>
+                <div className="text-sm text-gray-600 px-6">
+                  <div className="font-semibold text-xl text-blue-700">
+                      {Number(summary?.avgResponseTimeHours ?? 0).toFixed(1).replace('.', ',')} h
+                  </div>
+                  <div className="text-xs">Tempo de Atendimento (Horas)</div>
                 </div>
-                <div className="text-xs text-gray-600">Taxa de Inaptos</div>
-              </div>
 
-              {/* NOVO: Atendimentos Realizados (azul forte) */}
-              <div className="text-center px-6">
-                <div className="font-semibold text-2xl text-blue-600">
-                  {formatNumber(summary?.atendimentosRealizados)}
+                <div className="text-sm text-gray-600 pl-6">
+                  <div className="font-semibold text-xl text-orange-600">
+                      {formatDays(summary?.avgClosingTimeDays)}
+                  </div>
+                  <div className="text-xs">Fechamento Médio (Dias)</div>
                 </div>
-                <div className="text-xs text-gray-600">Atendimentos Realizados</div>
-              </div>
-
-              {/* Tempo Médio de Fechamento */}
-              <div className="text-center pl-6">
-                <div className="font-semibold text-2xl text-orange-600">
-                  {formatDays(summary?.avgClosingTimeDays || 0)}
-                </div>
-                <div className="text-xs text-gray-600">Fechamento Médio</div>
-              </div>
             </div>
           </div>
         </div>
@@ -123,14 +106,12 @@ export default function ReportsPage() {
           <ReportsDashboard data={data} loading={loading} error={error} />
         </div>
 
-        {/* Placeholder */}
         {!loading && !error && (!data || Object.keys(data).length === 0) && (
           <div className="mt-8 p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl shadow-sm text-center">
             Use os filtros acima e clique em <strong>Aplicar Filtros</strong> para carregar o relatório.
           </div>
         )}
 
-        {/* Erro */}
         {error && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl shadow-sm">
             Erro ao carregar o relatório: {error}
