@@ -13,7 +13,7 @@ const Dashboard = () => {
     // 2. Estado para MOBILE (Drawer: aberto/fechado).
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-    // Função para alternar o estado de expansão (desktop)
+    // Função para alternar o estado de expansão (desktop).
     const toggleSidebarExpansion = () => {
         setIsSidebarExpanded(prev => !prev);
     };
