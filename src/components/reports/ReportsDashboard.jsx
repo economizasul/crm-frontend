@@ -306,9 +306,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 <td className="text-left py-2">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="font-bold text-gray-600 text-base">
-                      {productivity.totalLeads > 0 ? Math.round(((data.funnel || []).find(s => s.stageName === 'Inapto')?.count || 0) / productivity.totalLeads * 100) : 0}%
+                      {fmtNumber(productivity.totalInaptosCount || 0)}
                     </span>
-                    <span className="text-gray-500 text-xs">fora do perfil</span>
+                    <span className="text-gray-500 text-xs">
+                      ({productivity.totalInaptosRate?.toFixed(1).replace('.', ',') || '0,0'}% do total)
+                    </span>
+                    <span className="text-gray-400 text-xs">fora do perfil</span>
                   </div>
                 </td>
               </tr>
@@ -317,9 +320,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 <td className="text-left py-2">
                   <div className="flex flex-wrap items-baseline gap-2">
                     <span className="font-bold text-teal-600 text-base">
-                      {data.globalSummary?.totalNotes || 0}
+                      {fmtNumber(productivity.totalNotesInPeriod || 0)}
                     </span>
-                    <span className="text-gray-500 text-xs">novas anotações</span>
+                    <span className="text-gray-500 text-xs">novas anotações no período</span>
                   </div>
                 </td>
               </tr>
