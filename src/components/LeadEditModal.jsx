@@ -294,21 +294,23 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     };
 
     const getWhatsAppLink = () => {
-    if (!formData.phone) return null;
+        if (!leadData.phone) return null;
 
-    const phone = formData.phone.replace(/\D/g, '');
-    const formatted = phone.startsWith('55') ? phone : `55${phone}`;
+        const phone = leadData.phone.replace(/\D/g, '');
+        if (!phone) return null;
 
-    const msg = encodeURIComponent(
-        `Olá ${formData.name}, Tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
-    );
+        const formatted = phone.startsWith('55') ? phone : `55${phone}`;
 
-    // Força abrir no WhatsApp Web no desktop, e no app no celular
-    const base = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
-        ? 'https://api.whatsapp.com/send'
-        : 'https://web.whatsapp.com/send';
+        const msg = encodeURIComponent(
+            `Olá ${leadData.name || 'cliente'}, tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
+        );
 
-    return `${base}?phone=${formatted}&text=${msg}`;
+        // Abre no WhatsApp Web (desktop) ou app (mobile)
+        const base = window.innerWidth <= 768 || /Mobi|Android|iPhone/i.test(navigator.userAgent)
+            ? 'https://api.whatsapp.com/send'
+            : 'https://web.whatsapp.com/send';
+
+        return `${base}?phone=${formatted}&text=${msg}`;
     };
 
 
