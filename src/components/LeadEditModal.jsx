@@ -630,37 +630,42 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         </div>
     );
         return (
-        <>
-            <style jsx>{`
-                /* Força a cor das notas em modais/pop-ups */
-                div[role="dialog"] .note-item,
-                div[role="dialog"] .message,
-                div[role="dialog"] .text-message,
-                div[role="dialog"] .activity-item,
-                div[role="dialog"] .timeline-item,
-                .note-content,
-                .note-text,
-                .activity-note,
-                .message-body {
-                    color: #cbd5e0 !important;
-                }
-                
-                /* Para casos mais específicos do seu sistema */
-                .dark .note-item,
-                .dark .message,
-                .dark .activity-note,
-                .dark .note-content {
-                    color: #cbd5e0 !important;
-                }
-                
-                /* Se ainda não pegar, força em tudo que estiver no modal */
-                div[role="dialog"] [class*="note"],
-                div[role="dialog"] [class*="message"] {
-                    color: #cbd5e0 !important;
-                }
-            `}</style>
-        </>
-    );
+            <>
+                <style jsx>{`
+
+                    .activity-item > div > div > div,      /* caminho mais comum */
+                    .activity-item p,
+                    .timeline-item p,
+                    .system-message p,
+                    .auto-note p,
+                    .note-item p,
+                    [class*="Message"] p,
+                    [class*="Activity"] p {
+                        color: #cbd5e0 !important;
+                    }
+
+                    /* Força em qualquer parágrafo dentro do modal que esteja branco */
+                    div[role="dialog"] p {
+                        color: #cbd5e0 !important;
+                    }
+
+                    /* Exceções: não mexe nas datas e cabeçalhos (que devem ficar mais claros) */
+                    div[role="dialog"] .text-xs,
+                    div[role="dialog"] .text-sm,
+                    div[role="dialog"] .opacity-60,
+                    div[role="dialog"] .opacity-70,
+                    .text-xs,
+                    .text-sm {
+                        color: #94a3b8 !important;
+                    }
+
+                    /* Garante que suas notas manuais (as do final) continuem com a cor certa */
+                    .dark .whitespace-pre-wrap {
+                        color: #cbd5e0 !important;
+                    }
+                `}</style>
+            </>
+        );
 };
 
 export default LeadEditModal;
