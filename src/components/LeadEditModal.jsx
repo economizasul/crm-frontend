@@ -513,18 +513,17 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         
                     </form>
 
-                    {/* Área de Anotações */}
-                    {/* Área de Anotações */}
+                     {/* Área de Anotações */}
                     <div className="mt-6">
 
                         {/* Nova Nota / Anexo */}
-                        <div className="mt-4 p-6 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-300 dark:border-gray-700">
+                        <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                                 Adicionar Nova Nota:
                             </label>
                             <div className="flex space-x-3 mb-4">
                                 <textarea
-                                    className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
+                                    className="flex-1 border rounded-lg px-4 py-3 bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                                     rows="3"
                                     value={newNoteText}
                                     onChange={(e) => setNewNoteText(e.target.value)}
@@ -562,7 +561,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                         {/* Lista de Notas */}
                         <div className="mt-8">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 pb-2 border-b border-gray-300 dark:border-gray-600">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
                                 Histórico de Anotações
                             </h3>
 
@@ -570,29 +569,28 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                 <div className="space-y-4">
                                     {[...leadData.notes].reverse().map((note, index) => {
                                         const noteText = note.text || note;
-                                        const noteTimestamp = note.timestamp || 0;
+                                        const noteTimestamp = note.timestamp ||  note.timestamp || 0;
                                         const noteUser = note.user || 'Sistema';
                                         const isAttachment = note.isAttachment || noteText.includes('[ANEXO:');
 
                                         return (
                                             <div
                                                 key={index}
-                                                // MESMA COR DO QUADRO DE NOVA NOTA
-                                                className="p-5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-sm hover:shadow-lg transition-shadow"
+                                                className="p-5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-lg transition-shadow"
                                             >
-                                                {/* Cabeçalho: data + usuário → UM TOM MAIS CLARO */}
+                                                {/* Cabeçalho: data + usuário → um tom acima do fundo */}
                                                 <div
-                                                    className={`inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-3
+                                                    className={`inline-block px-4 py-1.5 rounded-full text-xs font-semibold mb-3 border
                                                         ${isAttachment 
-                                                            ? 'bg-yellow-600/20 text-yellow-300 border border-yellow-600/30' 
-                                                            : 'bg-gray-700 text-gray-300 border border-gray-600'
+                                                            ? 'bg-yellow-900/40 text-yellow-300 border-yellow-700/50' 
+                                                            : 'bg-gray-700 text-gray-300 border-gray-600'
                                                         }`}
                                                 >
                                                     {formatNoteDate(noteTimestamp)} - {noteUser}
                                                 </div>
 
-                                                {/* Texto da nota → MESMA COR DO TEXTO DO TEXTAREA */}
-                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-900 dark:text-white
+                                                {/* Texto da nota → branco puro no dark mode */}
+                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-800 dark:text-white
                                                     ${isAttachment ? 'text-yellow-300 font-medium' : ''}
                                                 `}>
                                                     {noteText}
