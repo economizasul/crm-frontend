@@ -561,7 +561,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                         {/* Lista de Notas */}
                         <div className="mt-8">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-600 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
                                 Histórico de Anotações
                             </h3>
 
