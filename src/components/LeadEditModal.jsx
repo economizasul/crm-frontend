@@ -590,7 +590,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                                 </div>
 
                                                 {/* Texto da nota → branco puro no dark mode */}
-                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-800 dark:text-white
+                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-800 dark:text-gray-400
                                                     ${isAttachment ? 'text-yellow-300 font-medium' : ''}
                                                 `}>
                                                     {noteText}
