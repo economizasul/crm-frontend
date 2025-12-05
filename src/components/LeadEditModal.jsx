@@ -355,10 +355,10 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 
                 {/* Header do Modal */}
                 <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white z-10 dark:bg-gray-900 dark:border-gray-700">
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                    <h2 className="text-2xl font-bold text-gray-600 dark:text-white">
                         Editar Lead: {leadData.name || 'Sem Nome'}
                     </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:hover:text-gray-300">
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                         <FaTimes size={20} />
                     </button>
                 </div>
@@ -561,7 +561,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
                         {/* Lista de Notas */}
                         <div className="mt-8">
-                            <h3 className="text-lg font-bold text-gray-600 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-5 pb-2 border-b border-gray-200 dark:border-gray-700">
                                 Histórico de Anotações
                             </h3>
 
@@ -590,7 +590,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                                 </div>
 
                                                 {/* Texto da nota → branco puro no dark mode */}
-                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-800 dark:text-gray-400
+                                                <p className={`whitespace-pre-wrap leading-relaxed text-gray-600 dark:text-gray-400
                                                     ${isAttachment ? 'text-yellow-300 font-medium' : ''}
                                                 `}>
                                                     {noteText}
