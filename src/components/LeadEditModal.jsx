@@ -629,6 +629,38 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             </div>
         </div>
     );
+        return (
+        <>
+            <style jsx>{`
+                /* Força a cor das notas em modais/pop-ups */
+                div[role="dialog"] .note-item,
+                div[role="dialog"] .message,
+                div[role="dialog"] .text-message,
+                div[role="dialog"] .activity-item,
+                div[role="dialog"] .timeline-item,
+                .note-content,
+                .note-text,
+                .activity-note,
+                .message-body {
+                    color: #cbd5e0 !important;
+                }
+                
+                /* Para casos mais específicos do seu sistema */
+                .dark .note-item,
+                .dark .message,
+                .dark .activity-note,
+                .dark .note-content {
+                    color: #cbd5e0 !important;
+                }
+                
+                /* Se ainda não pegar, força em tudo que estiver no modal */
+                div[role="dialog"] [class*="note"],
+                div[role="dialog"] [class*="message"] {
+                    color: #cbd5e0 !important;
+                }
+            `}</style>
+        </>
+    );
 };
 
 export default LeadEditModal;
