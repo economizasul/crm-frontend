@@ -331,7 +331,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MAPA ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start" style={{ height:320 }}>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start" style={{ height:260 }}>
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 text-center rounded-t-2xl">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-2xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
@@ -347,7 +347,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
-              <div className="w-full" style={{ minHeight: 280 }}>
+              <div className="w-full" style={{ minHeight: 240 }}>
                 <ParanaMap
                   leadsGanho={leadsVisiveis}
                   onRegiaoClick={setRegiaoSelecionada}
@@ -362,40 +362,54 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
 
-      {/* ===== FUNIL + MOTIVOS DE PERDA ===== */}
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+      {/* ===== FUNIL ===== */}
+      <div className="mt-6">
+
+        {/* ===== ORIGEM DO LEAD ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
           <h3 className="text-xl font-bold text-center text-gray-600 mb-6">Origem do Lead</h3>
+
           <div className="space-y-4 max-w-xs mx-auto">
             {[
-              { label: 'Orgânico',   field: 'organico' },
-              { label: 'Indicação',  field: 'indicacao' },
-              { label: 'Facebook',   field: 'facebook' },
-              { label: 'Google',     field: 'google' },
-              { label: 'Instagram',  field: 'instagram' },
-              { label: 'Parceria',   field: 'parceria' }
-            ].map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
-             .sort((a,b) => b.value - a.value)
-             .map((item, index) => {
-               const percent = (globalSummary?.totalLeads > 0) ? (item.value / globalSummary.totalLeads * 100).toFixed(1) : '0.0';
-               const width = 100 - (index * 10);
-               return (
-                 <motion.div key={item.field} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, delay: index * 0.1 }}
-                   className="h-12 rounded-xl shadow-lg flex items-center justify-between px-5 text-white"
-                   style={{
-                     width: `${width}%`,
-                     margin: '0 auto',
-                     backgroundImage: `linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.12))`,
-                     color: "#9d9d9dff",
-                   }}>
-                   <div className="font-semibold text-sm">{item.label}</div>
-                   <div className="flex items-baseline gap-1">
-                     <span className="text-lg font-bold">{item.value}</span>
-                     <span className="text-xs opacity-90">{percent}%</span>
-                   </div>
-                 </motion.div>
-               );
-             })}
+              { label: 'Orgânico', field: 'organico' },
+              { label: 'Indicação', field: 'indicacao' },
+              { label: 'Facebook', field: 'facebook' },
+              { label: 'Google', field: 'google' },
+              { label: 'Instagram', field: 'instagram' },
+              { label: 'Parceria', field: 'parceria' }
+            ]
+              .map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
+              .sort((a, b) => b.value - a.value)
+              .map((item, index) => {
+                const percent = (globalSummary?.totalLeads > 0)
+                  ? (item.value / globalSummary.totalLeads * 100).toFixed(1)
+                  : '0.0';
+
+                const width = 100 - index * 10;
+
+                return (
+                  <motion.div
+                    key={item.field}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="h-12 rounded-xl shadow-lg flex items-center justify-between px-5 text-white"
+                    style={{
+                      width: `${width}%`,
+                      margin: '0 auto',
+                      backgroundImage:
+                        "linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.12))",
+                      color: "#9d9d9dff"
+                    }}
+                  >
+                    <div className="font-semibold text-sm">{item.label}</div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold">{item.value}</span>
+                      <span className="text-xs opacity-90">{percent}%</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
           </div>
 
           <div className="text-center mt-6">
@@ -406,10 +420,13 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
+        {/* ===== MOTIVOS DE PERDA (SEPARADO DO MAPA) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
           <MotivosPerdaChart lostReasons={lostReasonsData} />
         </div>
+
       </div>
+
     </div>
   );
 }

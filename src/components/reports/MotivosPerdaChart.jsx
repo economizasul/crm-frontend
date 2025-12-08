@@ -1,8 +1,18 @@
 // src/components/reports/MotivosPerdaChart.jsx
 import React, { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+  Cell
+} from "recharts";
 
 const MotivosPerdaChart = ({ lostReasons }) => {
+
   if (!lostReasons || !lostReasons.reasons || lostReasons.reasons.length === 0) {
     return (
       <div className="bg-white p-4 rounded-xl shadow-sm text-center text-gray-500">
@@ -11,66 +21,71 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     );
   }
 
-  const totalLost = lostReasons.totalLost || 0;
-
   const chartData = useMemo(() => {
     return lostReasons.reasons.map((r) => ({
       motivo: r.reason,
       quantidade: r.count,
-      percent: r.percentage,
+      percent: r.percentage
     }));
   }, [lostReasons]);
 
+  // paleta de cores
+  const colors = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
   return (
-    <div className="bg-white p-5 rounded-xl shadow-md">
-      <h3 className="text-lg font-semibold mb-4">Motivos de Perda</h3>
+    <div className="p-5">
+      <h3 className="text-xl font-bold mb-5 text-gray-700">
+        Motivos de Perda
+      </h3>
 
       <div style={{ width: "100%", height: 310 }}>
         <ResponsiveContainer>
           <BarChart
             layout="vertical"
-            width={500}
-            height={300}
             data={chartData}
-            margin={{ top: 10, right: 30, left: 10, bottom: 10 }}
+            margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
           >
             {/* Motivos no eixo Y */}
             <YAxis
               dataKey="motivo"
               type="category"
-              width={120}
+              width={150}
               tick={{ fill: "#555", fontSize: 13 }}
             />
 
-            {/* Quantidades no eixo X (mas não exibimos o número aqui) */}
+            {/* Oculta o eixo X */}
             <XAxis type="number" hide />
 
-            {/* Barra horizontal */}
-            <Bar dataKey="quantidade" fill="#2563eb" radius={[4, 4, 4, 4]}>
+            {/* Barras */}
+            <Bar
+              dataKey="quantidade"
+              barSize={20}
+              radius={[6, 6, 6, 6]}
+            >
+              {chartData.map((_, index) => (
+                <Cell key={index} fill={colors[index % colors.length]} />
+              ))}
 
-              {/* Número dentro da barra */}
+              {/* Quantidade dentro da barra */}
               <LabelList
                 dataKey="quantidade"
                 position="insideLeft"
-                offset={10}
                 style={{ fill: "#fff", fontWeight: "bold" }}
               />
 
-              {/* Porcentagem no final da barra */}
+              {/* Percentual dentro da ponta da barra */}
               <LabelList
                 dataKey="percent"
-                position="right"
+                position="insideRight"
                 formatter={(v) => `${v}%`}
-                style={{ fill: "#1e40af", fontWeight: "bold" }}
+                style={{ fill: "#fff", fontWeight: "bold" }}
               />
-
             </Bar>
 
-            {/* Tooltip moderno */}
             <Tooltip
-              formatter={(value, name, props) => {
+              formatter={(value, name) => {
                 if (name === "quantidade") return [`${value} perdas`, "Quantidade"];
-                if (name === "percent") return [`${value}%`, "Porcentagem"];
+                if (name === "percent") return [`${value}%`, "Percentual"];
                 return value;
               }}
               labelFormatter={(label) => `Motivo: ${label}`}
