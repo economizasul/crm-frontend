@@ -15,9 +15,9 @@ const MotivosPerdaChart = ({ lostReasons }) => {
 
   const chartData = useMemo(() => {
     return lostReasons.reasons.map((r) => ({
-      motivo: r.motivo,
-      quantidade: r.quantidade,
-      percent: totalLost > 0 ? ((r.quantidade / totalLost) * 100).toFixed(1) : 0,
+      motivo: r.reason,
+      quantidade: r.count,
+      percent: r.percentage,
     }));
   }, [lostReasons]);
 
