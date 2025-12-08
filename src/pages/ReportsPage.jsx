@@ -1,4 +1,3 @@
-// src/pages/ReportsPage.jsx 
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useReports } from '../hooks/useReports';
@@ -17,14 +16,14 @@ const initialFilters = {
   source: null
 };
 
-const formatPercent = (value) => `${(Number(value ?? 0) * 100).toFixed(1).replace('.', ',')}%`;
+const formatPercent = (value) => `${(Number(value ?? 0)).toFixed(1).replace('.', ',')}%`;
 const formatKw = (value) => `${Number(value ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} kW`;
 const formatDays = (value) => `${Number(value ?? 0).toFixed(1).replace('.', ',')} dias`;
 const formatNumber = (value) => Number(value ?? 0).toLocaleString('pt-BR');
 
 export default function ReportsPage() {
   const {
-    data = {},          
+    data = {},
     filters = initialFilters,
     loading = false,
     error = null,
@@ -35,7 +34,13 @@ export default function ReportsPage() {
     exportToPdf,
   } = useReports(initialFilters);
 
+  // Use globalSummary para o pré-relatório superior
   const summary = data?.globalSummary || {};
+
+  // Ajuste nomes: backend expõe tempo em horas -> converter onde necessário
+  const tempoAtendimentoHoras = Number(summary?.tempoMedioAtendimentoHoras || 0);
+  const tempoFechamentoHoras = Number(summary?.tempoMedioFechamentoHoras || 0);
+  const tempoFechamentoDias = (tempoFechamentoHoras / 24);
 
   return (
     <div className="min-h-screen bg-[#F7F9FB] text-[#0F172A]">
@@ -87,14 +92,14 @@ export default function ReportsPage() {
 
                 <div className="text-sm text-gray-600 px-6">
                   <div className="font-semibold text-xl text-blue-700">
-                      {Number(summary?.avgResponseTimeHours ?? 0).toFixed(1).replace('.', ',')} h
+                      {Number(tempoAtendimentoHoras).toFixed(1).replace('.', ',')} h
                   </div>
                   <div className="text-xs">Tempo de Atendimento (Horas)</div>
                 </div>
 
                 <div className="text-sm text-gray-600 pl-6">
                   <div className="font-semibold text-xl text-orange-600">
-                      {formatDays(summary?.avgClosingTimeDays)}
+                      {Number(tempoFechamentoDias).toFixed(1).replace('.', ',')} dias
                   </div>
                   <div className="text-xs">Fechamento Médio (Dias)</div>
                 </div>
