@@ -407,7 +407,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-          <MotivosPerdaChart data={lostReasons} />
+          <MotivosPerdaChart lostReasons={lostReasonsData} />
         </div>
       </div>
     </div>
