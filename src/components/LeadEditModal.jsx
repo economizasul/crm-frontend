@@ -38,7 +38,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         kwSold: selectedLead?.kwSold || 0,
         avgConsumption: selectedLead?.avgConsumption || 0,
         estimatedSavings: selectedLead?.estimatedSavings || 0,
-        phone2: selectedLead?.phone2 || '', // 🟢 NOVO CAMPO
+        phone2: selectedLead?.phone2 || '',
     });
     
     const [newNoteText, setNewNoteText] = useState('');
@@ -218,12 +218,18 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
             setError('O Motivo da Perda é obrigatório quando a fase é "Perdido".');
             return;
+        
         }
 
         setSaving(true);
         setError(null);
         
-        const payload = { ...leadData };
+            const payload = { ...leadData };
+            if (payload.reasonForLoss !== undefined) {
+                payload.reason_for_loss = payload.reasonForLoss;
+                delete payload.reasonForLoss;
+            }
+
         // Campos que NÃO devem ser enviados
         delete payload._id; 
         delete payload.owner_name;

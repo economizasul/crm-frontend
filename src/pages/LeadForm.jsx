@@ -85,6 +85,7 @@ const LeadForm = () => {
     estimated_savings: '',
     qsa: '',
     owner_id: '',
+    reason_for_loss: '',
     notes: []
   });
 
@@ -127,6 +128,7 @@ const LeadForm = () => {
             estimated_savings: lead.estimated_savings || lead.estimatedSavings || '',
             qsa: lead.qsa || '',
             owner_id: lead.owner_id || lead.ownerId || lead.owner?.id || '',
+            reason_for_loss: lead.reason_for_loss || '',
             notes: Array.isArray(lead.notes) 
               ? lead.notes 
               : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : [])
@@ -260,6 +262,7 @@ const handleSubmit = async (e) => {
       avg_consumption: formData.avg_consumption ? parseFloat(formData.avg_consumption) : null,
       estimated_savings: formData.estimated_savings ? parseFloat(formData.estimated_savings) : null,
       qsa: formData.qsa?.trim() || null,
+      reason_for_loss: formData.reason_for_loss || null,
       // prioridade: coords -> formData -> null
       lat: (coords && coords.lat != null) ? coords.lat : (formData.lat ?? null),
       lng: (coords && coords.lng != null) ? coords.lng : (formData.lng ?? null),
