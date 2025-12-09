@@ -57,12 +57,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const vendedores = data?.vendedores || [];
   const filtrosBase = data?.filters || {};
 
-  // MAPA — carregamento forçado (mantive fetch manual para compatibilidade)
+  // MAPA — carregamento forçado
   useEffect(() => {
     const carregarMapa = async () => {
       try {
         setCarregandoMapa(true);
-        // chamada direta para endpoint do mapa (igual ao que havia)
+        // chamada direta para endpoint do mapa
         const response = await fetch('https://crm-app-cnf7.onrender.com/api/v1/reports/leads-ganho-mapa', {
           method: 'POST',
           headers: {
@@ -210,7 +210,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start auto-rows-min">
+      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== RESUMO DE PRODUTIVIDADE (USAR PRODUCTIVITY AQUI) */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible self-start">
@@ -331,23 +331,23 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MAPA ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start" style={{ height: 260 }}>
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 text-center rounded-t-2xl">
-            <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
-            <p className="text-2xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start h-[380px] lg:h-[420px]">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-5 rounded-t-2xl text-center">
+            <h3 className="text-xl font-bold">Mapa de Leads Fechados</h3>
+            <p className="text-3xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div>
+          <div className="flex-1 px-4 pb-4 pt-2">
             {carregandoMapa ? (
-              <div className="flex items-center justify-center bg-gray-50 py-6">
+              <div className="flex items-center justify-center h-full bg-gray-50 rounded-b-2xl">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
               </div>
             ) : leadsMapa.length === 0 ? (
-              <div className="flex items-center justify-center bg-gray-50 py-6">
+              <div className="flex items-center justify-center h-full bg-gray-50 rounded-b-2xl">
                 <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
-              <div className="w-full" style={{ minHeight: 240 }}>
+              <div className="h-full rounded-b-2xl overflow-hidden border border-gray-200">
                 <ParanaMap
                   leadsGanho={leadsVisiveis}
                   onRegiaoClick={setRegiaoSelecionada}
@@ -366,17 +366,17 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== ORIGEM DO LEAD ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-12">
           <h3 className="text-xl font-bold text-center text-gray-600 mb-6">Origem do Lead</h3>
 
           <div className="space-y-4 max-w-xs mx-auto">
             {[
-              { label: 'Orgânico', field: 'organico' },
-              { label: 'Indicação', field: 'indicacao' },
-              { label: 'Facebook', field: 'facebook' },
-              { label: 'Google', field: 'google' },
-              { label: 'Instagram', field: 'instagram' },
-              { label: 'Parceria', field: 'parceria' }
+              { label: 'Orgânico..:', field: 'organico' },
+              { label: 'Indicação..:', field: 'indicacao' },
+              { label: 'Facebook..:', field: 'facebook' },
+              { label: 'Google..:', field: 'google' },
+              { label: 'Instagram..:', field: 'instagram' },
+              { label: 'Parceria..:', field: 'parceria' }
             ]
               .map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
               .sort((a, b) => b.value - a.value)
