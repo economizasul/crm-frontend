@@ -9,6 +9,7 @@ import DailyActivity from './DailyActivity.jsx';
 import ParanaMap from './ParanaMap.jsx';
 import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
 import MotivosPerdaChart from './MotivosPerdaChart.jsx';
+import LeadOriginFunnel from './LeadOriginFunnel.jsx';
 
 const SkeletonCard = () => (
   <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 animate-pulse">
@@ -330,14 +331,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== MAPA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col h-[500px] self-start">
+{/* ===== MAPA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start h-[550px]"> {/* Altura mínima definida */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-6 rounded-t-2xl text-center">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="flex-1 -m-px">
+          <div className="flex-1 p-4"> {/* Adicionado padding e flex-1 para preenchimento flexível */}
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
@@ -351,9 +352,9 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 leadsGanho={leadsVisiveis}
                 onRegiaoClick={setRegiaoSelecionada}
                 regiaoAtiva={regiaoSelecionada}
-                center={{ lat: -24.8, lng: -51.5 }}   // Ajustado para Presidente Prudente (Norte) e acima de Blumenau (Sul)
-                zoom={7.7}                              // Zoom ajustado para o novo recorte
-                className="w-full h-full rounded-b-2xl"
+                center={{ lat: -24.8, lng: -51.5 }}
+                zoom={7.7}
+                className="w-full h-full rounded-b-xl"
               />
             )}
           </div>
@@ -361,61 +362,20 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
       
       {/* ===== LINHA 2: ORIGEM DO LEAD + MOTIVOS DE PERDA (AJUSTADO) ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* Alterei 'mt-20' para 'mt-8' para melhor espaçamento, mas mantive o 'grid' */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ORIGEM DO LEAD (Removido 'mb-12') ===== */}
+        {/* ===== ORIGEM DO LEAD (Substituído pelo Funil 3D) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
-          <h3 className="text-xl font-bold text-center text-gray-600 mb-6">Origem do Lead</h3>
+          <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">Origem do Lead</h3>
+          
+            {/* TODA A LÓGICA ANTERIOR DE RENDERIZAÇÃO DE LISTA FOI SUBSTITUÍDA 
+              PELO NOVO COMPONENTE DE FUNIL 3D.
+            */}
+          <LeadOriginFunnel 
+            originStats={originStatsObj} 
+            totalLeads={globalSummary?.totalLeads || 0}
+          />
 
-          <div className="space-y-4 max-w-xs mx-auto">
-            {[
-              { label: 'Orgânico..:', field: 'organico' },
-              { label: 'Indicação..:', field: 'indicacao' },
-              { label: 'Facebook..:', field: 'facebook' },
-              { label: 'Google..:', field: 'google' },
-              { label: 'Instagram..:', field: 'instagram' },
-              { label: 'Parceria..:', field: 'parceria' }
-            ]
-              .map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
-              .sort((a, b) => b.value - a.value)
-              .map((item, index) => {
-                const percent = (globalSummary?.totalLeads > 0)
-                  ? (item.value / globalSummary.totalLeads * 100).toFixed(1)
-                  : '0.0';
-
-                const width = 100 - index * 10;
-
-                return (
-                  <motion.div
-                    key={item.field}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="h-12 rounded-xl shadow-lg flex items-center justify-between px-5 text-white"
-                    style={{
-                      width: `${width}%`,
-                      margin: '0 auto',
-                      backgroundImage:
-                        "linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.12))",
-                      color: "#9d9d9dff"
-                    }}
-                  >
-                    <div className="font-semibold text-sm">{item.label}</div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold">{item.value}</span>
-                      <span className="text-xs opacity-90">{percent}%</span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-          </div>
-
-          <div className="text-center mt-6">
-            <div className="text-3xl font-extrabold text-gray-600">
-              {fmtNumber(globalSummary?.totalLeads || 0)}
-            </div>
-            <div className="text-sm text-gray-600">Total de leads no período</div>
-          </div>
         </div>
 
         {/* ===== MOTIVOS DE PERDA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
