@@ -332,13 +332,13 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col"> {/* Removido 'self-start' e a altura fixa h-[550px] ou h-full */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-6 rounded-t-2xl text-center">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="flex-1 h-[350px]"> {/* Altura do container interno reduzida para 350px e removido padding */}
+          <div className="flex-1 **h-[300px]**"> {/* Altura interna reduzida para 300px. */}
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
@@ -361,71 +361,17 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
       
-{/* ===== LINHA 2: ORIGEM DO LEAD + MOTIVOS DE PERDA (AJUSTADO) ===== */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ORIGEM DO LEAD (Ajustado para Funil Proporcional) ===== */}
+        {/* ===== ORIGEM DO LEAD (Usando componente Funil 3D) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
-          <h3 className="text-xl font-bold text-center text-indigo-700 mb-8">Origem do Lead</h3>
+          <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">Origem do Lead</h3>
+          
+          <LeadOriginFunnel 
+            originStats={originStatsObj} 
+            totalLeads={globalSummary?.totalLeads || 0}
+          />
 
-          <div className="space-y-4 max-w-sm mx-auto"> {/* Max-w-sm para centralizar */}
-            {/* Array de mapeamento com cores e sombras */}
-            {[
-              { label: 'Facebook..:', field: 'facebook', baseColor: 'bg-blue-600', shadowStyle: 'shadow-lg shadow-blue-500/50' },
-              { label: 'Orgânico..:', field: 'organico', baseColor: 'bg-green-600', shadowStyle: 'shadow-md shadow-green-500/50' },
-              { label: 'Google..:', field: 'google', baseColor: 'bg-yellow-600', shadowStyle: 'shadow-lg shadow-yellow-500/50' },
-              { label: 'Indicação..:', field: 'indicacao', baseColor: 'bg-purple-600', shadowStyle: 'shadow-md shadow-purple-500/50' },
-              { label: 'Instagram..:', field: 'instagram', baseColor: 'bg-pink-600', shadowStyle: 'shadow-lg shadow-pink-500/50' },
-              { label: 'Parceria..:', field: 'parceria', baseColor: 'bg-red-600', shadowStyle: 'shadow-md shadow-red-500/50' }
-            ]
-              .map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
-              .sort((a, b) => b.value - a.value) // Mantém a ordenação por valor
-              .map((item, index, array) => {
-                const percent = (globalSummary?.totalLeads > 0)
-                  ? (item.value / globalSummary.totalLeads * 100).toFixed(1)
-                  : '0.0';
-
-                // 🛑 NOVO CÁLCULO DE LARGURA PARA O FUNIL
-                const maxVal = array[0].value || 1; // Pega o valor da primeira barra (a maior)
-                
-                // A largura da barra é proporcional ao valor máximo (topo)
-                const width = (item.value / maxVal) * 100;
-                
-                // Aplicamos margin: 0 auto; para centralizar a barra horizontalmente.
-                return (
-                  <motion.div
-                    key={item.field}
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="origin-center" // Ajustado para origin-center para animação centralizada
-                    style={{ margin: '0 auto' }} // Centraliza o elemento de animação
-                  >
-                    <div
-                      className={`h-12 rounded-lg ${item.shadowStyle} flex items-center justify-between px-5 text-white transform transition-all duration-300 hover:scale-[1.02] ${item.baseColor}`}
-                      style={{
-                        width: `${width}%`,
-                        // Adiciona gradiente para efeito 3D no topo/fundo
-                        backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.2), transparent 50%, rgba(255,255,255,0.2))`, 
-                      }}
-                    >
-                      <div className="font-semibold text-sm">{item.label}</div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-bold">{item.value}</span>
-                        <span className="text-xs opacity-90">{percent}%</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-          </div>
-
-          <div className="text-center mt-6">
-            <div className="text-3xl font-extrabold text-gray-600">
-              {fmtNumber(globalSummary?.totalLeads || 0)}
-            </div>
-            <div className="text-sm text-gray-600">Total de leads no período</div>
-          </div>
         </div>
 
         {/* ===== MOTIVOS DE PERDA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
