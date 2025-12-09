@@ -208,7 +208,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     delete payload.created_at;
     delete payload.updated_at;
     delete payload.__v;
-    payload.notes = JSON.stringify(payload.notes || []);
+    payload.notes = payload.notes || [];
 
     try {
         await LeadService.updateLead(leadData.id || leadData._id, payload, token);
