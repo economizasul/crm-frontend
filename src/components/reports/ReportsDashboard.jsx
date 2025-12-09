@@ -223,7 +223,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
               <tbody className="divide-y divide-gray-100">
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Leads Ativos..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-indigo-600 text-base">
@@ -235,7 +235,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Novos Cadastros..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-blue-600 text-base">{fmtNumber(productivity?.totalLeads || 0)}</span>
@@ -245,7 +245,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Vendas Concluídas..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-green-600 text-base">{fmtNumber(productivity?.totalWonCount || 0)}</span>
@@ -255,7 +255,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Total de kW Fechado..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-extrabold text-green-600 text-lg">{fmtKw(productivity?.totalWonValueKW || 0)}</span>
@@ -265,7 +265,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Conversão..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-purple-600 text-base">{fmtPercent(productivity?.conversionRate ?? 0)}</span>
@@ -275,7 +275,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Fechamento Médio..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-orange-600 text-base">
@@ -287,7 +287,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Perda..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-red-600 text-base">
@@ -299,7 +299,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Taxa de Inaptos..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-gray-600 text-base">
@@ -314,7 +314,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 </tr>
 
                 <tr className="hover:bg-gray-50">
-                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados</td>
+                  <td className="py-4 font-medium text-gray-700 whitespace-nowrap">Atendimentos Realizados..:</td>
                   <td className="text-left py-2">
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="font-bold text-teal-600 text-base">
@@ -363,7 +363,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
 
       {/* ===== FUNIL + MOTIVOS DE PERDA ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== ORIGEM DO LEAD ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-12">
@@ -421,7 +421,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MOTIVOS DE PERDA ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 mb-12">
           <MotivosPerdaChart lostReasons={lostReasonsData} />
         </div>
 
