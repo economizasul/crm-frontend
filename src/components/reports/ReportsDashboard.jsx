@@ -210,7 +210,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
       </div>
 
       {/* ===== NOVO LAYOUT: MAPA PEQUENO À DIREITA + CONTEÚDO À ESQUERDA ===== */}
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="mt-20 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== RESUMO DE PRODUTIVIDADE (USAR PRODUCTIVITY AQUI) */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible self-start">
@@ -331,29 +331,29 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MAPA ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start h-[380px] lg:h-[420px]">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-5 rounded-t-2xl text-center">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col h-[480px] self-start">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-5 rounded-t-2xl text-center">
             <h3 className="text-xl font-bold">Mapa de Leads Fechados</h3>
-            <p className="text-3xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
+            <p className="text-3xl font-extrabold mt-1">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="flex-1 px-4 pb-4 pt-2">
+          <div className="flex-1 p-4">
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50 rounded-b-2xl">
-                <FaSpinner className="animate-spin text-6xl text-purple-600" />
+                <FaSpinner className="animate-spin text-5xl text-purple-600" />
               </div>
             ) : leadsMapa.length === 0 ? (
               <div className="flex items-center justify-center h-full bg-gray-50 rounded-b-2xl">
                 <p className="text-lg text-gray-500">Nenhum cliente com coordenadas</p>
               </div>
             ) : (
-              <div className="h-full rounded-b-2xl overflow-hidden border border-gray-200">
+              <div className="h-full rounded-xl overflow-hidden border border-gray-300 shadow-inner">
                 <ParanaMap
                   leadsGanho={leadsVisiveis}
                   onRegiaoClick={setRegiaoSelecionada}
                   regiaoAtiva={regiaoSelecionada}
-                  center={{ lat: -24.8, lng: -51.5 }}
-                  zoom={7}
+                  center={{ lat: -25.25, lng: -52.0 }}   // Perfeito pro PR
+                  zoom={7.7}                             // Só PR, margem fina
                   className="w-full h-full"
                 />
               </div>
