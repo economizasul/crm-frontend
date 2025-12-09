@@ -331,14 +331,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* MAPA DE LEADS FECHADOS */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col self-start">
+        {/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col"> {/* Removido 'self-start' e a altura fixa h-[550px] ou h-full */}
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-6 rounded-t-2xl text-center">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="flex-1 p-4 h-[400px]"> {/* Altura do container interno fixada em 400px. Adicionado p-4 para evitar corte. */}
+          <div className="flex-1 h-[350px]"> {/* Altura do container interno reduzida para 350px e removido padding */}
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
@@ -352,8 +352,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                 leadsGanho={leadsVisiveis}
                 onRegiaoClick={setRegiaoSelecionada}
                 regiaoAtiva={regiaoSelecionada}
-                center={{ lat: -24.0, lng: -52.0 }} // Revertendo para um centro mais tradicional do PR
-                zoom={7} // Revertendo o zoom
+                center={{ lat: -24.0, lng: -52.0 }} 
+                zoom={7} 
                 className="w-full h-full rounded-b-xl"
               />
             )}
@@ -361,10 +361,10 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
       </div>
       
-      {/* ===== LINHA 2: ORIGEM DO LEAD + MOTIVOS DE PERDA (AJUSTADO) ===== */}
-<div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+{/* ===== LINHA 2: ORIGEM DO LEAD + MOTIVOS DE PERDA (AJUSTADO) ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ORIGEM DO LEAD (Ajustado para cores e efeito de barra 3D) ===== */}
+        {/* ===== ORIGEM DO LEAD (Ajustado para Funil Proporcional) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <h3 className="text-xl font-bold text-center text-indigo-700 mb-8">Origem do Lead</h3>
 
@@ -380,26 +380,26 @@ export default function ReportsDashboard({ data, loading = false, error = null }
             ]
               .map(item => ({ ...item, value: originStatsObj[item.field] || 0 }))
               .sort((a, b) => b.value - a.value) // Mantém a ordenação por valor
-              .map((item, index) => {
+              .map((item, index, array) => {
                 const percent = (globalSummary?.totalLeads > 0)
                   ? (item.value / globalSummary.totalLeads * 100).toFixed(1)
                   : '0.0';
 
-                // Calcula a largura da barra proporcionalmente ao valor mais alto (topo do funil)
-                const maxVal = originStatsObj[
-                  Object.keys(originStatsObj).reduce((a, b) => originStatsObj[a] > originStatsObj[b] ? a : b, '')
-                ] || 1;
-
+                // 🛑 NOVO CÁLCULO DE LARGURA PARA O FUNIL
+                const maxVal = array[0].value || 1; // Pega o valor da primeira barra (a maior)
+                
+                // A largura da barra é proporcional ao valor máximo (topo)
                 const width = (item.value / maxVal) * 100;
                 
-                // Adicionamos 'w-full' para que o container interno use a largura total
+                // Aplicamos margin: 0 auto; para centralizar a barra horizontalmente.
                 return (
                   <motion.div
                     key={item.field}
                     initial={{ opacity: 0, scaleX: 0 }}
                     animate={{ opacity: 1, scaleX: 1 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="origin-left"
+                    className="origin-center" // Ajustado para origin-center para animação centralizada
+                    style={{ margin: '0 auto' }} // Centraliza o elemento de animação
                   >
                     <div
                       className={`h-12 rounded-lg ${item.shadowStyle} flex items-center justify-between px-5 text-white transform transition-all duration-300 hover:scale-[1.02] ${item.baseColor}`}
