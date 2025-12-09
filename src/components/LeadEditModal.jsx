@@ -1,9 +1,11 @@
 // src/components/LeadEditModal.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa'; // FaPlus removido
+import { FaTimes, FaSave, FaPaperclip, FaMapMarkerAlt, FaWhatsapp } from 'react-icons/fa';
 import axios from 'axios';
-import { STAGES } from '../pages/KanbanBoard.jsx'; // 🟢 CORRIGIDO: Adicionado /pages/
+import { STAGES } from '../pages/KanbanBoard.jsx';
 import { useAuth } from '../AuthContext.jsx';
+import LeadService from '../services/LeadService.js';
+
 
 // Motivos de Perda
 const LOSS_REASONS = [
@@ -79,23 +81,16 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         return simpleFieldsChanged || notesChanged;
     }, [leadData, selectedLead]);
 
-    const fetchUsers = useCallback(async () => {
+        const fetchUsers = useCallback(async () => {
         try {
-            // ❌ CORREÇÃO 404: Adicionado /v1/ e corrigido o endpoint para users/reassignment
-            const response = await axios.get(`${API_BASE_URL}/api/v1/leads/users/reassignment`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            setUsers(response.data);
-            if (leadData.owner_id) {
-                setNewOwnerId(leadData.owner_id);
-            }
+            const data = await LeadService.getAssignableUsers(token);
+            setUsers(data);
+            if (leadData.owner_id) setNewOwnerId(leadData.owner_id);
         } catch (err) {
             console.error('Erro ao buscar usuários:', err);
             setError('Erro ao buscar usuários para transferência.');
         }
-    }, [token, leadData.owner_id]);
+        }, [token, leadData.owner_id]);
 
     useEffect(() => {
         if (selectedLead && isModalOpen) {
@@ -166,131 +161,92 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     };
     
     const handleAddAttachmentNote = async () => {
-        if (!selectedFile) return;
+    if (!selectedFile) return;
+    setSaving(true);
+    setError(null);
 
-        setSaving(true);
-        setError(null);
+    try {
+        const { url } = await LeadService.uploadAttachment(
+        leadData.id || leadData._id,
+        selectedFile,
+        user.name,
+        token
+        );
 
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('leadId', leadData.id || leadData._id);
-        formData.append('user', user.name || 'Usuário Desconhecido');
+        const note = {
+        text: `[ANEXO: ${selectedFile.name}] - URL: ${url}`,
+        timestamp: Date.now(),
+        user: user.name,
+        isAttachment: true
+        };
 
-        try {
-            // ❌ CORREÇÃO 404: Adicionado /v1/
-            const response = await axios.post(`${API_BASE_URL}/api/v1/leads/upload-attachment`, formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-
-            const fileUrl = response.data.url; 
-            const fileName = selectedFile.name;
-
-            const note = {
-                text: `[ANEXO: ${fileName}] - URL: ${fileUrl}`,
-                timestamp: Date.now(),
-                user: user.name || 'Usuário Desconhecido',
-                isAttachment: true
-            };
-
-            setLeadData(prev => ({
-                ...prev,
-                notes: [...(prev.notes || []), note]
-            }));
-            
-            setSelectedFile(null);
-            alert('Anexo enviado com sucesso e nota adicionada!');
-
-        } catch (err) {
-            console.error('Erro ao enviar anexo:', err);
-            setError('Erro ao enviar o anexo. Tente novamente.');
-        } finally {
-            setSaving(false);
-        }
+        setLeadData(prev => ({ ...prev, notes: [...(prev.notes || []), note] }));
+        setSelectedFile(null);
+        alert('Anexo enviado com sucesso e nota adicionada!');
+    } catch (err) {
+        console.error(err);
+        setError('Erro ao enviar o anexo.');
+    } finally {
+        setSaving(false);
+    }
     };
+
     
     const saveLeadChanges = async () => {
-        if (saving || !isDirty()) return;
+    if (saving || !isDirty()) return;
+    if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
+        setError('Motivo da perda é obrigatório.');
+        return;
+    }
 
-        // Validação condicional para 'Motivo da Perda'
-        if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
-            setError('O Motivo da Perda é obrigatório quando a fase é "Perdido".');
-            return;
-        
+    setSaving(true);
+    setError(null);
+
+    const payload = { ...leadData };
+    delete payload._id;
+    delete payload.owner_name;
+    delete payload.created_at;
+    delete payload.updated_at;
+    delete payload.__v;
+    payload.notes = JSON.stringify(payload.notes || []);
+
+    try {
+        await LeadService.updateLead(leadData.id || leadData._id, payload, token);
+
+        if (leadData.status === 'Ganho' && !selectedLead.date_won) {
+        await LeadService.markLeadAsWon(leadData.id || leadData._id, token);
         }
 
-        setSaving(true);
-        setError(null);
-        
-            const payload = { ...leadData };
-            if (payload.reasonForLoss !== undefined) {
-                payload.reason_for_loss = payload.reasonForLoss;
-                delete payload.reasonForLoss;
-            }
-
-        // Campos que NÃO devem ser enviados
-        delete payload._id; 
-        delete payload.owner_name;
-        delete payload.created_at;
-        delete payload.updated_at;
-        delete payload.__v;
-        
-        // Converte o array de notes para string JSON para salvar no banco
-        payload.notes = JSON.stringify(payload.notes || []);
-
-        try {
-            // ❌ CORREÇÃO 404: Adicionado /v1/
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}`, payload, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            // Se houver mudança de fase para "Ganho", registra a data
-            if (leadData.status === 'Ganho' && !selectedLead.date_won) {
-                 // ❌ CORREÇÃO 404: Adicionado /v1/
-                 await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}`, { date_won: new Date().toISOString() }, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-            }
-
-            onSave(leadData);
-            fetchLeads();
-            onClose();
-        } catch (err) {
-            console.error('Erro ao salvar lead:', err);
-            setError(err.response?.data?.error || 'Erro ao salvar alterações.');
-        } finally {
-            setSaving(false);
-        }
+        onSave(leadData);
+        fetchLeads();
+        onClose();
+    } catch (err) {
+        console.error('Erro ao salvar lead:', err);
+        setError(err.response?.data?.error || 'Erro ao salvar alterações.');
+    } finally {
+        setSaving(false);
+    }
     };
+
     
     const transferLead = async () => {
-        if (!newOwnerId) return;
-        setIsTransferring(true);
-        setError(null);
+    if (!newOwnerId) return;
+    setIsTransferring(true);
+    setError(null);
 
-        try {
-            // ❌ CORREÇÃO 404: Adicionado /api/v1/ e garantido que é PUT
-            await axios.put(`${API_BASE_URL}/api/v1/leads/${leadData.id || leadData._id}/reassign`, 
-                { newOwnerId }, 
-                {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }
-            );
-            
-            alert('Lead transferido com sucesso!');
-            fetchLeads();
-            onClose();
-        } catch (err) {
-            console.error('Erro ao transferir lead:', err);
-            setError(err.response?.data?.error || 'Erro ao transferir o lead.');
-        } finally {
-            setIsTransferring(false);
-        }
+    try {
+        await LeadService.transferLead(leadData.id || leadData._id, newOwnerId, token);
+        alert('Lead transferido com sucesso!');
+        fetchLeads();
+        onClose();
+    } catch (err) {
+        console.error('Erro ao transferir lead:', err);
+        setError(err.response?.data?.error || 'Erro ao transferir o lead.');
+    } finally {
+        setIsTransferring(false);
+    }
     };
+
 
 
     const getGoogleMapsLink = () => {
