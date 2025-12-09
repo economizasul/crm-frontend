@@ -227,6 +227,26 @@ const LeadForm = () => {
       console.error("Erro ao geocodificar endereço:", err);
     }
   };
+  // FUNÇÃO ADCIONAR NOVA NOTA
+  const handleAddNote = async () => {
+  if (!newNote.trim() || !id) return;
+
+  try {
+    const noteData = { content: newNote.trim() }; // ✅ backend espera "content"
+    await api.post(`/leads/${id}/notes`, noteData);
+    setNewNote('');
+    setToast({ message: 'Nota adicionada com sucesso!', type: 'success' });
+
+    // Atualiza localmente a lista de notas (sem recarregar a página)
+    setFormData(prev => ({
+      ...prev,
+      notes: [...(prev.notes || []), { text: newNote.trim(), user: user?.name || 'Usuário', timestamp: Date.now() }]
+    }));
+  } catch (err) {
+    console.error('Erro ao adicionar nota:', err);
+    setToast({ message: 'Erro ao salvar nota', type: 'error' });
+  }
+};
 
 
 // --- INÍCIO handleSubmit ---
@@ -274,12 +294,6 @@ const handleSubmit = async (e) => {
     // owner_id
     if (formData.owner_id && formData.owner_id !== '') payload.owner_id = parseInt(formData.owner_id, 10);
 
-    // newNote
-    if (newNote?.trim()) {
-      payload.newNote = { text: newNote.trim(), timestamp: Date.now(), user: user?.name || 'Usuário' };
-    } else if (!isEditMode) {
-      payload.newNote = { text: `Lead criado via formulário (Origem: ${formData.origin})`, timestamp: Date.now(), user: user?.name || 'Sistema' };
-    }
 
     // DEBUG - log payload (remover em produção)
     console.debug("-> Enviando payload:", payload);
@@ -484,9 +498,10 @@ const handleSubmit = async (e) => {
                 placeholder="Nova nota... (Enter para salvar)"
                 className="flex-1 p-6 border-4 border-indigo-300 rounded-2xl text-xl"
               />
-              <button type="button" onClick={handleSubmit} className="px-12 py-6 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-2xl">
+              <button type="button" onClick={handleAddNote} className="px-12 py-6 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 shadow-2xl">
                 Adicionar
               </button>
+
             </div>
           </div>
         )}
