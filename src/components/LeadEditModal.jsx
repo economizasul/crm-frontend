@@ -180,17 +180,17 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
 
     try {
         const { url } = await LeadService.uploadAttachment(
-        leadData.id || leadData._id,
-        selectedFile,
-        user.name,
-        token
+            leadData.id || leadData._id,
+            selectedFile,
+            user.name,
+            token
         );
 
         const note = {
-        text: `[ANEXO: ${selectedFile.name}] - URL: ${url}`,
-        timestamp: Date.now(),
-        user: user.name,
-        isAttachment: true
+            text: `[ANEXO: ${selectedFile.name}] - URL: ${url}`,
+            timestamp: Date.now(),
+            user: user.name,
+            isAttachment: true
         };
 
         setLeadData(prev => ({ ...prev, notes: [...(prev.notes || []), note] }));
@@ -204,61 +204,69 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     }
     };
 
-    
     const saveLeadChanges = async () => {
-    if (saving || !isDirty()) return;
-    if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
-        setError('Motivo da perda é obrigatório.');
-        return;
-    }
-
-    setSaving(true);
-    setError(null);
-
-    const payload = { ...leadData };
-    delete payload._id;
-    delete payload.owner_name;
-    delete payload.created_at;
-    delete payload.updated_at;
-    delete payload.__v;
-    payload.notes = payload.notes || [];
-
-    try {
-        await LeadService.updateLead(leadData.id || leadData._id, payload, token);
-
-        if (leadData.status === 'Ganho' && !selectedLead.date_won) {
-        await LeadService.markLeadAsWon(leadData.id || leadData._id, token);
+        if (saving || !isDirty()) return;
+        if (leadData.status === 'Perdido' && !leadData.reasonForLoss) {
+            setError('Motivo da perda é obrigatório.');
+            return;
         }
 
-        onSave(leadData);
-        fetchLeads();
-        onClose();
-    } catch (err) {
-        console.error('Erro ao salvar lead:', err);
-        setError(err.response?.data?.error || 'Erro ao salvar alterações.');
-    } finally {
-        setSaving(false);
-    }
+        setSaving(true);
+        setError(null);
+
+        // 🔧 Prepara payload com todos os campos válidos
+        const payload = { ...leadData };
+        delete payload._id;
+        delete payload.owner_name;
+        delete payload.created_at;
+        delete payload.updated_at;
+        delete payload.__v;
+
+        // 🔧 Garante que notas e campos numéricos estejam no formato correto
+        payload.notes = payload.notes || [];
+        if (payload.avg_consumption) {
+            payload.avg_consumption = Number(payload.avg_consumption);
+        }
+        if (payload.estimated_savings) {
+            payload.estimated_savings = Number(payload.estimated_savings);
+        }
+
+        try {
+            await LeadService.updateLead(leadData.id || leadData._id, payload, token);
+
+            if (leadData.status === 'Ganho' && !selectedLead.date_won) {
+                await LeadService.markLeadAsWon(leadData.id || leadData._id, token);
+            }
+
+            onSave(leadData);
+            fetchLeads();
+            onClose();
+        } catch (err) {
+            console.error('Erro ao salvar lead:', err);
+            setError(err.response?.data?.error || 'Erro ao salvar alterações.');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    
     const transferLead = async () => {
-    if (!newOwnerId) return;
-    setIsTransferring(true);
-    setError(null);
+        if (!newOwnerId) return;
+        setIsTransferring(true);
+        setError(null);
 
-    try {
-        await LeadService.transferLead(leadData.id || leadData._id, newOwnerId, token);
-        alert('Lead transferido com sucesso!');
-        fetchLeads();
-        onClose();
-    } catch (err) {
-        console.error('Erro ao transferir lead:', err);
-        setError(err.response?.data?.error || 'Erro ao transferir o lead.');
-    } finally {
-        setIsTransferring(false);
-    }
+        try {
+            await LeadService.transferLead(leadData.id || leadData._id, newOwnerId, token);
+            alert('Lead transferido com sucesso!');
+            fetchLeads();
+            onClose();
+        } catch (err) {
+            console.error('Erro ao transferir lead:', err);
+            setError(err.response?.data?.error || 'Erro ao transferir o lead.');
+        } finally {
+            setIsTransferring(false);
+        }
     };
+
 
 
 
