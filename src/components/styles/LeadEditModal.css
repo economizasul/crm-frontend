@@ -1,0 +1,33 @@
+/* src/components/styles/LeadEditModal.css */
+
+/* Corrige cores de texto no modal */
+.activity-item > div > div > div,
+.activity-item p,
+.timeline-item p,
+.system-message p,
+.auto-note p,
+.note-item p,
+[class*="Message"] p,
+[class*="Activity"] p {
+  color: #cbd5e0 !important;
+}
+
+/* Força em qualquer parágrafo dentro do modal */
+div[role="dialog"] p {
+  color: #cbd5e0 !important;
+}
+
+/* Exceções — datas e cabeçalhos mais claros */
+div[role="dialog"] .text-xs,
+div[role="dialog"] .text-sm,
+div[role="dialog"] .opacity-60,
+div[role="dialog"] .opacity-70,
+.text-xs,
+.text-sm {
+  color: #94a3b8 !important;
+}
+
+/* Garante que notas manuais fiquem legíveis */
+.dark .whitespace-pre-wrap {
+  color: #cbd5e0 !important;
+}

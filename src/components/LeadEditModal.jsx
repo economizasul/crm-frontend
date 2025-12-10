@@ -5,6 +5,7 @@ import axios from 'axios';
 import { STAGES } from '../pages/KanbanBoard.jsx';
 import { useAuth } from '../AuthContext.jsx';
 import LeadService from '../services/LeadService.js';
+import './styles/LeadEditModal.css';
 
 
 // Motivos de Perda
@@ -144,21 +145,33 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         }
     };
 
-    const handleAddNote = () => {
-        if (newNoteText.trim() === '') return;
-        
-        const note = {
-            text: newNoteText.trim(),
-            timestamp: Date.now(),
-            user: user.name || 'Usuário Desconhecido'
+    const handleAddNote = async () => {
+    if (!newNoteText.trim() || !leadData?.id) return;
+
+    try {
+        // 🔹 Chama o backend para salvar a nota
+        await LeadService.addNote(leadData.id, newNoteText.trim(), token);
+
+        // 🔹 Atualiza localmente a lista de notas (sem precisar recarregar)
+        const newNote = {
+        text: newNoteText.trim(),
+        timestamp: Date.now(),
+        user: user?.name || 'Usuário'
         };
 
         setLeadData(prev => ({
-            ...prev,
-            notes: [...(prev.notes || []), note] 
+        ...prev,
+        notes: [...(prev.notes || []), newNote]
         }));
+
         setNewNoteText('');
+        setToast({ message: 'Nota adicionada com sucesso!', type: 'success' });
+    } catch (err) {
+        console.error('❌ Erro ao adicionar nota:', err);
+        setToast({ message: 'Erro ao salvar nota', type: 'error' });
+    }
     };
+
     
     const handleAddAttachmentNote = async () => {
     if (!selectedFile) return;
@@ -591,43 +604,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
             </div>
         </div>
     );
-        return (
-            <>
-                <style jsx>{`
-
-                    .activity-item > div > div > div,      /* caminho mais comum */
-                    .activity-item p,
-                    .timeline-item p,
-                    .system-message p,
-                    .auto-note p,
-                    .note-item p,
-                    [class*="Message"] p,
-                    [class*="Activity"] p {
-                        color: #cbd5e0 !important;
-                    }
-
-                    /* Força em qualquer parágrafo dentro do modal que esteja branco */
-                    div[role="dialog"] p {
-                        color: #cbd5e0 !important;
-                    }
-
-                    /* Exceções: não mexe nas datas e cabeçalhos (que devem ficar mais claros) */
-                    div[role="dialog"] .text-xs,
-                    div[role="dialog"] .text-sm,
-                    div[role="dialog"] .opacity-60,
-                    div[role="dialog"] .opacity-70,
-                    .text-xs,
-                    .text-sm {
-                        color: #94a3b8 !important;
-                    }
-
-                    /* Garante que suas notas manuais (as do final) continuem com a cor certa */
-                    .dark .whitespace-pre-wrap {
-                        color: #cbd5e0 !important;
-                    }
-                `}</style>
-            </>
-        );
+    
 };
 
 export default LeadEditModal;

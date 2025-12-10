@@ -46,7 +46,18 @@ const LeadService = {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return res.data;
-  }
+  },
+
+    // dentro de LeadService (frontend)
+    async addNote(leadId, content, token) {
+    const res = await axios.post(
+        `${API_BASE_URL}/api/v1/leads/${leadId}/notes`,
+        { content },
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return res.data;
+    }
+  
 };
 
 export default LeadService;
