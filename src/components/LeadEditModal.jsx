@@ -39,8 +39,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         ...selectedLead || {}, 
         reasonForLoss: selectedLead?.reasonForLoss || '', 
         kwSold: selectedLead?.kwSold || 0,
-        avgConsumption: selectedLead?.avgConsumption || 0,
-        estimatedSavings: selectedLead?.estimatedSavings || 0,
+        avg_consumption: selectedLead?.avg_consumption || 0,
+        estimated_savings: selectedLead?.estimated_savings || 0,
         phone2: selectedLead?.phone2 || '',
     });
     
@@ -58,7 +58,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         // Campos editáveis que devem ser comparados.
         const editableFields = [
             'name', 'email', 'phone', 'phone2', 'document', 'address', 'status', 'origin', 
-            'owner_id', 'uc', 'avgConsumption', 'estimatedSavings', 'qsa', 
+            'owner_id', 'uc', 'avg_consumption', 'estimated_savings', 'qsa', 
             'lat', 'lng', 'cidade', 'regiao', 'google_maps_link', 'kwSold', 
             'reasonForLoss', 'sellerId', 'sellerName'
         ];
@@ -107,8 +107,8 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 sellerId: selectedLead.sellerId || null,
                 sellerName: selectedLead.sellerName || '',
                 metadata: selectedLead.metadata || {},
-                avgConsumption: selectedLead.avgConsumption || 0,
-                estimatedSavings: selectedLead.estimatedSavings || 0,
+                avg_consumption: selectedLead.avg_consumption || 0,
+                estimated_savings: selectedLead.estimated_savings || 0,
                 phone2: selectedLead.phone2 || '',
                 notes: leadNotes 
             });
@@ -431,12 +431,12 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             {/* Consumo Médio (Kwh) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Consumo Médio (kWh)</label>
-                                <input type="number" name="avgConsumption" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.avgConsumption || ''} onChange={handleInputChange} />
+                                <input type="number" name="avg_consumption" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.avg_consumption || ''} onChange={handleInputChange} />
                             </div>
                             {/* Economia Estimada (R$) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Economia Estimada (R$)</label>
-                                <input type="number" name="estimatedSavings" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.estimatedSavings || ''} onChange={handleInputChange} />
+                                <input type="number" name="estimated_savings" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.estimated_savings || ''} onChange={handleInputChange} />
                             </div>
                             {/* Status/Fase (Conta) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
