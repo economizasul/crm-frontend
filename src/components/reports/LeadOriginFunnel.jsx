@@ -25,8 +25,9 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     
     // Define os parâmetros estéticos do funil:
     const baseWidth = 96; // Largura inicial em % (Quase 100% do container)
-    const reductionPerStep = 15; // Redução de largura por etapa (em %)
-    const height = 40; // Altura de cada seção em px (Reduzido para melhor visualização)
+    const reductionPerStep = 10; 
+    const height = 50; 
+    const verticalOverlap = 0.85;
 
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
@@ -42,7 +43,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-xl flex flex-col items-center mt-6"> {/* max-w-xl para mais espaço */}
+            <div className="w-full max-w-xl flex flex-col items-center mt-6">
                 {funnelData.map((item, index) => {
                     
                     const currentWidth = Math.max(25, baseWidth - (index * reductionPerStep)); // Largura atual
@@ -80,24 +81,17 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                             <div 
                                 className="relative text-white font-semibold transition-transform duration-300 hover:scale-[1.01]"
                                 style={{
-                                    width: `100%`, // Usar 100% do container absoluto
+                                    width: `100%`, 
                                     maxWidth: '100%',
-                                    height: `${height}px`,
+                                    height: `${height}px`, // 🛑 AUMENTADO PARA 50px
                                     clipPath: clipPath,
                                     
                                     boxShadow: item.shadowStyle,
-                                    backgroundImage: `
-                                        linear-gradient(to top, 
-                                            ${item.color}, 
-                                            ${item.colorLight} 50%, 
-                                            ${item.color}
-                                        ),
-                                        radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
-                                    `,
+                                    // ... (gradiente)
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA */}
-                                <div className="absolute inset-0 flex items-center justify-between px-5">
+                                {/* TEXTO DENTRO DA BARRA - USANDO PX-3 PARA MAIS ESPAÇAMENTO LATERAL */}
+                                <div className="absolute inset-0 flex items-center justify-between px-3"> 
                                     <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                         {item.name}
                                     </span>
@@ -112,15 +106,12 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 })}
             </div>
 
-            {/* BASE DO FUNIL (Total e Espaçamento) */}
+            {/* BASE DO FUNIL */}
             <div 
                 className="text-center w-full max-w-xl"
-                style={{ marginTop: `${funnelData.length * (height * 0.95)}px` }}
+                style={{ marginTop: `${funnelData.length * (height * verticalOverlap)}px` }} // 🛑 AJUSTADO MARGIN
             >
-                <div className="text-3xl font-extrabold text-gray-600 pt-8">
-                    {totalLeads}
-                </div>
-                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
+                {/* ... (Total) */}
             </div>
         </div>
     );

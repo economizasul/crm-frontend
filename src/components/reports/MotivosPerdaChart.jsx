@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// 🛑 NOVOS MOTIVOS DE PERDA com cores e campos
+// NOVOS MOTIVOS DE PERDA com cores e campos
 const ALL_LOST_REASONS = [
     { name: 'Oferta Melhor', field: 'oferta_melhor', color: '#DC2626', shadow: '0 4px 12px rgba(220, 38, 38, 0.6)' },
     { name: 'Incerteza', field: 'incerteza', color: '#F59E0B', shadow: '0 4px 12px rgba(245, 158, 11, 0.6)' },
@@ -35,40 +35,54 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         };
     });
 
-    // 1. Separa os motivos ativos (count > 0) e inativos (count = 0)
+    // 🛑 1. ORDENAÇÃO DINÂMICA
     const activeReasons = processedData
         .filter(item => item.count > 0)
-        .sort((a, b) => b.count - a.count); // Ordena do maior para o menor
+        .sort((a, b) => b.count - a.count); // Maior valor primeiro
         
-    const inactiveReasons = processedData.filter(item => item.count === 0);
+    const inactiveReasons = processedData
+        .filter(item => item.count === 0)
+        .sort((a, b) => a.name.localeCompare(b.name)); // Ordem Alfabética (A-Z)
+
+    // Junta os dois grupos: Ativos (por valor) + Inativos (por nome)
+    const sortedData = activeReasons.concat(inactiveReasons);
 
     const isDarkMode = document.documentElement.classList.contains('dark');
     
     // Lógica de Dimensionamento Dinâmico (5% de diferença)
     const MAX_WIDTH = 95; // Largura máxima da maior barra
-    const MIN_ACTIVE_WIDTH = 25; // Largura mínima para uma barra ativa (se for a última)
-    const INACTIVE_WIDTH = 10; // Largura fixa para barras inativas (10% como solicitado)
-    const REDUCTION_STEP = 5; // Redução de 5% para cada posição abaixo
+    const MIN_ACTIVE_WIDTH = 25; // Largura mínima para uma barra ativa
+    const INACTIVE_WIDTH = 10; // Largura fixa para barras inativas (10%)
+    const REDUCTION_STEP = 5; // Redução de 5% para cada posição abaixo na lista de ativos
 
-    const finalChartData = activeReasons.map((item, index) => {
-        // A primeira barra ativa (maior valor) tem largura máxima (95%)
-        let width = MAX_WIDTH - (index * REDUCTION_STEP);
-        item.widthPercent = Math.max(MIN_ACTIVE_WIDTH, width);
-        return item;
-    }).concat(inactiveReasons.map(item => ({
-        ...item,
-        widthPercent: INACTIVE_WIDTH, // Barras inativas com tamanho fixo de 10%
-    })));
+    const finalChartData = sortedData.map((item, index) => {
+        const isActive = item.count > 0;
+        let widthPercent;
+
+        if (isActive) {
+            // Usa a posição no array de ATIVOS para calcular a largura
+            const activeIndex = activeReasons.findIndex(r => r.field === item.field);
+            const calculatedWidth = MAX_WIDTH - (activeIndex * REDUCTION_STEP);
+            widthPercent = Math.max(MIN_ACTIVE_WIDTH, calculatedWidth);
+        } else {
+            widthPercent = INACTIVE_WIDTH; // Barras inativas com tamanho fixo de 10%
+        }
+        
+        return {
+            ...item,
+            widthPercent: widthPercent,
+        };
+    });
 
     return (
         <div className="flex flex-col items-center p-2 pt-0">
             
-            {/* Título (Único) */}
+            {/* Título (Único) - MANTIDO AQUI */}
             <h3 className="text-xl font-bold text-center text-gray-700 dark:text-gray-200 mb-6">
                 Motivos de Perda
             </h3>
 
-            {/* Container das Barras (Espaço menor: h-8) */}
+            {/* Container das Barras */}
             <div className="w-full space-y-2">
                 {finalChartData.map((item, index) => {
                     
@@ -80,16 +94,20 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                     // Cor de Fundo: Para itens inativos
                     const inactiveBg = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
                     
+                    // Cor do Texto: Branco para ativos, cor do tema para inativos
+                    const textActiveColor = 'white';
+                    const textInactiveColor = isDarkMode ? '#E5E7EB' : '#4B5563';
+
                     return (
                         <motion.div
                             key={item.field}
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: opacity, x: 0 }}
-                            transition={{ delay: index * 0.08, duration: 0.4 }} // Acelerado para 10 barras
-                            className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300" // Altura reduzida para h-8 (32px)
+                            transition={{ delay: index * 0.08, duration: 0.4 }} 
+                            className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300"
                             style={{ 
                                 background: inactiveBg,
-                                opacity: opacity,
+                                opacity: opacity, // Aplica opacidade ao container para desbotar a barra inativa
                             }}
                         >
                             {/* Barra Colorida (FUNDO) */}
@@ -101,41 +119,35 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                 style={{
                                     backgroundColor: item.color,
                                     boxShadow: isActive ? item.shadow : 'none',
-                                    // Gradiente sutil
                                     backgroundImage: `linear-gradient(to right, ${item.color}, ${item.color} 80%, rgba(255,255,255,0.2) 100%)`,
                                 }}
                             />
 
                             {/* Conteúdo (Nome e Valores) */}
-                            <div className="relative z-10 h-full flex items-center justify-between px-3 text-white">
+                            <div className="relative z-10 h-full flex items-center justify-between px-3">
                                 
                                 {/* Nome do Motivo */}
                                 <span 
                                     className="text-sm font-semibold truncate"
                                     style={{
-                                        // Texto Branco dentro das barras ativas
-                                        color: isActive ? 'white' : (isDarkMode ? '#E5E7EB' : '#4B5563'),
+                                        // 🛑 Cor do texto: Branco para barras ativas
+                                        color: isActive ? textActiveColor : textInactiveColor,
                                         textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
                                     }}
                                 >
                                     {item.name}
                                 </span>
 
-                                {/* Valores (Brancos e Visíveis) */}
-                                {isActive && (
-                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        <span className="text-lg font-bold">{item.count}</span>
-                                        <span className="text-sm font-medium">{item.percent.toFixed(1)}%</span>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* Valores Inativos (Aparecem fora da barra colorida) */}
-                            {!isActive && (
-                                <div className="absolute right-3 top-0 h-full flex items-center">
-                                     <span className="text-sm font-semibold text-gray-500">0 (0.0%)</span>
+                                {/* Valores (Sempre visíveis, mas com cores diferentes) */}
+                                <div className="flex items-baseline gap-1" style={{ textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
+                                    <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                        {item.count}
+                                    </span>
+                                    <span className={`text-sm font-medium ${isActive ? 'text-white opacity-90' : 'text-gray-500 dark:text-gray-400'}`}>
+                                        ({item.percent.toFixed(1)}%)
+                                    </span>
                                 </div>
-                            )}
+                            </div>
 
                         </motion.div>
                     );
