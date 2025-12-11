@@ -35,12 +35,13 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
     const { user } = useAuth(); 
     
     // ✅ 1. Adicionado phone2 na inicialização do estado (useState)
-    const [leadData, setLeadData] = useState({ 
+    const [leadData, setLeadData] = useState({
+        avgConsumption: selectedLead?.avgConsumption ?? selectedLead?.avg_consumption ?? '',
+        estimatedSavings: selectedLead?.estimatedSavings ?? selectedLead?.estimated_savings ?? '', 
         ...selectedLead || {}, 
         reasonForLoss: selectedLead?.reasonForLoss || '', 
         kwSold: selectedLead?.kwSold || 0,
-        avg_consumption: selectedLead?.avg_consumption || 0,
-        estimated_savings: selectedLead?.estimated_savings || 0,
+
         phone2: selectedLead?.phone2 || '',
     });
     
@@ -57,11 +58,12 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         
         // Campos editáveis que devem ser comparados.
         const editableFields = [
-            'name', 'email', 'phone', 'phone2', 'document', 'address', 'status', 'origin', 
-            'owner_id', 'uc', 'avg_consumption', 'estimated_savings', 'qsa', 
-            'lat', 'lng', 'cidade', 'regiao', 'google_maps_link', 'kwSold', 
-            'reasonForLoss', 'sellerId', 'sellerName'
-        ];
+            'name','email','phone','phone2','document','address','status','origin',
+            'owner_id','uc','avgConsumption','estimatedSavings','qsa',
+            'lat','lng','cidade','regiao','google_maps_link','kwSold',
+            'reasonForLoss','sellerId','sellerName'
+            ];
+
         
         // 🔴 Otimização: Comparação de campos simples de forma mais concisa
         const simpleFieldsChanged = editableFields.some(field => {
@@ -101,14 +103,14 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 : (selectedLead.notes ? JSON.parse(selectedLead.notes).map(n => typeof n === 'string' ? { text: n, timestamp: 0 } : n) : []);
 
             setLeadData({ 
+                avgConsumption: selectedLead.avgConsumption ?? selectedLead.avg_consumption ?? '',
+                estimatedSavings: selectedLead.estimatedSavings ?? selectedLead.estimated_savings ?? '',
                 ...selectedLead, 
                 reasonForLoss: selectedLead.reasonForLoss || '', 
                 kwSold: selectedLead.kwSold || 0,
                 sellerId: selectedLead.sellerId || null,
                 sellerName: selectedLead.sellerName || '',
                 metadata: selectedLead.metadata || {},
-                avg_consumption: selectedLead.avg_consumption || 0,
-                estimated_savings: selectedLead.estimated_savings || 0,
                 phone2: selectedLead.phone2 || '',
                 notes: leadNotes 
             });
@@ -230,6 +232,13 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         if (payload.estimated_savings) {
             payload.estimated_savings = Number(payload.estimated_savings);
         }
+
+        // garantir que o backend receba também snake_case (DB)
+        if (payload.avgConsumption !== undefined) payload.avg_consumption = (payload.avgConsumption === '' ? null : Number(payload.avgConsumption));
+        if (payload.estimatedSavings !== undefined) payload.estimated_savings = (payload.estimatedSavings === '' ? null : Number(payload.estimatedSavings));
+
+        // opcional: garantir kw_sold em snake_case
+        if (payload.kwSold !== undefined) payload.kw_sold = payload.kwSold ? Number(payload.kwSold) : 0;
 
         try {
             await LeadService.updateLead(leadData.id || leadData._id, payload, token);
@@ -439,12 +448,24 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             {/* Consumo Médio (Kwh) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Consumo Médio (kWh)</label>
-                                <input type="number" name="avg_consumption" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.avg_consumption || ''} onChange={handleInputChange} />
+                               <input
+                                    type="number"
+                                    name="avgConsumption"
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={leadData.avgConsumption ?? ''}
+                                    onChange={handleInputChange}
+                                    />
                             </div>
                             {/* Economia Estimada (R$) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Economia Estimada (R$)</label>
-                                <input type="number" name="estimated_savings" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.estimated_savings || ''} onChange={handleInputChange} />
+                                <input
+                                    type="number"
+                                    name="estimatedSavings"
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={leadData.estimatedSavings ?? ''}
+                                    onChange={handleInputChange}
+                                    />
                             </div>
                             {/* Status/Fase (Conta) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">

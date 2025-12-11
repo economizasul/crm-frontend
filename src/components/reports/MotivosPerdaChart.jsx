@@ -1,32 +1,30 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// Lista de todos os motivos possíveis com cores e sombras distintas
+// 🛑 NOVOS MOTIVOS DE PERDA com cores e campos
 const ALL_LOST_REASONS = [
-    { name: 'Preço/Orçamento', field: 'preco', color: '#DC2626', shadow: '0 4px 12px rgba(220, 38, 38, 0.6)' }, // Vermelho Forte
-    { name: 'Concorrência', field: 'concorrencia', color: '#F59E0B', shadow: '0 4px 12px rgba(245, 158, 11, 0.6)' }, // Laranja
-    { name: 'Desistência do Cliente', field: 'desistencia', color: '#10B981', shadow: '0 4px 12px rgba(16, 185, 129, 0.6)' }, // Verde Esmeralda
-    { name: 'Inapto/Não Qualificado', field: 'inapto', color: '#6B7280', shadow: '0 4px 12px rgba(107, 114, 128, 0.6)' }, // Cinza
-    { name: 'Demora na Proposta', field: 'demora', color: '#4F46E5', shadow: '0 4px 12px rgba(79, 70, 229, 0.6)' }, // Índigo
-    { name: 'Crédito Negado', field: 'credito', color: '#E11D48', shadow: '0 4px 12px rgba(225, 29, 72, 0.6)' }, // Rosa Escuro
-    { name: 'Não Especificado', field: 'nao_especificado', color: '#0EA5E9', shadow: '0 4px 12px rgba(14, 165, 233, 0.6)' }, // Ciano
-    // Adicione mais motivos aqui se necessário
+    { name: 'Oferta Melhor', field: 'oferta_melhor', color: '#DC2626', shadow: '0 4px 12px rgba(220, 38, 38, 0.6)' },
+    { name: 'Incerteza', field: 'incerteza', color: '#F59E0B', shadow: '0 4px 12px rgba(245, 158, 11, 0.6)' },
+    { name: 'Geração Própria', field: 'geracao_propria', color: '#10B981', shadow: '0 4px 12px rgba(16, 185, 129, 0.6)' },
+    { name: 'Burocracia', field: 'burocracia', color: '#4F46E5', shadow: '0 4px 12px rgba(79, 70, 229, 0.6)' },
+    { name: 'Contrato', field: 'contrato', color: '#9333EA', shadow: '0 4px 12px rgba(147, 51, 234, 0.6)' },
+    { name: 'Restrições Técnicas', field: 'restricoes_tecnicas', color: '#3B82F6', shadow: '0 4px 12px rgba(59, 130, 246, 0.6)' },
+    { name: 'Não é o Responsável', field: 'nao_responsavel', color: '#F472B6', shadow: '0 4px 12px rgba(244, 114, 182, 0.6)' },
+    { name: 'Silêncio', field: 'silencio', color: '#6B7280', shadow: '0 4px 12px rgba(107, 114, 128, 0.6)' },
+    { name: 'Já Possui GD', field: 'ja_possui_gd', color: '#EAB308', shadow: '0 4px 12px rgba(234, 179, 8, 0.6)' },
+    { name: 'Outro Estado', field: 'outro_estado', color: '#14B8A6', shadow: '0 4px 12px rgba(20, 184, 166, 0.6)' },
 ];
 
 const MotivosPerdaChart = ({ lostReasons }) => {
     
     const { reasons = [], totalLost = 0 } = lostReasons;
     
-    // Converte o array reasons em um objeto de fácil acesso para contagem
     const reasonsMap = reasons.reduce((acc, r) => {
         acc[r.reasonField] = r.count;
         return acc;
     }, {});
 
-    // 1. Mapeia todos os motivos possíveis (ALL_LOST_REASONS)
-    // 2. Adiciona a contagem real ou 0
-    // 3. Adiciona a porcentagem de perda
-    const chartData = ALL_LOST_REASONS.map(reason => {
+    const processedData = ALL_LOST_REASONS.map(reason => {
         const count = reasonsMap[reason.field] || 0;
         const percent = totalLost > 0 ? (count / totalLost) * 100 : 0;
         
@@ -37,7 +35,30 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         };
     });
 
-    const isDarkMode = document.documentElement.classList.contains('dark'); // Verifica modo escuro
+    // 1. Separa os motivos ativos (count > 0) e inativos (count = 0)
+    const activeReasons = processedData
+        .filter(item => item.count > 0)
+        .sort((a, b) => b.count - a.count); // Ordena do maior para o menor
+        
+    const inactiveReasons = processedData.filter(item => item.count === 0);
+
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    
+    // Lógica de Dimensionamento Dinâmico (5% de diferença)
+    const MAX_WIDTH = 95; // Largura máxima da maior barra
+    const MIN_ACTIVE_WIDTH = 25; // Largura mínima para uma barra ativa (se for a última)
+    const INACTIVE_WIDTH = 10; // Largura fixa para barras inativas (10% como solicitado)
+    const REDUCTION_STEP = 5; // Redução de 5% para cada posição abaixo
+
+    const finalChartData = activeReasons.map((item, index) => {
+        // A primeira barra ativa (maior valor) tem largura máxima (95%)
+        let width = MAX_WIDTH - (index * REDUCTION_STEP);
+        item.widthPercent = Math.max(MIN_ACTIVE_WIDTH, width);
+        return item;
+    }).concat(inactiveReasons.map(item => ({
+        ...item,
+        widthPercent: INACTIVE_WIDTH, // Barras inativas com tamanho fixo de 10%
+    })));
 
     return (
         <div className="flex flex-col items-center p-2 pt-0">
@@ -47,13 +68,11 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                 Motivos de Perda
             </h3>
 
-            {/* Container das Barras */}
-            <div className="w-full space-y-3">
-                {chartData.map((item, index) => {
+            {/* Container das Barras (Espaço menor: h-8) */}
+            <div className="w-full space-y-2">
+                {finalChartData.map((item, index) => {
                     
-                    // Lógica para destacar:
                     const isActive = item.count > 0;
-                    const widthPercent = isActive ? Math.max(20, item.percent) : 100; // Barras ativas têm largura mínima de 20%, inativas 100%
                     
                     // Opacidade: Itens sem valor ficam desbotados
                     const opacity = isActive ? 1 : 0.4;
@@ -66,8 +85,8 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                             key={item.field}
                             initial={{ opacity: 0, x: -50 }}
                             animate={{ opacity: opacity, x: 0 }}
-                            transition={{ delay: index * 0.1, duration: 0.4 }}
-                            className="w-full h-10 rounded-lg relative overflow-hidden transition-all duration-300"
+                            transition={{ delay: index * 0.08, duration: 0.4 }} // Acelerado para 10 barras
+                            className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300" // Altura reduzida para h-8 (32px)
                             style={{ 
                                 background: inactiveBg,
                                 opacity: opacity,
@@ -76,13 +95,13 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                             {/* Barra Colorida (FUNDO) */}
                             <motion.div
                                 initial={{ width: 0 }}
-                                animate={{ width: `${widthPercent}%` }}
-                                transition={{ duration: 0.8, delay: index * 0.15 }}
+                                animate={{ width: `${item.widthPercent}%` }}
+                                transition={{ duration: 0.8, delay: index * 0.1 }}
                                 className="h-full absolute top-0 left-0 rounded-lg"
                                 style={{
                                     backgroundColor: item.color,
                                     boxShadow: isActive ? item.shadow : 'none',
-                                    // Efeito 3D sutil (opcional)
+                                    // Gradiente sutil
                                     backgroundImage: `linear-gradient(to right, ${item.color}, ${item.color} 80%, rgba(255,255,255,0.2) 100%)`,
                                 }}
                             />
@@ -90,10 +109,11 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                             {/* Conteúdo (Nome e Valores) */}
                             <div className="relative z-10 h-full flex items-center justify-between px-3 text-white">
                                 
-                                {/* Nome do Motivo (Sempre visível e em destaque) */}
+                                {/* Nome do Motivo */}
                                 <span 
                                     className="text-sm font-semibold truncate"
                                     style={{
+                                        // Texto Branco dentro das barras ativas
                                         color: isActive ? 'white' : (isDarkMode ? '#E5E7EB' : '#4B5563'),
                                         textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
                                     }}
@@ -101,7 +121,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                     {item.name}
                                 </span>
 
-                                {/* Valores (Visíveis apenas se ativos) */}
+                                {/* Valores (Brancos e Visíveis) */}
                                 {isActive && (
                                     <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
                                         <span className="text-lg font-bold">{item.count}</span>
