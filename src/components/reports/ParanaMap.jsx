@@ -15,12 +15,15 @@ L.Icon.Default.mergeOptions({
 function MapBounds({ marcadores }) {
   const map = useMap();
   useEffect(() => {
+    // 🛑 AJUSTADO: Novas coordenadas para focar mais na área do PR e permitir zoom-out maior
     const paranaBounds = L.latLngBounds(
-      L.latLng(-26.8, -54.8),
-      L.latLng(-22.4, -48.0)
+      L.latLng(-26.8, -55.0), // Sudoeste (Lat: Sul, Lng: Oeste - Aumentamos um pouco para Oeste)
+      L.latLng(-22.0, -47.8)  // Nordeste (Lat: Norte, Lng: Leste - Reduzimos o excesso ao Norte/Leste)
     );
     map.setMaxBounds(paranaBounds);
-    map.setMinZoom(7);
+    
+    // 🛑 AJUSTADO: Zoom mínimo para 6 (permite mais afastamento)
+    map.setMinZoom(6); 
     map.setMaxZoom(16);
 
     if (marcadores.length > 0) {

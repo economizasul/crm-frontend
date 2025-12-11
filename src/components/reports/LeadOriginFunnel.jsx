@@ -1,5 +1,3 @@
-// src/components/reports/LeadOriginFunnel.jsx
-
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -26,10 +24,11 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     }); 
     
     // Define os parâmetros estéticos do funil:
-    const baseWidth = 96; // Largura inicial em % 
-    const reductionPerStep = 8; // 🛑 AJUSTADO PARA 8 (menos afunilamento)
-    const height = 55; // 🛑 AJUSTADO PARA 55px (mais altura)
-    const verticalOverlap = 0.9; // 🛑 AJUSTADO PARA 0.9 (menos sobreposição para texto)
+    const baseWidth = 96; 
+    const reductionPerStep = 8; // Menos afunilamento
+    const height = 55; // Altura maior
+    const verticalOverlap = 0.9; 
+    const borderRadius = 8; // Novo raio para o arredondamento
 
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
@@ -38,10 +37,9 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                // 🛑 CORREÇÃO: Usamos o style para largura dinâmica e w-full para fallback
                 className={`w-full h-3 bg-gray-900 rounded-full absolute top-1`}
                 style={{
-                    width: `${baseWidth}%`, // 🛑 CORRIGIDO O USO DO ESTILO AQUI
+                    width: `${baseWidth}%`, 
                     boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
                 }}
             />
@@ -50,8 +48,8 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <div className="w-full max-w-xl flex flex-col items-center mt-6">
                 {funnelData.map((item, index) => {
                     
-                    const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); // Largura atual
-                    const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); // Largura da base
+                    const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); 
+                    const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.6; 
 
                     // Cria o caminho do clip (trapézio)
@@ -63,6 +61,18 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                     )`;
                     
                     const topPosition = index * (height * verticalOverlap); 
+                    
+                    // Ajuste de border-radius: Apenas o primeiro e o último (opcionalmente)
+                    let borderStyles = {};
+                    if (index === 0) {
+                        // Aplica border-radius no topo para um formato mais orgânico
+                        borderStyles = { borderTopLeftRadius: `${borderRadius}px`, borderTopRightRadius: `${borderRadius}px` };
+                    }
+                    if (index === funnelData.length - 1) {
+                        // Aplica border-radius na base (se quiser)
+                         borderStyles = { ...borderStyles, borderBottomLeftRadius: `${borderRadius}px`, borderBottomRightRadius: `${borderRadius}px` };
+                    }
+
 
                     return (
                         <motion.div
@@ -78,7 +88,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                             }} 
                         >
                             <div 
-                                className="relative text-white font-semibold transition-transform duration-300 hover:scale-[1.01]"
+                                className="relative text-white font-semibold transition-transform duration-300 hover:scale-[1.01] overflow-hidden"
                                 style={{
                                     width: `100%`, 
                                     maxWidth: '100%',
@@ -93,10 +103,11 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                         ),
                                         radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
                                     `,
+                                    ...borderStyles, // Aplica o raio de borda
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA - PX-3 para espaçamento lateral */}
-                                <div className="absolute inset-0 flex items-center justify-between px-3"> 
+                                {/* TEXTO DENTRO DA BARRA - CENTRALIZADO e justificado */}
+                                <div className="absolute inset-0 flex items-center justify-between px-5"> {/* Aumentamos o px para 5 */}
                                     <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                         {item.name}
                                     </span>
