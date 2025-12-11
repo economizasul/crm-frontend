@@ -83,7 +83,7 @@ const createCustomMarker = (count) => {
   });
 };
 
-const ParanaMap = ({ leads = [] }) => {
+const ParanaMap = ({ leadsGanho = [] }) => { // 🛑 ALTERAÇÃO AQUI: Recebe leadsGanho
   const [regioesData, setRegioesData] = useState(null);
   const [paranaShape, setParanaShape] = useState(null);
   const [municipiosData, setMunicipiosData] = useState(null);
@@ -113,7 +113,7 @@ const ParanaMap = ({ leads = [] }) => {
   }, []);
 
   // Agrupa leads por cidade
-  const leadsPorCidade = leads.reduce((acc, lead) => {
+  const leadsPorCidade = leadsGanho.reduce((acc, lead) => { // 🛑 ALTERAÇÃO AQUI: Usa leadsGanho
     const cidade = (lead.cidade || 'Sem cidade').trim();
     const lat = parseFloat(lead.lat);
     const lng = parseFloat(lead.lng);

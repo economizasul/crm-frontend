@@ -112,7 +112,9 @@ const LeadForm = () => {
 
         if (isEditMode) {
           const leadRes = await api.get(`/leads/${id}`);
-          let lead = leadRes.data || {};
+          // ➜ Aqui garantimos que 'lead' seja o objeto real (backend às vezes retorna { message, lead })
+          const leadPayload = leadRes?.data?.lead ? leadRes.data.lead : (leadRes?.data || {});
+          const lead = leadPayload || {};
 
           const normalizedLead = {
             ...lead,
@@ -124,7 +126,8 @@ const LeadForm = () => {
             status: lead.status || 'Novo',
             origin: lead.origin || 'Orgânico',
             uc: lead.uc || '',
-            avg_consumption: 
+            // usa preferencialmente o campo de banco (snake_case) se existir, senão camelCase
+            avg_consumption:
               lead.avg_consumption !== undefined && lead.avg_consumption !== null
                 ? lead.avg_consumption
                 : (lead.avgConsumption ?? ''),
@@ -137,10 +140,11 @@ const LeadForm = () => {
             qsa: lead.qsa || '',
             owner_id: lead.owner_id || lead.ownerId || lead.owner?.id || '',
             reason_for_loss: lead.reason_for_loss || '',
-            notes: Array.isArray(lead.notes) 
-              ? lead.notes 
-              : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : [])
+            notes: Array.isArray(lead.notes)
+              ? lead.notes
+              : (typeof lead.notes === 'string' ? (() => { try { return JSON.parse(lead.notes); } catch { return []; } })() : [])
           };
+
           setFormData(normalizedLead);
         }
 
@@ -323,11 +327,15 @@ const handleSubmit = async (e) => {
       if (savedLead) {
         setFormData(prev => ({
           ...prev,
+          // geo
           lat: savedLead.lat ?? payload.lat,
           lng: savedLead.lng ?? payload.lng,
           google_maps_link: savedLead.google_maps_link ?? payload.google_maps_link,
           cidade: savedLead.cidade ?? payload.cidade,
-          regiao: savedLead.regiao ?? payload.regiao
+          regiao: savedLead.regiao ?? payload.regiao,
+          // valores numéricos que estavam sumindo
+          avg_consumption: savedLead.avg_consumption ?? savedLead.avgConsumption ?? payload.avg_consumption ?? prev.avg_consumption,
+          estimated_savings: savedLead.estimated_savings ?? savedLead.estimatedSavings ?? payload.estimated_savings ?? prev.estimated_savings
         }));
       }
     }

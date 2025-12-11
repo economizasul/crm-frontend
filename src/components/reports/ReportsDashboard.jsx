@@ -332,7 +332,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
-{/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 **py-4** rounded-t-2xl text-center"> {/* AJUSTADO: py-4 para compactar o topo */}
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>

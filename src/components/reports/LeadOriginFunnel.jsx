@@ -12,7 +12,7 @@ const FUNNEL_STAGES = [
 ];
 
 const LeadOriginFunnel = ({ originStats, totalLeads }) => {
-    // 1. Mapeia, calcula e ordena os dados (maior para o menor)
+    // 1. Mapeia e calcula os dados. Removemos a ordenação e o filtro.
     const funnelData = FUNNEL_STAGES.map(stage => {
         const count = originStats[stage.field] || 0;
         const percent = totalLeads > 0 ? (count / totalLeads) * 100 : 0;
@@ -21,18 +21,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             count: count,
             percent: percent,
         };
-    }).sort((a, b) => b.count - a.count); // Ordena aqui para o funil ser sempre do maior para o menor
-
-    // Filtra itens com zero para um funil mais limpo, mas mantém a ordem original
-    const visibleData = funnelData.filter(item => item.count > 0); 
-
-    if (visibleData.length === 0) {
-        return <div className="text-center p-8 text-gray-500">Nenhum dado de origem disponível no período.</div>;
-    }
-
-    // Pega o valor da primeira barra (a maior) para definir 100% da largura
-    const maxCount = visibleData[0]?.count || 1; 
-
+    }); 
+    
+    // NOTA: Usamos 'funnelData' diretamente, sem filtrar por count > 0.
+    
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
             
@@ -48,9 +40,16 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
 
             {/* SEÇÕES DO FUNIL */}
             <div className="w-full max-w-sm flex flex-col items-center mt-4">
-                {visibleData.map((item, index) => {
-                    // Largura da barra proporcional ao maior valor
-                    const widthPercent = (item.count / maxCount) * 100;
+                {funnelData.map((item, index) => {
+                    
+                    // 🛑 NOVA LÓGICA DE LARGURA: Redução suave e fixa baseada no INDEX
+                    // O primeiro item (index 0) tem 100% (w-full do container max-w-sm).
+                    // Cada item subsequente perde 5% (ou 8% para ser um funil mais visível) de largura.
+                    const reductionPerStep = 8;
+                    const widthPercent = Math.max(10, 100 - (index * reductionPerStep)); // Garante uma largura mínima de 10%
+
+                    // O item não será totalmente transparente, apenas ligeiramente desbotado se o valor for 0
+                    const opacity = item.count > 0 ? 1 : 0.6; 
 
                     return (
                         <motion.div
@@ -58,20 +57,21 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.1, duration: 0.3 }}
-                            className="w-full flex justify-center **mt-[-16px]** z-[10]" // AJUSTADO: Maior sobreposição (Overlap)
-                            style={{ margin: '0 auto' }} 
+                            className="w-full flex justify-center mt-[-16px] z-[10]" 
+                            style={{ margin: '0 auto', opacity: opacity }} 
                         >
                             <div 
                                 className={`h-12 rounded-lg ${item.baseColor} ${item.shadowStyle} text-white font-semibold flex items-center justify-between px-5 py-1 transition-transform duration-300 hover:scale-[1.01]`}
                                 style={{
-                                    width: `${widthPercent}%`,
+                                    width: `${widthPercent}%`, // Largura baseada na posição (índice)
                                     // Gradiente para efeito 3D
                                     backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.2), transparent 50%, rgba(255,255,255,0.2))`,
                                 }}
                             >
-                                <span className="font-medium text-left truncate">{item.label}</span>
+                                <span className="font-medium text-left truncate">{item.name}</span>
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-lg font-bold">{item.count}</span>
+                                    {/* Exibe 0.0% se o valor for 0 */}
                                     <span className="text-xs opacity-90">{item.percent.toFixed(1)}%</span>
                                 </div>
                             </div>
