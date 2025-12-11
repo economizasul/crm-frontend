@@ -35,17 +35,23 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         };
     });
 
-    // 🛑 1. ORDENAÇÃO DINÂMICA
-    const activeReasons = processedData
-        .filter(item => item.count > 0)
-        .sort((a, b) => b.count - a.count); // Maior valor primeiro
-        
-    const inactiveReasons = processedData
-        .filter(item => item.count === 0)
-        .sort((a, b) => a.name.localeCompare(b.name)); // Ordem Alfabética (A-Z)
+    // 🛑 1. ORDENAÇÃO DINÂMICA:
+    // Critério 1: Ativos (count > 0) vêm antes dos Inativos (count = 0).
+    // Critério 2 (Ativos): Ordenados por valor (maior para menor).
+    // Critério 3 (Inativos): Ordenados por nome em ordem alfabética.
+    const sortedData = processedData.sort((a, b) => {
+        const aActive = a.count > 0;
+        const bActive = b.count > 0;
 
-    // Junta os dois grupos: Ativos (por valor) + Inativos (por nome)
-    const sortedData = activeReasons.concat(inactiveReasons);
+        if (aActive && !bActive) return -1; // A é ativo, B é inativo -> A vem primeiro
+        if (!aActive && bActive) return 1;  // A é inativo, B é ativo -> B vem primeiro
+
+        // Se ambos são ativos, ordena por valor (maior para menor)
+        if (aActive && bActive) return b.count - a.count;
+
+        // Se ambos são inativos, ordena por nome (A-Z)
+        return a.name.localeCompare(b.name);
+    });
 
     const isDarkMode = document.documentElement.classList.contains('dark');
     
@@ -55,15 +61,22 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     const INACTIVE_WIDTH = 10; // Largura fixa para barras inativas (10%)
     const REDUCTION_STEP = 5; // Redução de 5% para cada posição abaixo na lista de ativos
 
+    // 🛑 2. CÁLCULO DE LARGURA: Agora baseado na posição APÓS a ordenação
     const finalChartData = sortedData.map((item, index) => {
         const isActive = item.count > 0;
         let widthPercent;
 
         if (isActive) {
-            // Usa a posição no array de ATIVOS para calcular a largura
-            const activeIndex = activeReasons.findIndex(r => r.field === item.field);
+            // Conta quantos itens ativos vieram antes deste (para calcular o offset de 5%)
+            const activeIndex = sortedData.filter(r => r.count > 0).findIndex(r => r.field === item.field);
             const calculatedWidth = MAX_WIDTH - (activeIndex * REDUCTION_STEP);
             widthPercent = Math.max(MIN_ACTIVE_WIDTH, calculatedWidth);
+            
+            // Tratamento de 100%: Se for a única barra ativa, ela ocupa 95%
+            if (activeReasons.length === 1 && item.count > 0) {
+                widthPercent = MAX_WIDTH;
+            }
+
         } else {
             widthPercent = INACTIVE_WIDTH; // Barras inativas com tamanho fixo de 10%
         }
@@ -77,12 +90,10 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     return (
         <div className="flex flex-col items-center p-2 pt-0">
             
-            {/* Título (Único) - MANTIDO AQUI */}
             <h3 className="text-xl font-bold text-center text-gray-700 dark:text-gray-200 mb-6">
                 Motivos de Perda
             </h3>
 
-            {/* Container das Barras */}
             <div className="w-full space-y-2">
                 {finalChartData.map((item, index) => {
                     
@@ -94,7 +105,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                     // Cor de Fundo: Para itens inativos
                     const inactiveBg = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
                     
-                    // Cor do Texto: Branco para ativos, cor do tema para inativos
+                    // Cor do Texto: Branco para ativos
                     const textActiveColor = 'white';
                     const textInactiveColor = isDarkMode ? '#E5E7EB' : '#4B5563';
 
@@ -107,7 +118,8 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                             className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300"
                             style={{ 
                                 background: inactiveBg,
-                                opacity: opacity, // Aplica opacidade ao container para desbotar a barra inativa
+                                // Aplica a opacidade ao container, garantindo que tudo desbote
+                                opacity: opacity, 
                             }}
                         >
                             {/* Barra Colorida (FUNDO) */}
@@ -130,7 +142,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                 <span 
                                     className="text-sm font-semibold truncate"
                                     style={{
-                                        // 🛑 Cor do texto: Branco para barras ativas
+                                        // Cor do texto: Branco para barras ativas
                                         color: isActive ? textActiveColor : textInactiveColor,
                                         textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
                                     }}
@@ -138,7 +150,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                     {item.name}
                                 </span>
 
-                                {/* Valores (Sempre visíveis, mas com cores diferentes) */}
+                                {/* Valores */}
                                 <div className="flex items-baseline gap-1" style={{ textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
                                     <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {item.count}

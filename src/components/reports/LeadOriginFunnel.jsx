@@ -1,3 +1,5 @@
+// src/components/reports/LeadOriginFunnel.jsx
+
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -24,10 +26,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     }); 
     
     // Define os parâmetros estéticos do funil:
-    const baseWidth = 96; // Largura inicial em % (Quase 100% do container)
-    const reductionPerStep = 10; 
-    const height = 50; 
-    const verticalOverlap = 0.85;
+    const baseWidth = 96; // Largura inicial em % 
+    const reductionPerStep = 8; // 🛑 AJUSTADO PARA 8 (menos afunilamento)
+    const height = 55; // 🛑 AJUSTADO PARA 55px (mais altura)
+    const verticalOverlap = 0.9; // 🛑 AJUSTADO PARA 0.9 (menos sobreposição para texto)
 
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
@@ -36,8 +38,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                className={`w-[${baseWidth}%] h-3 bg-gray-900 rounded-full absolute top-1`}
+                // 🛑 CORREÇÃO: Usamos o style para largura dinâmica e w-full para fallback
+                className={`w-full h-3 bg-gray-900 rounded-full absolute top-1`}
                 style={{
+                    width: `${baseWidth}%`, // 🛑 CORRIGIDO O USO DO ESTILO AQUI
                     boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
                 }}
             />
@@ -46,16 +50,11 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <div className="w-full max-w-xl flex flex-col items-center mt-6">
                 {funnelData.map((item, index) => {
                     
-                    const currentWidth = Math.max(25, baseWidth - (index * reductionPerStep)); // Largura atual
-                    
-                    // Cálculo da largura da BASE do trapézio (para seguir a linha da próxima camada)
-                    // A base do trapézio atual deve ser igual à largura do topo do próximo trapézio
-                    const nextWidth = Math.max(25, baseWidth - ((index + 1) * reductionPerStep)); 
-
+                    const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); // Largura atual
+                    const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); // Largura da base
                     const opacity = item.count > 0 ? 1 : 0.6; 
 
                     // Cria o caminho do clip (trapézio)
-                    // As laterais são calculadas para que a base (nextWidth) e o topo (currentWidth) sejam centralizados
                     const clipPath = `polygon(
                         ${(100 - currentWidth) / 2}% 0%, 
                         ${100 - (100 - currentWidth) / 2}% 0%, 
@@ -63,7 +62,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                         ${(100 - nextWidth) / 2}% 100%
                     )`;
                     
-                    const topPosition = index * (height * 0.95); // Ajuste a multiplicação para 0.95 para menos sobreposição
+                    const topPosition = index * (height * verticalOverlap); 
 
                     return (
                         <motion.div
@@ -83,14 +82,20 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                 style={{
                                     width: `100%`, 
                                     maxWidth: '100%',
-                                    height: `${height}px`, // 🛑 AUMENTADO PARA 50px
+                                    height: `${height}px`,
                                     clipPath: clipPath,
-                                    
                                     boxShadow: item.shadowStyle,
-                                    // ... (gradiente)
+                                    backgroundImage: `
+                                        linear-gradient(to top, 
+                                            ${item.color}, 
+                                            ${item.colorLight} 50%, 
+                                            ${item.color}
+                                        ),
+                                        radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
+                                    `,
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA - USANDO PX-3 PARA MAIS ESPAÇAMENTO LATERAL */}
+                                {/* TEXTO DENTRO DA BARRA - PX-3 para espaçamento lateral */}
                                 <div className="absolute inset-0 flex items-center justify-between px-3"> 
                                     <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                         {item.name}
@@ -109,9 +114,12 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             {/* BASE DO FUNIL */}
             <div 
                 className="text-center w-full max-w-xl"
-                style={{ marginTop: `${funnelData.length * (height * verticalOverlap)}px` }} // 🛑 AJUSTADO MARGIN
+                style={{ marginTop: `${funnelData.length * (height * verticalOverlap)}px` }}
             >
-                {/* ... (Total) */}
+                <div className="text-3xl font-extrabold text-gray-600 pt-8">
+                    {totalLeads}
+                </div>
+                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
             </div>
         </div>
     );
