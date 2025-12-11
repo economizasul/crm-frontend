@@ -8,7 +8,7 @@ import LeadEditModal from '../components/LeadEditModal.jsx';
 
 // 🟢 CORREÇÃO: Adicionado 'export' para que LeadEditModal possa importar.
 export const STAGES = {
-  'Novo': 'bg-gray-800 text-gray-200 border-gray-300',
+  'Novo': 'bg-gray-600 text-gray-200 border-gray-300',
   'Contato': 'bg-blue-200 text-blue-400 border-blue-300',
   'Rechame': 'bg-blue-100 text-blue-800 border-blue-300',
   'Retorno': 'bg-indigo-200 text-indigo-700 border-indigo-300',

@@ -124,8 +124,16 @@ const LeadForm = () => {
             status: lead.status || 'Novo',
             origin: lead.origin || 'Orgânico',
             uc: lead.uc || '',
-            avg_consumption: lead.avg_consumption || lead.avgConsumption || '',
-            estimated_savings: lead.estimated_savings || lead.estimatedSavings || '',
+            avg_consumption: 
+              lead.avg_consumption !== undefined && lead.avg_consumption !== null
+                ? lead.avg_consumption
+                : (lead.avgConsumption ?? ''),
+
+            estimated_savings:
+              lead.estimated_savings !== undefined && lead.estimated_savings !== null
+                ? lead.estimated_savings
+                : (lead.estimatedSavings ?? ''),
+
             qsa: lead.qsa || '',
             owner_id: lead.owner_id || lead.ownerId || lead.owner?.id || '',
             reason_for_loss: lead.reason_for_loss || '',
