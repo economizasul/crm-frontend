@@ -1,18 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// Cores e sombras para os estágios do funil
+// Cores e tamanhos para os estágios do funil (em ordem de exibição)
 const FUNNEL_STAGES = [
-    { name: "Facebook..:", field: 'facebook', baseColor: "bg-blue-600", shadowStyle: "shadow-2xl shadow-blue-500/50" },
-    { name: "Orgânico..:", field: 'organico', baseColor: "bg-green-600", shadowStyle: "shadow-xl shadow-green-500/50" },
-    { name: "Google..:", field: 'google', baseColor: "bg-yellow-600", shadowStyle: "shadow-lg shadow-yellow-500/50" },
-    { name: "Indicação..:", field: 'indicacao', baseColor: "bg-purple-600", shadowStyle: "shadow-md shadow-purple-500/50" },
-    { name: "Instagram..:", field: 'instagram', baseColor: "bg-pink-600", shadowStyle: "shadow-md shadow-pink-500/50" },
-    { name: "Parceria..:", field: 'parceria', baseColor: "bg-red-600", shadowStyle: "shadow-sm shadow-red-500/50" },
+    { name: "Facebook..:", field: 'facebook', color: "#1D4ED8", colorLight: "#3B82F6", shadowStyle: "0 5px 15px rgba(29, 78, 216, 0.7)" }, // Azul (Indigo)
+    { name: "Orgânico..:", field: 'organico', color: "#065F46", colorLight: "#10B981", shadowStyle: "0 5px 15px rgba(6, 95, 70, 0.7)" }, // Verde Escuro (Emerald)
+    { name: "Google..:", field: 'google', color: "#92400E", colorLight: "#F59E0B", shadowStyle: "0 5px 15px rgba(146, 64, 14, 0.7)" }, // Laranja (Amber)
+    { name: "Indicação..:", field: 'indicacao', color: "#581C87", colorLight: "#9333EA", shadowStyle: "0 5px 15px rgba(88, 28, 135, 0.7)" }, // Roxo (Violet)
+    { name: "Instagram..:", field: 'instagram', color: "#BE185D", colorLight: "#EC4899", shadowStyle: "0 5px 15px rgba(190, 24, 93, 0.7)" }, // Rosa (Pink)
+    { name: "Parceria..:", field: 'parceria', color: "#991B1B", colorLight: "#EF4444", shadowStyle: "0 5px 15px rgba(153, 27, 27, 0.7)" }, // Vermelho (Red)
 ];
 
 const LeadOriginFunnel = ({ originStats, totalLeads }) => {
-    // 1. Mapeia e calcula os dados. Removemos a ordenação e o filtro.
+    // 1. Mapeia e calcula os dados
     const funnelData = FUNNEL_STAGES.map(stage => {
         const count = originStats[stage.field] || 0;
         const percent = totalLeads > 0 ? (count / totalLeads) * 100 : 0;
@@ -23,69 +23,95 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
         };
     }); 
     
-    // NOTA: Usamos 'funnelData' diretamente, sem filtrar por count > 0.
-    
+    // Define os parâmetros estéticos do funil (redução constante de largura)
+    const baseWidth = 90; // Largura inicial em %
+    const reductionPerStep = 10; // Redução de largura por etapa (em %)
+    const height = 60; // Altura de cada seção em px
+
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
             
-            {/* TOPO DO FUNIL (OVAL ESTÉTICO) */}
-            <motion.div 
-                initial={{ opacity: 0, scaleX: 0 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                className={`w-4/5 h-4 bg-gray-900 rounded-full absolute -top-1`}
-                style={{
-                    boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
-                }}
-            />
-
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-sm flex flex-col items-center mt-4">
+            <div className="w-full max-w-lg flex flex-col items-center">
                 {funnelData.map((item, index) => {
                     
-                    // 🛑 NOVA LÓGICA DE LARGURA: Redução suave e fixa baseada no INDEX
-                    // O primeiro item (index 0) tem 100% (w-full do container max-w-sm).
-                    // Cada item subsequente perde 5% (ou 8% para ser um funil mais visível) de largura.
-                    const reductionPerStep = 8;
-                    const widthPercent = Math.max(10, 100 - (index * reductionPerStep)); // Garante uma largura mínima de 10%
+                    // LÓGICA DE LARGURA: Redução suave e fixa baseada no INDEX (Forma estética de Funil)
+                    const currentWidth = Math.max(20, baseWidth - (index * reductionPerStep));
+                    const nextWidth = Math.max(20, baseWidth - ((index + 1) * reductionPerStep));
 
-                    // O item não será totalmente transparente, apenas ligeiramente desbotado se o valor for 0
-                    const opacity = item.count > 0 ? 1 : 0.6; 
+                    // Opacidade: Itens com valor zero ficam levemente desbotados
+                    const opacity = item.count > 0 ? 1 : 0.4; 
+
+                    // Cria o caminho do clip (trapézio)
+                    const clipPath = `polygon(0% 0%, 100% 0%, ${50 + nextWidth / 2}% 100%, ${50 - nextWidth / 2}% 100%)`;
+                    
+                    // Conteúdo principal
+                    const content = (
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold">{item.count}</span>
+                            <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
+                        </div>
+                    );
 
                     return (
                         <motion.div
                             key={item.name}
-                            initial={{ opacity: 0, scale: 0.8 }}
+                            initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.1, duration: 0.3 }}
-                            className="w-full flex justify-center mt-[-16px] z-[10]" 
-                            style={{ margin: '0 auto', opacity: opacity }} 
+                            transition={{ delay: index * 0.1, duration: 0.4 }}
+                            className="absolute w-full flex justify-center"
+                            style={{ 
+                                // Posiciona verticalmente (altura * índice)
+                                top: `${index * (height * 0.85)}px`, 
+                                zIndex: 50 - index, // Garante que o item de cima sobreponha o de baixo
+                                opacity: opacity,
+                            }} 
                         >
                             <div 
-                                className={`h-12 rounded-lg ${item.baseColor} ${item.shadowStyle} text-white font-semibold flex items-center justify-between px-5 py-1 transition-transform duration-300 hover:scale-[1.01]`}
+                                className="relative text-white font-semibold transition-transform duration-300 hover:scale-[1.01]"
                                 style={{
-                                    width: `${widthPercent}%`, // Largura baseada na posição (índice)
-                                    // Gradiente para efeito 3D
-                                    backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.2), transparent 50%, rgba(255,255,255,0.2))`,
+                                    width: `${currentWidth}%`, // Largura baseada no índice
+                                    height: `${height}px`,
+                                    // Aplica o formato de funil (trapézio)
+                                    clipPath: clipPath,
+                                    
+                                    // Efeitos 3D
+                                    boxShadow: item.shadowStyle,
+                                    backgroundImage: `
+                                        linear-gradient(to top, 
+                                            ${item.color}, 
+                                            ${item.colorLight} 50%, 
+                                            ${item.color}
+                                        ),
+                                        radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
+                                    `,
                                 }}
                             >
-                                <span className="font-medium text-left truncate">{item.name}</span>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-lg font-bold">{item.count}</span>
-                                    {/* Exibe 0.0% se o valor for 0 */}
-                                    <span className="text-xs opacity-90">{item.percent.toFixed(1)}%</span>
+                                {/* TEXTO DENTRO DA BARRA */}
+                                <div className="absolute inset-0 flex items-center justify-between px-5">
+                                    <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                                        {item.name}
+                                    </span>
+                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                                        <span className="text-xl font-bold">{item.count}</span>
+                                        <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
                     );
                 })}
             </div>
-            
-            {/* BASE DO FUNIL (TOTAL) */}
-            <div className="text-center mt-8">
-                <div className="text-3xl font-extrabold text-gray-600">
+
+            {/* BASE DO FUNIL (Total e Espaçamento) */}
+            <div 
+                className="text-center w-full max-w-lg"
+                style={{ marginTop: `${funnelData.length * (height * 0.85)}px` }} // Empurra o total para baixo
+            >
+                <div className="text-3xl font-extrabold text-gray-600 pt-8">
                     {totalLeads}
                 </div>
-                <div className="text-sm text-gray-600">Total de leads no período</div>
+                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
             </div>
         </div>
     );

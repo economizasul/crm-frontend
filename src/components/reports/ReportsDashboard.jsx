@@ -375,8 +375,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MOTIVOS DE PERDA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
-          <h3 className="text-xl font-bold text-center text-gray-600 mb-6">Motivos de Perda</h3>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <MotivosPerdaChart lostReasons={lostReasonsData} />
         </div>
 
