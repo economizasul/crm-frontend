@@ -15,15 +15,12 @@ L.Icon.Default.mergeOptions({
 function MapBounds({ marcadores }) {
   const map = useMap();
   useEffect(() => {
-    // 🛑 AJUSTADO: Novas coordenadas para focar mais na área do PR e permitir zoom-out maior
     const paranaBounds = L.latLngBounds(
-      L.latLng(-26.8, -55.0), // Sudoeste (Lat: Sul, Lng: Oeste - Aumentamos um pouco para Oeste)
-      L.latLng(-22.0, -47.8)  // Nordeste (Lat: Norte, Lng: Leste - Reduzimos o excesso ao Norte/Leste)
+      L.latLng(-27.2, -55.5),
+      L.latLng(-21.5, -47.,5)
     );
     map.setMaxBounds(paranaBounds);
-    
-    // 🛑 AJUSTADO: Zoom mínimo para 6 (permite mais afastamento)
-    map.setMinZoom(6); 
+    map.setMinZoom(7);
     map.setMaxZoom(16);
 
     if (marcadores.length > 0) {
@@ -86,7 +83,7 @@ const createCustomMarker = (count) => {
   });
 };
 
-const ParanaMap = ({ leadsGanho = [] }) => { // 🛑 ALTERAÇÃO AQUI: Recebe leadsGanho
+const ParanaMap = ({ leadsGanho = [] }) => {
   const [regioesData, setRegioesData] = useState(null);
   const [paranaShape, setParanaShape] = useState(null);
   const [municipiosData, setMunicipiosData] = useState(null);
@@ -116,7 +113,7 @@ const ParanaMap = ({ leadsGanho = [] }) => { // 🛑 ALTERAÇÃO AQUI: Recebe le
   }, []);
 
   // Agrupa leads por cidade
-  const leadsPorCidade = leadsGanho.reduce((acc, lead) => { // 🛑 ALTERAÇÃO AQUI: Usa leadsGanho
+  const leadsPorCidade = leadsGanho.reduce((acc, lead) => {
     const cidade = (lead.cidade || 'Sem cidade').trim();
     const lat = parseFloat(lead.lat);
     const lng = parseFloat(lead.lng);

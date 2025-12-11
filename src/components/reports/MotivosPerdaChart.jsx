@@ -40,18 +40,13 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         const aActive = a.count > 0;
         const bActive = b.count > 0;
 
-        // Se a atividade é diferente, o ativo vem primeiro
         if (aActive && !bActive) return -1; 
         if (!aActive && bActive) return 1;  
 
-        // Se ambos são ativos, ordena por valor (maior para menor)
         if (aActive && bActive) return b.count - a.count;
 
-        // Se ambos são inativos, ordena por nome (A-Z)
         return a.name.localeCompare(b.name);
     });
-
-    const activeReasonsCount = processedData.filter(item => item.count > 0).length;
 
     // Lógica de Dimensionamento Dinâmico (5% de diferença)
     const MAX_WIDTH = 95; 
@@ -66,12 +61,11 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         let widthPercent;
 
         if (isActive) {
-            // Calcula a largura baseada na ordem entre os ativos
             const calculatedWidth = MAX_WIDTH - (activeIndexCounter * REDUCTION_STEP);
             widthPercent = Math.max(MIN_ACTIVE_WIDTH, calculatedWidth);
-            activeIndexCounter++; // Incrementa para o próximo ativo
+            activeIndexCounter++; 
         } else {
-            widthPercent = INACTIVE_WIDTH; // Barras inativas com tamanho fixo de 10%
+            widthPercent = INACTIVE_WIDTH; 
         }
         
         return {
@@ -94,7 +88,6 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                     
                     const isActive = item.count > 0;
                     
-                    // Opacidade: Itens sem valor ficam desbotados
                     const opacity = isActive ? 1 : 0.4;
                     
                     const inactiveBg = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)';
@@ -106,12 +99,11 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                         <motion.div
                             key={item.field}
                             initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: opacity, x: 0 }}
+                            animate={{ opacity: 1, x: 0 }} // 🛑 Animação de opacidade corrigida para 1 no container
                             transition={{ delay: index * 0.08, duration: 0.4 }} 
                             className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300"
                             style={{ 
                                 background: inactiveBg,
-                                opacity: 1, // Mantemos o container visível e desbotamos a barra colorida
                             }}
                         >
                             {/* Barra Colorida (FUNDO) */}
@@ -124,18 +116,16 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                     backgroundColor: item.color,
                                     boxShadow: isActive ? item.shadow : 'none',
                                     backgroundImage: `linear-gradient(to right, ${item.color}, ${item.color} 80%, rgba(255,255,255,0.2) 100%)`,
-                                    opacity: opacity, // Aplicamos a opacidade apenas à barra colorida
+                                    opacity: opacity, // Aplica a opacidade APENAS à barra colorida
                                 }}
                             />
 
                             {/* Conteúdo (Nome e Valores) */}
                             <div className="relative z-10 h-full flex items-center justify-between px-3">
                                 
-                                {/* Nome do Motivo */}
                                 <span 
                                     className="text-sm font-semibold truncate"
                                     style={{
-                                        // Cor do texto: Branco para barras ativas
                                         color: isActive ? textActiveColor : textInactiveColor,
                                         textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none',
                                     }}
@@ -145,6 +135,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
 
                                 {/* Valores */}
                                 <div className="flex items-baseline gap-1" style={{ textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
+                                    {/* 🛑 Visibilidade para ativos/inativos mais clara */}
                                     <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {item.count}
                                     </span>

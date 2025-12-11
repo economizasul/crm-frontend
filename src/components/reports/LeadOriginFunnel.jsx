@@ -25,10 +25,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     
     // Define os parâmetros estéticos do funil:
     const baseWidth = 96; 
-    const reductionPerStep = 8; // Menos afunilamento
-    const height = 55; // Altura maior
+    const reductionPerStep = 8; 
+    const height = 55; 
     const verticalOverlap = 0.9; 
-    const borderRadius = 8; // Novo raio para o arredondamento
+    const borderRadiusFunnel = 12; // 🛑 NOVO: Aumentado para 12px para arredondamento mais suave
 
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
@@ -62,17 +62,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                     
                     const topPosition = index * (height * verticalOverlap); 
                     
-                    // Ajuste de border-radius: Apenas o primeiro e o último (opcionalmente)
-                    let borderStyles = {};
-                    if (index === 0) {
-                        // Aplica border-radius no topo para um formato mais orgânico
-                        borderStyles = { borderTopLeftRadius: `${borderRadius}px`, borderTopRightRadius: `${borderRadius}px` };
-                    }
-                    if (index === funnelData.length - 1) {
-                        // Aplica border-radius na base (se quiser)
-                         borderStyles = { ...borderStyles, borderBottomLeftRadius: `${borderRadius}px`, borderBottomRightRadius: `${borderRadius}px` };
-                    }
-
+                    // Aplica border-radius nas laterais
+                    const borderStyles = {
+                         borderRadius: `${borderRadiusFunnel}px`,
+                    };
 
                     return (
                         <motion.div
@@ -106,8 +99,8 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     ...borderStyles, // Aplica o raio de borda
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA - CENTRALIZADO e justificado */}
-                                <div className="absolute inset-0 flex items-center justify-between px-5"> {/* Aumentamos o px para 5 */}
+                                {/* TEXTO DENTRO DA BARRA - PX-5 para mais espaço */}
+                                <div className="absolute inset-0 flex items-center justify-between px-5"> 
                                     <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
                                         {item.name}
                                     </span>
