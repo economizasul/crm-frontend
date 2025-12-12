@@ -210,8 +210,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         />
       </div>
 
-      {/* ===== LINHA 1: PRODUTIVIDADE + MAPA ===== */}
-      <div className="mt-20 grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* ===== LINHA 1: PRODUTIVIDADE + MAPA (REAJUSTADA) ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== RESUMO DE PRODUTIVIDADE (USAR PRODUCTIVITY AQUI) */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-visible self-start">
@@ -282,7 +282,6 @@ export default function ReportsDashboard({ data, loading = false, error = null }
                       <span className="font-bold text-orange-600 text-base">
                         {( (productivity?.tempoMedioFechamentoHoras ?? 0) / 24 ).toFixed(1).replace('.', ',')} dias
                       </span>
-                      <span className="text-gray-500 text-xs">cadastro → ganho</span>
                     </div>
                   </td>
                 </tr>
@@ -331,14 +330,14 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
 
-        {/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
+        {/* ===== MAPA DE LEADS FECHADOS (REAJUSTADO) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
           <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-t-2xl text-center">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="h-[320px]"> {/* ALTERADO: Altura fixa definida para melhor alinhamento */}
+          <div className="h-[320px]"> {/* Altura fixa para alinhamento com a tabela ao lado */}
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
@@ -360,10 +359,11 @@ export default function ReportsDashboard({ data, loading = false, error = null }
           </div>
         </div>
       </div>
-      
-<div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        {/* ===== ORIGEM DO LEAD (Usando componente Funil 3D) ===== */}
+      {/* ===== LINHA 2: FUNIL + MOTIVOS DE PERDA (REAJUSTADA) ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* ===== ORIGEM DO LEAD (Funil 3D) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">Origem do Lead</h3>
           
@@ -374,9 +374,24 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
         </div>
 
-        {/* ===== MOTIVOS DE PERDA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
+        {/* ===== MOTIVOS DE PERDA (Gráfico de Barras) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <MotivosPerdaChart lostReasons={lostReasonsData} />
+        </div>
+
+      </div>
+
+      {/* ===== LINHA 3: ATIVIDADE DIÁRIA + TABELA DE PRODUTIVIDADE VENDEDOR (REAJUSTADA) ===== */}
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* ===== ATIVIDADE DIÁRIA ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
+          <DailyActivity activities={dailyActivity} />
+        </div>
+
+        {/* ===== TABELA DE PRODUTIVIDADE POR VENDEDOR/USUÁRIO ===== */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 self-start overflow-x-auto">
+          <ProductivityTable data={data?.vendedores || []} />
         </div>
 
       </div>
