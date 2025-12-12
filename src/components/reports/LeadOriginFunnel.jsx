@@ -31,7 +31,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     const borderRadiusFunnel = 18; // AUMENTADO para 18px (arredondamento máximo)
 
     return (
-        <div className="flex flex-col items-center pt-8 px-4 relative">
+        <div className="flex flex-col items-center justify-center h-full px-4 relative">
             
             {/* TOPO DO FUNIL (OVAL ESTÉTICO) */}
             <motion.div 
@@ -45,7 +45,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-xl flex flex-col items-center mt-6">
+            <div className="w-full max-w-xl flex flex-col items-center">
                 {funnelData.map((item, index) => {
                     
                     const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); 

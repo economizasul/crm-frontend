@@ -364,13 +364,16 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* ===== ORIGEM DO LEAD (Usando componente Funil 3D) ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">Origem do Lead</h3>
           
-          <LeadOriginFunnel 
-            originStats={originStatsObj} 
-            totalLeads={globalSummary?.totalLeads || 0}
-          />
+          {/* NOVA LINHA: Container com altura fixa para a centralização */}
+          <div className="h-[400px]"> 
+            <LeadOriginFunnel 
+              originStats={originStatsObj} 
+              totalLeads={globalSummary?.totalLeads || 0}
+            />
+          </div>
 
         </div>
 
