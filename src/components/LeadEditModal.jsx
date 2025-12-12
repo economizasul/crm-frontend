@@ -294,7 +294,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         const formatted = phone.startsWith('55') ? phone : `55${phone}`;
 
         const msg = encodeURIComponent(
-            `Olá ${leadData.name || 'cliente'}, tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
+            `Olá ${leadData.name || 'cliente'}, tudo bem? Sua fatura Copel é mais cara do que precisa ser. Temos a solução *SEM PLACAS* e *SEM CUSTO* que corrige isso. Quer um diagnóstico sem compromisso e rápido da sua economia *GARANTIDA*?`
         );
 
         // Abre no WhatsApp Web (desktop) ou app (mobile)

@@ -35,8 +35,9 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         };
     });
 
-    // 🛑 1. ORDENAÇÃO DINÂMICA (Critérios: Ativo > Inativo; Valor > Valor; Nome > Nome)
-    processedData.sort((a, b) => {
+    // CRIA UMA CÓPIA E ORDENAÇÃO DINÂMICA
+    let sortableData = [...processedData]; 
+    sortableData.sort((a, b) => {
         const aActive = a.count > 0;
         const bActive = b.count > 0;
 
@@ -48,15 +49,15 @@ const MotivosPerdaChart = ({ lostReasons }) => {
         return a.name.localeCompare(b.name);
     });
 
-    // Lógica de Dimensionamento Dinâmico (5% de diferença)
+    // Lógica de Dimensionamento Dinâmico
     const MAX_WIDTH = 95; 
     const MIN_ACTIVE_WIDTH = 25; 
     const INACTIVE_WIDTH = 10; 
-    const REDUCTION_STEP = 5; 
+    const REDUCTION_STEP = 7; // ALTERADO para 7 (diferença de largura mais perceptível)
 
-    // 🛑 2. CÁLCULO DE LARGURA AJUSTADO
+    // CÁLCULO DE LARGURA AJUSTADO
     let activeIndexCounter = 0;
-    const finalChartData = processedData.map((item) => {
+    const finalChartData = sortableData.map((item) => {
         const isActive = item.count > 0;
         let widthPercent;
 
@@ -99,7 +100,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                         <motion.div
                             key={item.field}
                             initial={{ opacity: 0, x: -50 }}
-                            animate={{ opacity: 1, x: 0 }} // 🛑 Animação de opacidade corrigida para 1 no container
+                            animate={{ opacity: 1, x: 0 }} 
                             transition={{ delay: index * 0.08, duration: 0.4 }} 
                             className="w-full h-8 rounded-lg relative overflow-hidden transition-all duration-300"
                             style={{ 
@@ -133,9 +134,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                     {item.name}
                                 </span>
 
-                                {/* Valores */}
                                 <div className="flex items-baseline gap-1" style={{ textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
-                                    {/* 🛑 Visibilidade para ativos/inativos mais clara */}
                                     <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {item.count}
                                     </span>

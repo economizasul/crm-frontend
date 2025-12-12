@@ -25,10 +25,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     
     // Define os parâmetros estéticos do funil:
     const baseWidth = 96; 
-    const reductionPerStep = 8; 
+    const reductionPerStep = 5; // DIMINUÍDO para 5 (funil mais cheio, menos inclinado)
     const height = 55; 
     const verticalOverlap = 0.9; 
-    const borderRadiusFunnel = 12; // 🛑 NOVO: Aumentado para 12px para arredondamento mais suave
+    const borderRadiusFunnel = 18; // AUMENTADO para 18px (arredondamento máximo)
 
     return (
         <div className="flex flex-col items-center pt-8 px-4 relative">
@@ -62,9 +62,8 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                     
                     const topPosition = index * (height * verticalOverlap); 
                     
-                    // Aplica border-radius nas laterais
                     const borderStyles = {
-                         borderRadius: `${borderRadiusFunnel}px`,
+                         borderRadius: `${borderRadiusFunnel}px`, 
                     };
 
                     return (
@@ -96,16 +95,16 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                         ),
                                         radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
                                     `,
-                                    ...borderStyles, // Aplica o raio de borda
+                                    ...borderStyles, 
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA - PX-5 para mais espaço */}
-                                <div className="absolute inset-0 flex items-center justify-between px-5"> 
-                                    <span className="font-medium text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                                {/* TEXTO DENTRO DA BARRA - Centralização e negrito para destacar */}
+                                <div className="absolute inset-0 flex items-center justify-between px-6"> {/* Ajustado: Aumentei para px-6 */}
+                                    <span className="font-bold text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
                                         {item.name}
                                     </span>
-                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                                        <span className="text-xl font-bold">{item.count}</span>
+                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                                        <span className="text-xl font-extrabold">{item.count}</span> {/* Mais negrito */}
                                         <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
                                     </div>
                                 </div>

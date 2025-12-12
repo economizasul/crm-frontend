@@ -333,12 +333,12 @@ export default function ReportsDashboard({ data, loading = false, error = null }
 
         {/* ===== MAPA DE LEADS FECHADOS (AJUSTE DE COMPACTAÇÃO) ===== */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 **py-4** rounded-t-2xl text-center"> {/* AJUSTADO: py-4 para compactar o topo */}
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-t-2xl text-center">
             <h3 className="text-2xl font-bold">Mapa de Leads Fechados</h3>
             <p className="text-4xl font-extrabold mt-2">{leadsMapa.length} clientes</p>
           </div>
 
-          <div className="flex-1 **h-[250px]**"> {/* AJUSTADO: Altura interna reduzida para 250px para remover espaço vazio. */}
+          <div className="h-[320px]"> {/* ALTERADO: Altura fixa definida para melhor alinhamento */}
             {carregandoMapa ? (
               <div className="flex items-center justify-center h-full bg-gray-50">
                 <FaSpinner className="animate-spin text-6xl text-purple-600" />
@@ -375,7 +375,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         </div>
 
         {/* ===== MOTIVOS DE PERDA (AJUSTADO PARA FICAR EM SEU PRÓPRIO CARD) ===== */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <MotivosPerdaChart lostReasons={lostReasonsData} />
         </div>
 

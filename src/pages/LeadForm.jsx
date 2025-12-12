@@ -360,7 +360,7 @@ const handleSubmit = async (e) => {
   const formatted = phone.startsWith('55') ? phone : `55${phone}`;
 
   const msg = encodeURIComponent(
-    `Olá ${formData.name}, Tudo bem? Estou entrando só para simplificar: Queremos que você pague menos na sua fatura da Copel, sem precisar de placas. Podemos fazer o cálculo exato da sua economia para os próximos meses?`
+    `Olá ${formData.name}, Tudo bem? Sua fatura Copel é mais cara do que precisa ser. Temos a solução *SEM PLACAS* e *SEM CUSTO* que corrige isso. Quer um diagnóstico sem compromisso e rápido da sua economia *GARANTIDA*?`
   );
 
   // Força abrir no WhatsApp Web no desktop, e no app no celular
