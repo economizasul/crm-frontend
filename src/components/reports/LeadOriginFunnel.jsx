@@ -4,12 +4,12 @@ import { motion } from 'framer-motion';
 
 // Cores e tamanhos para os estágios do funil (em ordem de exibição)
 const FUNNEL_STAGES = [
-    { name: "Facebook..:", field: 'facebook', color: "#1D4ED8", colorLight: "#3B82F6", shadowStyle: "0 5px 15px rgba(29, 78, 216, 0.7)" }, 
-    { name: "Orgânico..:", field: 'organico', color: "#065F46", colorLight: "#10B981", shadowStyle: "0 5px 15px rgba(6, 95, 70, 0.7)" }, 
-    { name: "Google..:", field: 'google', color: "#92400E", colorLight: "#F59E0B", shadowStyle: "0 5px 15px rgba(146, 64, 14, 0.7)" }, 
-    { name: "Indicação..:", field: 'indicacao', color: "#581C87", colorLight: "#9333EA", shadowStyle: "0 5px 15px rgba(88, 28, 135, 0.7)" }, 
-    { name: "Instagram..:", field: 'instagram', color: "#BE185D", colorLight: "#EC4899", shadowStyle: "0 5px 15px rgba(190, 24, 93, 0.7)" }, 
-    { name: "Parceria..:", field: 'parceria', color: "#991B1B", colorLight: "#EF4444", shadowStyle: "0 5px 15px rgba(153, 27, 27, 0.7)" }, 
+    { name: "Facebook..:", field: 'facebook', color: "#1D4ED8", colorLight: "#3B82F6", shadowStyle: "0 10px 25px rgba(29, 78, 216, 0.6)" }, 
+    { name: "Orgânico..:", field: 'organico', color: "#065F46", colorLight: "#10B981", shadowStyle: "0 10px 25px rgba(6, 95, 70, 0.6)" }, 
+    { name: "Google..:", field: 'google', color: "#92400E", colorLight: "#F59E0B", shadowStyle: "0 10px 25px rgba(146, 64, 14, 0.6)" }, 
+    { name: "Indicação..:", field: 'indicacao', color: "#581C87", colorLight: "#9333EA", shadowStyle: "0 10px 25px rgba(88, 28, 135, 0.6)" }, 
+    { name: "Instagram..:", field: 'instagram', color: "#BE185D", colorLight: "#EC4899", shadowStyle: "0 10px 25px rgba(190, 24, 93, 0.6)" }, 
+    { name: "Parceria..:", field: 'parceria', color: "#991B1B", colorLight: "#EF4444", shadowStyle: "0 10px 25px rgba(153, 27, 27, 0.6)" }, 
 ];
 
 const LeadOriginFunnel = ({ originStats, totalLeads }) => {
@@ -24,42 +24,39 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
         };
     }); 
     
-    // Parâmetros do design moderno (inclinado)
-    const baseWidth = 96; 
-    const reductionPerStep = 15; // Inclinado
-    const height = 40; // Compacto
-    const verticalOverlap = 0.7; // Funil coeso
-    const borderRadiusFunnel = 18; 
+    // Parâmetros do design 3D cilíndrico
+    const baseWidth = 90; 
+    const reductionPerStep = 8; // Reduzido para menos inclinação (mais cilíndrico)
+    const height = 60; // Altura maior para efeito 3D stacked
+    const verticalSpacing = 12; // Espaçamento entre camadas (separação visível, sem overlap forte)
+    const borderRadius = 30; // Bordas bem arredondadas para cilindro
     
-    // Altura total do funil para posicionar o totalLeads no final
-    const totalFunnelHeight = funnelData.length * (height * verticalOverlap) + (height - (height * verticalOverlap));
-    
+    // Altura total aproximada
+    const totalFunnelHeight = funnelData.length * (height + verticalSpacing) - verticalSpacing + 60; // + margem para topo e base
 
     return (
-        <div className="flex flex-col items-center pt-8 px-4 relative h-[480px] justify-start"> {/* Mantendo a altura e alinhamento do card */}
+        <div className="flex flex-col items-center pt-8 px-4 relative h-[600px] justify-start"> {/* Aumentei altura do container se necessário */}
             
-            {/* TOPO DO FUNIL (OVAL ESTÉTICO) */}
+            {/* TOPO DO FUNIL (OVAL MAIS INTEGRADO E 3D) */}
             <motion.div 
-                initial={{ opacity: 0, scaleX: 0 }}
+                initial={{ opacity: 0, scaleX: 0.9 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                // AJUSTE: Topo movido para baixo para centralizar o funil como um todo
-                className={`w-full h-3 bg-gray-900 rounded-full absolute top-10`} 
+                className="w-full max-w-md h-16 bg-gray-800 rounded-full absolute top-8"
                 style={{
-                    width: `${baseWidth}%`, 
-                    boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
+                    width: `${baseWidth + 10}%`, 
+                    boxShadow: `inset 0 8px 16px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.8)`,
                 }}
             />
 
             {/* SEÇÕES DO FUNIL */}
-            {/* AJUSTE: Aumentando a margem superior para o funil começar abaixo do topo oval */}
-            <div className="w-full max-w-xl flex flex-col items-center relative" style={{ paddingTop: '30px' }}> 
+            <div className="w-full max-w-md flex flex-col items-center relative mt-20"> 
                 {funnelData.map((item, index) => {
                     
-                    const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); 
-                    const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); 
-                    const opacity = item.count > 0 ? 1 : 0.6; 
+                    const currentWidth = Math.max(40, baseWidth - (index * reductionPerStep)); 
+                    const nextWidth = Math.max(40, baseWidth - ((index + 1) * reductionPerStep)); 
+                    const opacity = item.count > 0 ? 1 : 0.7; 
 
-                    // Cria o caminho do clip (trapézio)
+                    // Clip-path para trapézio suave
                     const clipPath = `polygon(
                         ${(100 - currentWidth) / 2}% 0%, 
                         ${100 - (100 - currentWidth) / 2}% 0%, 
@@ -67,18 +64,14 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                         ${(100 - nextWidth) / 2}% 100%
                     )`;
                     
-                    const topPosition = index * (height * verticalOverlap); 
+                    const topPosition = index * (height + verticalSpacing); 
                     
-                    const borderStyles = {
-                         borderRadius: `${borderRadiusFunnel}px`, 
-                    };
-
                     return (
                         <motion.div
                             key={item.name}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.1, duration: 0.4 }}
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.15, duration: 0.5 }}
                             className="absolute w-full flex justify-center"
                             style={{ 
                                 top: `${topPosition}px`, 
@@ -87,32 +80,33 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                             }} 
                         >
                             <div 
-                                className="relative text-white font-semibold transition-transform duration-300 hover:scale-[1.01] overflow-hidden"
+                                className="relative text-white font-semibold transition-transform duration-300 hover:scale-105 overflow-hidden"
                                 style={{
-                                    width: `100%`, 
-                                    maxWidth: '100%',
+                                    width: `${currentWidth}%`,
                                     height: `${height}px`,
                                     clipPath: clipPath,
-                                    boxShadow: item.shadowStyle,
+                                    borderRadius: `${borderRadius}px`,
+                                    boxShadow: item.shadowStyle + ', inset 0 4px 10px rgba(255,255,255,0.2)',
                                     backgroundImage: `
-                                        linear-gradient(to top, 
-                                            ${item.color}, 
-                                            ${item.colorLight} 50%, 
-                                            ${item.color}
+                                        linear-gradient(135deg, 
+                                            ${item.colorLight} 0%, 
+                                            ${item.color} 50%, 
+                                            ${item.color} 100%
                                         ),
-                                        radial-gradient(ellipse at 50% 10%, rgba(255,255,255,0.3) 0%, transparent 80%)
+                                        radial-gradient(ellipse at 50% 20%, rgba(255,255,255,0.4) 0%, transparent 70%)
                                     `,
-                                    ...borderStyles, 
                                 }}
                             >
-                                {/* REVERSÃO: Voltou para justify-between (Nome Esquerda, Valores Direita) */}
-                                <div className="absolute inset-0 flex items-center justify-between px-6"> 
-                                    <span className="font-bold text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        {item.name}
-                                    </span>
-                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        <span className="text-xl font-extrabold">{item.count}</span> 
-                                        <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
+                                {/* Informações CENTRALIZADAS */}
+                                <div className="absolute inset-0 flex items-center justify-center px-8">
+                                    <div className="flex flex-col items-center text-center">
+                                        <span className="font-bold text-lg truncate" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                            {item.name}
+                                        </span>
+                                        <div className="flex items-baseline gap-2 mt-1">
+                                            <span className="text-2xl font-extrabold">{item.count}</span> 
+                                            <span className="text-lg font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -121,18 +115,15 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 })}
             </div>
 
-            {/* BASE DO FUNIL (POSICIONADO APÓS A ALTURA CALCULADA) */}
+            {/* BASE DO FUNIL (TOTAL) */}
             <div 
-                className="text-center w-full max-w-xl"
-                style={{ 
-                    // Garante que o total fique abaixo do funil
-                    marginTop: `${totalFunnelHeight}px`,
-                }}
+                className="text-center w-full max-w-md absolute bottom-10"
+                style={{ marginTop: `${totalFunnelHeight}px` }}
             >
-                <div className="text-3xl font-extrabold text-gray-600 pt-8">
+                <div className="text-4xl font-extrabold text-gray-700 dark:text-gray-300">
                     {totalLeads}
                 </div>
-                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
+                <div className="text-base text-gray-600 dark:text-gray-400">Total de leads no período</div>
             </div>
         </div>
     );
