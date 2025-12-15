@@ -112,8 +112,9 @@ export default function ReportsPage() {
             data={data} 
             loading={loading} 
             error={error} 
-            lostReasonsData={lostReasonsData}
+            lostReasonsData={data?.lostReasons || { reasons: [], totalLost: 0 }}
           />
+
         </div>
 
         {!loading && !error && (!data || Object.keys(data).length === 0) && (
