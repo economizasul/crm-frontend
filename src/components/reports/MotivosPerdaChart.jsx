@@ -24,10 +24,11 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
 
     const reasonsMap = reasons.reduce((acc, r) => {
-        const normalizedField = normalize(r.reasonField || '');
-        acc[normalizedField] = r.count || 0;
+        const normalizedKey = normalize(r.reason || '');
+        acc[normalizedKey] = Number(r.count || 0);
         return acc;
     }, {});
+
 
     let processedData = ALL_LOST_REASONS.map(reason => {
         const normalizedField = normalize(reason.field || '');
