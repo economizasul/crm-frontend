@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-// Cores e tamanhos para os estágios do funil (em ordem de exibição)
+// Cores e tamanhos para os estágios do funil
 const FUNNEL_STAGES = [
     { name: "Facebook", field: 'facebook', color: "#1D4ED8", colorLight: "#3B82F6", shadowStyle: "0 10px 25px rgba(29, 78, 216, 0.6)" }, 
     { name: "Orgânico", field: 'organico', color: "#065F46", colorLight: "#10B981", shadowStyle: "0 10px 25px rgba(6, 95, 70, 0.6)" }, 
@@ -24,38 +24,34 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
         };
     }); 
     
-    // Parâmetros ajustados para estilo cilíndrico/oval 3D
-    const baseWidth = 80; // Compacto para caber no grid
-    const reductionPerStep = 5; // Menos inclinação para forma mais cilíndrica
-    const height = 50; // Altura para seções ovais
-    const verticalOverlap = -10; // Overlap negativo para conexão suave
-    const borderRadius = '50% / 30%'; // Efeito oval/cilíndrico
-
-    const totalFunnelHeight = funnelData.length * height + (funnelData.length - 1) * verticalOverlap + 50;
+    // Parâmetros ajustados
+    const baseWidth = 80;
+    const reductionPerStep = 5;
+    const sectionHeight = 55; // Leve aumento de tamanho
+    const verticalOverlap = 15; // Sobreposição para compactar e trazer para cima
+    const borderRadius = '50% / 30%';
 
     return (
-        <div className="flex flex-col items-center pt-6 px-3 relative h-[500px] justify-center overflow-hidden" style={{ perspective: '800px' }}> {/* Perspectiva 3D */}
+        <div className="flex flex-col items-center pt-4 px-3 relative h-[460px] justify-start overflow-hidden" style={{ perspective: '800px' }}>
             
-            {/* TOPO DO FUNIL (OVAL INTEGRADO) */}
+            {/* TOPO DO FUNIL */}
             <motion.div 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-xs h-14 bg-gray-800 rounded-t-full absolute top-4"
+                className="w-full max-w-xs h-14 bg-gray-800 rounded-t-full absolute top-2"
                 style={{
                     width: `${baseWidth + 5}%`, 
                     boxShadow: `inset 0 6px 12px rgba(0,0,0,0.5), 0 8px 25px rgba(0,0,0,0.8)`,
-                    transform: 'rotateX(15deg)', // Efeito 3D
+                    transform: 'rotateX(15deg)',
                 }}
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-xs flex flex-col items-center relative mt-12" style={{ transform: 'rotateX(15deg)' }}> {/* 3D tilt global */}
+            <div className="w-full max-w-xs flex flex-col items-center relative mt-8" style={{ transform: 'rotateX(15deg)' }}>
                 {funnelData.map((item, index) => {
-                    
                     const currentWidth = Math.max(40, baseWidth - (index * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.75; 
-
-                    const topPosition = index * (height + verticalOverlap); 
+                    const topPosition = index * (sectionHeight - verticalOverlap); // Cálculo correto aqui dentro
                     
                     return (
                         <motion.div
@@ -74,7 +70,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                 className="relative text-white font-semibold transition-transform duration-300 hover:scale-105 overflow-hidden"
                                 style={{
                                     width: `${currentWidth}%`,
-                                    height: `${height}px`,
+                                    height: `${sectionHeight}px`,
                                     borderRadius: borderRadius,
                                     boxShadow: `${item.shadowStyle}, inset 0 5px 15px rgba(255,255,255,0.25), inset 0 -5px 15px rgba(0,0,0,0.3)`,
                                     backgroundImage: `
@@ -83,7 +79,6 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     `,
                                 }}
                             >
-                                {/* Informações CENTRALIZADAS */}
                                 <div className="absolute inset-0 flex items-center justify-center px-4 text-center">
                                     <span className="font-bold text-md truncate" style={{ textShadow: '0 2px 5px rgba(0,0,0,0.7)' }}>
                                         {item.name}...: {item.count} {item.percent.toFixed(1)}%
@@ -95,10 +90,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 })}
             </div>
 
-            {/* BASE DO FUNIL */}
+            {/* BASE DO FUNIL - TOTAL FIXO NO FUNDO */}
             <div 
-                className="text-center w-full max-w-xs absolute bottom-6"
-                style={{ marginTop: `${totalFunnelHeight}px`, transform: 'rotateX(15deg)' }}
+                className="text-center w-full max-w-xs absolute bottom-4" 
+                style={{ transform: 'rotateX(15deg)' }}
             >
                 <div className="text-3xl font-extrabold text-gray-700 dark:text-gray-300">
                     {totalLeads}
