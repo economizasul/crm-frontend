@@ -24,39 +24,38 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
         };
     }); 
     
-    // Parâmetros do design 3D cilíndrico
-    const baseWidth = 90; 
-    const reductionPerStep = 8; // Reduzido para menos inclinação (mais cilíndrico)
-    const height = 60; // Altura maior para efeito 3D stacked
-    const verticalSpacing = 12; // Espaçamento entre camadas (separação visível, sem overlap forte)
-    const borderRadius = 30; // Bordas bem arredondadas para cilindro
+    // Parâmetros do design 3D cilíndrico ajustados para caber melhor no grid
+    const baseWidth = 80; // Reduzido para evitar overflow
+    const reductionPerStep = 6; // Menos inclinação para forma mais compacta
+    const height = 50; // Altura ajustada para caber na altura do container
+    const verticalSpacing = 8; // Espaçamento reduzido
+    const borderRadius = 25; 
     
     // Altura total aproximada
-    const totalFunnelHeight = funnelData.length * (height + verticalSpacing) - verticalSpacing + 60; // + margem para topo e base
+    const totalFunnelHeight = funnelData.length * (height + verticalSpacing) - verticalSpacing + 40;
 
     return (
-        <div className="flex flex-col items-center pt-8 px-4 relative h-[600px] justify-start"> {/* Aumentei altura do container se necessário */}
+        <div className="flex flex-col items-center pt-4 px-2 relative h-[480px] justify-center overflow-hidden"> {/* Ajustes para centralizar e evitar overflow */}
             
-            {/* TOPO DO FUNIL (OVAL MAIS INTEGRADO E 3D) */}
+            {/* TOPO DO FUNIL */}
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0.9 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                className="w-full max-w-md h-16 bg-gray-800 rounded-full absolute top-8"
+                className="w-full max-w-sm h-12 bg-gray-800 rounded-full absolute top-6"
                 style={{
-                    width: `${baseWidth + 10}%`, 
-                    boxShadow: `inset 0 8px 16px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.8)`,
+                    width: `${baseWidth + 8}%`, 
+                    boxShadow: `inset 0 6px 12px rgba(0,0,0,0.4), 0 8px 20px rgba(0,0,0,0.7)`,
                 }}
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-md flex flex-col items-center relative mt-20"> 
+            <div className="w-full max-w-sm flex flex-col items-center relative mt-16"> 
                 {funnelData.map((item, index) => {
                     
-                    const currentWidth = Math.max(40, baseWidth - (index * reductionPerStep)); 
-                    const nextWidth = Math.max(40, baseWidth - ((index + 1) * reductionPerStep)); 
+                    const currentWidth = Math.max(35, baseWidth - (index * reductionPerStep)); 
+                    const nextWidth = Math.max(35, baseWidth - ((index + 1) * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.7; 
 
-                    // Clip-path para trapézio suave
                     const clipPath = `polygon(
                         ${(100 - currentWidth) / 2}% 0%, 
                         ${100 - (100 - currentWidth) / 2}% 0%, 
@@ -98,16 +97,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                 }}
                             >
                                 {/* Informações CENTRALIZADAS */}
-                                <div className="absolute inset-0 flex items-center justify-center px-8">
-                                    <div className="flex flex-col items-center text-center">
-                                        <span className="font-bold text-lg truncate" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
-                                            {item.name}
-                                        </span>
-                                        <div className="flex items-baseline gap-2 mt-1">
-                                            <span className="text-2xl font-extrabold">{item.count}</span> 
-                                            <span className="text-lg font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
-                                        </div>
-                                    </div>
+                                <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+                                    <span className="font-bold text-md truncate" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>
+                                        {item.name} {item.count} {item.percent.toFixed(1)}%
+                                    </span>
                                 </div>
                             </div>
                         </motion.div>
@@ -115,15 +108,15 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 })}
             </div>
 
-            {/* BASE DO FUNIL (TOTAL) */}
+            {/* BASE DO FUNIL */}
             <div 
-                className="text-center w-full max-w-md absolute bottom-10"
+                className="text-center w-full max-w-sm absolute bottom-8"
                 style={{ marginTop: `${totalFunnelHeight}px` }}
             >
-                <div className="text-4xl font-extrabold text-gray-700 dark:text-gray-300">
+                <div className="text-3xl font-extrabold text-gray-700 dark:text-gray-300">
                     {totalLeads}
                 </div>
-                <div className="text-base text-gray-600 dark:text-gray-400">Total de leads no período</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Total de leads no período</div>
             </div>
         </div>
     );
