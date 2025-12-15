@@ -38,7 +38,12 @@ const DashboardCard = ({ title, value, icon: Icon, colorClass = 'text-indigo-600
   </motion.div>
 );
 
-export default function ReportsDashboard({ data, loading = false, error = null }) {
+export default function ReportsDashboard({ 
+  data, 
+  loading = false, 
+  error = null, 
+  lostReasonsData = { reasons: [], totalLost: 0 }
+}) {
   const [leadsMapa, setLeadsMapa] = useState([]);
   const [regiaoSelecionada, setRegiaoSelecionada] = useState(null);
   const [carregandoMapa, setCarregandoMapa] = useState(true);
@@ -50,7 +55,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const originStatsObj = data?.originStats || {};     // objeto com contagens por origem
   const originStatsArr = data?.funnelOrigins || [];   // array (caso precise)
   const dailyActivity = data?.dailyActivity || [];
-  const lostReasonsData = props.lostReasonsData || { reasons: [], totalLost: 0 };
+  
   const lostReasons = lostReasonsData.reasons || [];
   const totalLost = lostReasonsData.totalLost || 0;
 

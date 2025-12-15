@@ -112,7 +112,7 @@ export default function ReportsPage() {
             data={data} 
             loading={loading} 
             error={error} 
-            lostReasonsData={lostReasonsData}  // ← ADICIONE ISSO (vem do hook useReports)
+            lostReasonsData={lostReasonsData}
           />
         </div>
 
