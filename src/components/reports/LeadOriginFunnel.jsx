@@ -28,7 +28,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     const baseWidth = 80;
     const reductionPerStep = 5;
     const sectionHeight = 65;
-    const verticalOverlap = 18;
+    const verticalOverlap = 22;
     const borderRadius = '50% / 30%';
 
     return (

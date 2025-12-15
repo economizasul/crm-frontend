@@ -50,7 +50,7 @@ export default function ReportsDashboard({ data, loading = false, error = null }
   const originStatsObj = data?.originStats || {};     // objeto com contagens por origem
   const originStatsArr = data?.funnelOrigins || [];   // array (caso precise)
   const dailyActivity = data?.dailyActivity || [];
-  const lostReasonsData = data?.lostReasons || { reasons: [], totalLost: 0 };
+  const lostReasonsData = props.lostReasonsData || { reasons: [], totalLost: 0 };
   const lostReasons = lostReasonsData.reasons || [];
   const totalLost = lostReasonsData.totalLost || 0;
 

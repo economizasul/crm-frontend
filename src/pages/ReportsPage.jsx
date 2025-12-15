@@ -108,7 +108,12 @@ export default function ReportsPage() {
         </div>
 
         <div className="mt-6">
-          <ReportsDashboard data={data} loading={loading} error={error} />
+          <ReportsDashboard 
+            data={data} 
+            loading={loading} 
+            error={error} 
+            lostReasonsData={lostReasonsData}  // ← ADICIONE ISSO (vem do hook useReports)
+          />
         </div>
 
         {!loading && !error && (!data || Object.keys(data).length === 0) && (
