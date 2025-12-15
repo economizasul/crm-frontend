@@ -53,7 +53,8 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     const MAX_WIDTH = 95; 
     const MIN_ACTIVE_WIDTH = 25; 
     const INACTIVE_WIDTH = 10; 
-    const REDUCTION_STEP = 7; // ALTERADO para 7 (diferença de largura mais perceptível)
+    const REDUCTION_STEP = 7;
+    const ABSOLUTE_MIN_WIDTH = 5;
 
     // CÁLCULO DE LARGURA AJUSTADO
     let activeIndexCounter = 0;
@@ -63,7 +64,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
 
         if (isActive) {
             const calculatedWidth = MAX_WIDTH - (activeIndexCounter * REDUCTION_STEP);
-            widthPercent = Math.max(MIN_ACTIVE_WIDTH, calculatedWidth);
+            widthPercent = Math.max(ABSOLUTE_MIN_WIDTH, calculatedWidth);
             activeIndexCounter++; 
         } else {
             widthPercent = INACTIVE_WIDTH; 
@@ -123,7 +124,7 @@ const MotivosPerdaChart = ({ lostReasons }) => {
 
                             {/* Conteúdo (Nome e Valores) */}
                             <div className="relative z-10 h-full flex items-center justify-between px-3">
-                                
+
                                 <span 
                                     className="text-sm font-semibold truncate"
                                     style={{
@@ -132,10 +133,10 @@ const MotivosPerdaChart = ({ lostReasons }) => {
                                     }}
                                 >
                                     {item.name}
-                                </span>
-
+                                </span>                         
                                 <div className="flex items-baseline gap-1" style={{ textShadow: isActive ? '0 1px 3px rgba(0,0,0,0.6)' : 'none' }}>
-                                    <span className={`text-lg font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                    {/* CORREÇÃO: text-base no count para alinhar com o Funil */}
+                                    <span className={`text-base font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`}>
                                         {item.count}
                                     </span>
                                     <span className={`text-sm font-medium ${isActive ? 'text-white opacity-90' : 'text-gray-500 dark:text-gray-400'}`}>

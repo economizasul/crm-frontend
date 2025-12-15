@@ -24,28 +24,70 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     }); 
     
     // Define os parâmetros estéticos do funil:
-    const baseWidth = 100; 
-    const reductionPerStep = 10; // DIMINUÍDO para 5 (funil mais cheio, menos inclinado)
-    const height = 45; 
+    const baseWidth = 96; 
+    // MUDANÇA: Aumenta a inclinação (funil mais elegante)
+    const reductionPerStep = 15; 
+    // MUDANÇA: Diminui a altura (funil mais compacto)
+    const height = 40; 
+    // MUDANÇA: Diminui a sobreposição (efeito mais de funil)
     const verticalOverlap = 0.7; 
-    const borderRadiusFunnel = 8; // AUMENTADO para 18px (arredondamento máximo)
+    const borderRadiusFunnel = 18; 
+    
+    // Altura total do funil para posicionar o totalLeads no final
+    const totalFunnelHeight = funnelData.length * (height * verticalOverlap) + (height - (height * verticalOverlap));
+    
+    // Lista de nomes de origem à esquerda
+    const originNames = (
+        <div className="absolute left-0 top-0 h-full flex flex-col justify-start pt-14 pl-10">
+            {funnelData.map((item, index) => {
+                const topOffset = index * (height * verticalOverlap) + (height / 2);
+                return (
+                    <motion.div
+                        key={`name-${item.field}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1, duration: 0.4 }}
+                        className="absolute text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
+                        style={{ 
+                            top: `${topOffset}px`, 
+                            transform: 'translateY(-50%)',
+                            color: item.colorLight, // Usa a cor do funil
+                        }}
+                    >
+                        {item.name}
+                    </motion.div>
+                );
+            })}
+        </div>
+    );
 
     return (
-        <div className="flex flex-col items-center justify-center h-full px-4 relative">
+        <div className="flex flex-col items-center pt-8 px-4 relative h-[480px]"> {/* h-[480px] é do ReportsDashboard */}
             
+            {/* O nome da origem agora fica à esquerda do funil */}
+            {originNames} 
+
             {/* TOPO DO FUNIL (OVAL ESTÉTICO) */}
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                className={`w-full h-4 bg-gray-900 rounded-full absolute top-8`}
-                style={{ filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))' }}
-            >
-            </motion.div>
+                // MUDANÇA: top-10 para centralizar verticalmente o funil visualmente
+                className={`w-full h-3 bg-gray-900 rounded-full absolute top-10`} 
+                style={{
+                    width: `${baseWidth}%`, 
+                    boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
+                }}
+            />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-xl flex flex-col items-center">
+            <div 
+                className="w-full max-w-xl flex flex-col items-center mt-6 relative"
+                // MUDANÇA: Adiciona padding superior para dar o offset do topo oval
+                style={{ paddingTop: '30px' }} 
+            >
                 {funnelData.map((item, index) => {
                     
+                    // Cálculo da largura do trapézio
                     const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); 
                     const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.6; 
@@ -96,16 +138,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     ...borderStyles, 
                                 }}
                             >
-                                {/* TEXTO DENTRO DA BARRA - Centralização e negrito para destacar */}
-                                <div className="absolute inset-0 flex items-center justify-between px-4"> 
-                                    {/* AJUSTE: Nome do campo mais compacto */}
-                                    <span className="font-semibold text-sm truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        {item.name.replace("..:", "")} {/* Remoção de "..:" */}
-                                    </span>
-                                    
-                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        {/* AJUSTE: Contagem e Porcentagem lado a lado */}
-                                        <span className="text-lg font-extrabold">{item.count}</span>
+                                {/* MUDANÇA PRINCIPAL: Centraliza o conteúdo horizontalmente */}
+                                <div className="absolute inset-0 flex items-center justify-center"> 
+                                    <div className="flex items-baseline gap-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                                        <span className="text-xl font-extrabold">{item.count}</span>
                                         <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
                                     </div>
                                 </div>
@@ -115,17 +151,17 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 })}
             </div>
 
-            {/* BASE DO FUNIL */}
+            {/* BASE DO FUNIL (POSICIONADO APÓS A ALTURA CALCULADA) */}
             <div 
                 className="text-center w-full max-w-xl"
-                style={{ marginTop: `${funnelData.length * (height * verticalOverlap)}px` }}
+                style={{ 
+                    marginTop: `${totalFunnelHeight}px`,
+                }}
             >
-                {/* AJUSTE: pt-4 para diminuir o espaçamento interno */}
-                <div className="text-3xl font-extrabold text-gray-600 pt-4">
+                <div className="text-3xl font-extrabold text-gray-600 pt-8">
                     {totalLeads}
                 </div>
-                {/* AJUSTE: Remoção do pb-4 para otimizar o espaço */}
-                <div className="text-sm text-gray-600">Total de leads no período</div>
+                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
             </div>
         </div>
     );
