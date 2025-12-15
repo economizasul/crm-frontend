@@ -1,3 +1,4 @@
+// src/components/reports/MotivosPerdaChart.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -19,16 +20,17 @@ const MotivosPerdaChart = ({ lostReasons }) => {
     
     const { reasons = [], totalLost = 0 } = lostReasons;
     
+    // Normalização robusta para match (remove acentos, minúsculo, espaços simples)
+    const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+
     const reasonsMap = reasons.reduce((acc, r) => {
-        // Normaliza o reasonField do props para match seguro
-        const normalizedField = (r.reasonField || '').toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
-        acc[normalizedField] = r.count;
+        const normalizedField = normalize(r.reasonField || '');
+        acc[normalizedField] = r.count || 0;
         return acc;
     }, {});
 
     let processedData = ALL_LOST_REASONS.map(reason => {
-        // Normaliza o field da constante para match
-        const normalizedField = reason.field.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
+        const normalizedField = normalize(reason.field || '');
         const count = reasonsMap[normalizedField] || 0;
         const percent = totalLost > 0 ? (count / totalLost) * 100 : 0;
         

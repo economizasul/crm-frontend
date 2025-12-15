@@ -27,8 +27,8 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     // Parâmetros ajustados
     const baseWidth = 80;
     const reductionPerStep = 5;
-    const sectionHeight = 55; // Leve aumento de tamanho
-    const verticalOverlap = 15; // Sobreposição para compactar e trazer para cima
+    const sectionHeight = 65;
+    const verticalOverlap = 18;
     const borderRadius = '50% / 30%';
 
     return (
@@ -51,7 +51,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 {funnelData.map((item, index) => {
                     const currentWidth = Math.max(40, baseWidth - (index * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.75; 
-                    const topPosition = index * (sectionHeight - verticalOverlap); // Cálculo correto aqui dentro
+                    const topPosition = index * (sectionHeight - verticalOverlap); // Cálculo correto
                     
                     return (
                         <motion.div

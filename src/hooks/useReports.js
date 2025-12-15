@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   fetchDashboardMetrics,
   fetchFilteredReport,
+  fetchLossReasons,
   downloadCsvReport,
   downloadPdfReport,
   fetchAnalyticNotes as fetchAnalyticNotesAPI
@@ -192,11 +193,7 @@ function formatDashboardData(raw) {
     'chart.daily'
   ]) || [];
 
-  const lostReasons = tryPathsAny(raw, [
-    'lostReasons',
-    'lossReasons',
-    'lost_reasons'
-  ]) || [];
+  const lostReasons = tryPathsAny(raw, ['lostReasons', 'lost_reasons', 'reasonsLost']) || { reasons: [], totalLost: 0 };
 
   const filters = tryPathsAny(raw, [
     'filters',
@@ -259,6 +256,8 @@ export function useReports(initialFilters = {}) {
   const [analyticLoading, setAnalyticLoading] = useState(false);
   const [analyticError, setAnalyticError] = useState(null);
 
+  const [lostReasonsData, setLostReasonsData] = useState({ reasons: [], totalLost: 0 });
+
   const updateFilter = useCallback((key, value) => {
     setFilters(prev => {
       if (typeof key === 'object') return { ...prev, ...key };
@@ -267,28 +266,37 @@ export function useReports(initialFilters = {}) {
   }, []);
 
   // fetchDashboardData aceita currentFilters pra evitar problemas com closures
-  const fetchDashboardData = useCallback(async (currentFilters = {}) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // const raw = await fetchDashboardMetrics(currentFilters || filters); == Temporariamente
-      const raw = await fetchFilteredReport(currentFilters || filters);
+const fetchDashboardData = useCallback(async (currentFilters = {}) => {
+  setLoading(true);
+  setError(null);
+  try {
+    const raw = await fetchFilteredReport(currentFilters || filters);
 
-
-      if (!raw) {
-        setData(null);
-      } else {
-        const formatted = formatDashboardData(raw);
-        setData(formatted);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar dados do dashboard:', err);
-      setError('Falha ao carregar dados do relatório.');
+    if (!raw) {
       setData(null);
-    } finally {
-      setLoading(false);
+      setLostReasonsData({ reasons: [], totalLost: 0 });
+    } else {
+      const formatted = formatDashboardData(raw);
+      setData(formatted);
+
+      // CARREGA MOTIVOS DE PERDA SEPARADAMENTE
+      try {
+        const lossRaw = await fetchLossReasons(currentFilters || filters);
+        setLostReasonsData(lossRaw || { reasons: [], totalLost: 0 });
+      } catch (lossErr) {
+        console.error('Erro ao carregar motivos de perda:', lossErr);
+        setLostReasonsData({ reasons: [], totalLost: 0 });
+      }
     }
-  }, [filters]);
+  } catch (err) {
+    console.error('Erro ao buscar dados do dashboard:', err);
+    setError('Falha ao carregar dados do relatório.');
+    setData(null);
+    setLostReasonsData({ reasons: [], totalLost: 0 });
+  } finally {
+    setLoading(false);
+  }
+}, [filters]);
 
   const applyFilters = useCallback(() => {
     fetchDashboardData(filters);
@@ -351,6 +359,7 @@ export function useReports(initialFilters = {}) {
     analyticError,
     fetchAnalyticNotes,
     clearAnalyticNotes,
+    lostReasonsData,
     fetchDashboardData
   };
 }
