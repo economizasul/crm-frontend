@@ -68,7 +68,6 @@ export const fetchFilteredReport = async (filters = {}) => {
 // ==========================================================
 export const fetchLossReasons = async (filters = {}) => {
   try {
-    // Mesma estrutura inteligente que você já usa no fetchFilteredReport
     const payload = {
       filters: {
         startDate: filters.startDate,
@@ -81,7 +80,6 @@ export const fetchLossReasons = async (filters = {}) => {
 
     let response = await api.post('/reports/motivos-perda', payload);
 
-    // fallback em caso de API que não aceita wrapper
     if (!response?.data || !response.data.success) {
       response = await api.post('/reports/motivos-perda', {
         startDate: filters.startDate,
@@ -96,28 +94,24 @@ export const fetchLossReasons = async (filters = {}) => {
       throw new Error('Erro ao carregar motivos de perda');
     }
 
-    // Dados brutos do backend: array de { reason: "Incerteza", total: 1, percent: 100.0 }
     const rawData = response.data.data || [];
 
-    // Calcular totalLost somando todos os totals
     const totalLost = rawData.reduce((sum, item) => sum + (item.total || 0), 0);
 
-    // Mapear para o formato esperado pelo componente: { reasons: [{ reasonField: 'incerteza', count: 1 }], totalLost }
     const reasons = rawData.map(item => ({
       reasonField: item.reason
-        .toLowerCase()                      // Converte para minúsculo
-        .normalize("NFD")                   // Normaliza acentos (decomposição Unicode)
-        .replace(/[\u0300-\u036f]/g, "")    // Remove diacríticos (acentos)
-        .trim()                             // Remove espaços extras nas bordas
-        .replace(/\s+/g, '_'),              // Substitui espaços internos por underscore (ex: "Oferta Melhor" -> "oferta_melhor")
-      count: item.total || 0                // Usa total como count
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .replace(/\s+/g, ' '),  // Mantém espaços simples, sem '_'
+      count: item.total || 0
     }));
 
-    // Retorna o objeto formatado
     return { reasons, totalLost };
   } catch (error) {
     console.error('Erro ao buscar motivos de perda:', error);
-    return { reasons: [], totalLost: 0 };  // Retorno padrão em erro para evitar crashes no componente
+    return { reasons: [], totalLost: 0 };
   }
 };
 
