@@ -24,11 +24,11 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
     }); 
     
     // Define os parâmetros estéticos do funil:
-    const baseWidth = 96; 
-    const reductionPerStep = 5; // DIMINUÍDO para 5 (funil mais cheio, menos inclinado)
-    const height = 55; 
-    const verticalOverlap = 0.9; 
-    const borderRadiusFunnel = 18; // AUMENTADO para 18px (arredondamento máximo)
+    const baseWidth = 100; 
+    const reductionPerStep = 10; // DIMINUÍDO para 5 (funil mais cheio, menos inclinado)
+    const height = 45; 
+    const verticalOverlap = 0.7; 
+    const borderRadiusFunnel = 8; // AUMENTADO para 18px (arredondamento máximo)
 
     return (
         <div className="flex flex-col items-center justify-center h-full px-4 relative">
@@ -37,12 +37,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                className={`w-full h-3 bg-gray-900 rounded-full absolute top-1`}
-                style={{
-                    width: `${baseWidth}%`, 
-                    boxShadow: `inset 0 2px 5px rgba(255, 255, 255, 0.4), 0 0 15px rgba(0, 0, 0, 0.8)`
-                }}
-            />
+                className={`w-full h-4 bg-gray-900 rounded-full absolute top-8`}
+                style={{ filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))' }}
+            >
+            </motion.div>
 
             {/* SEÇÕES DO FUNIL */}
             <div className="w-full max-w-xl flex flex-col items-center">
@@ -99,12 +97,15 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                 }}
                             >
                                 {/* TEXTO DENTRO DA BARRA - Centralização e negrito para destacar */}
-                                <div className="absolute inset-0 flex items-center justify-between px-6"> {/* Ajustado: Aumentei para px-6 */}
-                                    <span className="font-bold text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        {item.name}
+                                <div className="absolute inset-0 flex items-center justify-between px-4"> 
+                                    {/* AJUSTE: Nome do campo mais compacto */}
+                                    <span className="font-semibold text-sm truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                                        {item.name.replace("..:", "")} {/* Remoção de "..:" */}
                                     </span>
+                                    
                                     <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        <span className="text-xl font-extrabold">{item.count}</span> {/* Mais negrito */}
+                                        {/* AJUSTE: Contagem e Porcentagem lado a lado */}
+                                        <span className="text-lg font-extrabold">{item.count}</span>
                                         <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
                                     </div>
                                 </div>
@@ -119,10 +120,12 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                 className="text-center w-full max-w-xl"
                 style={{ marginTop: `${funnelData.length * (height * verticalOverlap)}px` }}
             >
-                <div className="text-3xl font-extrabold text-gray-600 pt-8">
+                {/* AJUSTE: pt-4 para diminuir o espaçamento interno */}
+                <div className="text-3xl font-extrabold text-gray-600 pt-4">
                     {totalLeads}
                 </div>
-                <div className="text-sm text-gray-600 pb-4">Total de leads no período</div>
+                {/* AJUSTE: Remoção do pb-4 para otimizar o espaço */}
+                <div className="text-sm text-gray-600">Total de leads no período</div>
             </div>
         </div>
     );

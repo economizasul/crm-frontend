@@ -367,8 +367,8 @@ export default function ReportsDashboard({ data, loading = false, error = null }
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 self-start">
           <h3 className="text-xl font-bold text-center text-indigo-700 mb-6">Origem do Lead</h3>
           
-          {/* NOVA LINHA: Container com altura fixa para a centralização */}
-          <div className="h-[400px]"> 
+          {/* AJUSTE: Altura para centralização e margem superior */}
+          <div className="h-[480px]"> 
             <LeadOriginFunnel 
               originStats={originStatsObj} 
               totalLeads={globalSummary?.totalLeads || 0}
