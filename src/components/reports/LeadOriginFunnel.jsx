@@ -1,3 +1,4 @@
+// src/components/reports/LeadOriginFunnel.jsx
 import React from 'react';
 import { motion } from 'framer-motion';
 
@@ -23,55 +24,25 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
         };
     }); 
     
-    // Define os parâmetros estéticos do funil:
+    // Parâmetros do design moderno (inclinado)
     const baseWidth = 96; 
-    // MUDANÇA: Aumenta a inclinação (funil mais elegante)
-    const reductionPerStep = 15; 
-    // MUDANÇA: Diminui a altura (funil mais compacto)
-    const height = 40; 
-    // MUDANÇA: Diminui a sobreposição (efeito mais de funil)
-    const verticalOverlap = 0.7; 
+    const reductionPerStep = 15; // Inclinado
+    const height = 40; // Compacto
+    const verticalOverlap = 0.7; // Funil coeso
     const borderRadiusFunnel = 18; 
     
     // Altura total do funil para posicionar o totalLeads no final
     const totalFunnelHeight = funnelData.length * (height * verticalOverlap) + (height - (height * verticalOverlap));
     
-    // Lista de nomes de origem à esquerda
-    const originNames = (
-        <div className="absolute left-0 top-0 h-full flex flex-col justify-start pt-14 pl-10">
-            {funnelData.map((item, index) => {
-                const topOffset = index * (height * verticalOverlap) + (height / 2);
-                return (
-                    <motion.div
-                        key={`name-${item.field}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                        className="absolute text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap"
-                        style={{ 
-                            top: `${topOffset}px`, 
-                            transform: 'translateY(-50%)',
-                            color: item.colorLight, // Usa a cor do funil
-                        }}
-                    >
-                        {item.name}
-                    </motion.div>
-                );
-            })}
-        </div>
-    );
 
     return (
-        <div className="flex flex-col items-center pt-8 px-4 relative h-[480px]"> {/* h-[480px] é do ReportsDashboard */}
+        <div className="flex flex-col items-center pt-8 px-4 relative h-[480px] justify-start"> {/* Mantendo a altura e alinhamento do card */}
             
-            {/* O nome da origem agora fica à esquerda do funil */}
-            {originNames} 
-
             {/* TOPO DO FUNIL (OVAL ESTÉTICO) */}
             <motion.div 
                 initial={{ opacity: 0, scaleX: 0 }}
                 animate={{ opacity: 1, scaleX: 1 }}
-                // MUDANÇA: top-10 para centralizar verticalmente o funil visualmente
+                // AJUSTE: Topo movido para baixo para centralizar o funil como um todo
                 className={`w-full h-3 bg-gray-900 rounded-full absolute top-10`} 
                 style={{
                     width: `${baseWidth}%`, 
@@ -80,14 +51,10 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div 
-                className="w-full max-w-xl flex flex-col items-center mt-6 relative"
-                // MUDANÇA: Adiciona padding superior para dar o offset do topo oval
-                style={{ paddingTop: '30px' }} 
-            >
+            {/* AJUSTE: Aumentando a margem superior para o funil começar abaixo do topo oval */}
+            <div className="w-full max-w-xl flex flex-col items-center relative" style={{ paddingTop: '30px' }}> 
                 {funnelData.map((item, index) => {
                     
-                    // Cálculo da largura do trapézio
                     const currentWidth = Math.max(30, baseWidth - (index * reductionPerStep)); 
                     const nextWidth = Math.max(30, baseWidth - ((index + 1) * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.6; 
@@ -138,10 +105,13 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     ...borderStyles, 
                                 }}
                             >
-                                {/* MUDANÇA PRINCIPAL: Centraliza o conteúdo horizontalmente */}
-                                <div className="absolute inset-0 flex items-center justify-center"> 
-                                    <div className="flex items-baseline gap-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                                        <span className="text-xl font-extrabold">{item.count}</span>
+                                {/* REVERSÃO: Voltou para justify-between (Nome Esquerda, Valores Direita) */}
+                                <div className="absolute inset-0 flex items-center justify-between px-6"> 
+                                    <span className="font-bold text-base truncate" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                                        {item.name}
+                                    </span>
+                                    <div className="flex items-baseline gap-1" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                                        <span className="text-xl font-extrabold">{item.count}</span> 
                                         <span className="text-sm font-semibold opacity-90">{item.percent.toFixed(1)}%</span>
                                     </div>
                                 </div>
@@ -155,6 +125,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             <div 
                 className="text-center w-full max-w-xl"
                 style={{ 
+                    // Garante que o total fique abaixo do funil
                     marginTop: `${totalFunnelHeight}px`,
                 }}
             >

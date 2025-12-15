@@ -51,23 +51,26 @@ const MotivosPerdaChart = ({ lostReasons }) => {
 
     // Lógica de Dimensionamento Dinâmico
     const MAX_WIDTH = 95; 
-    const MIN_ACTIVE_WIDTH = 25; 
-    const INACTIVE_WIDTH = 10; 
-    const REDUCTION_STEP = 7;
-    const ABSOLUTE_MIN_WIDTH = 5;
+    const REDUCTION_STEP = 7; 
+    // Garante que qualquer barra ativa tenha no mínimo 5% de largura, resolvendo o problema do 1 lead.
+    const ABSOLUTE_MIN_WIDTH = 5; 
 
     // CÁLCULO DE LARGURA AJUSTADO
     let activeIndexCounter = 0;
     const finalChartData = sortableData.map((item) => {
-        const isActive = item.count > 0;
+        const isActive = item.count > 0; // Chave: A barra só é ativa se a contagem for maior que zero
         let widthPercent;
 
         if (isActive) {
+            // Calcula a largura dinâmica (95% - (index * 7%))
             const calculatedWidth = MAX_WIDTH - (activeIndexCounter * REDUCTION_STEP);
-            widthPercent = Math.max(ABSOLUTE_MIN_WIDTH, calculatedWidth);
+            
+            // CORREÇÃO: Aplica a largura mínima absoluta
+            widthPercent = Math.max(ABSOLUTE_MIN_WIDTH, calculatedWidth); 
             activeIndexCounter++; 
         } else {
-            widthPercent = INACTIVE_WIDTH; 
+            // Barras inativas são muito estreitas
+            widthPercent = 10; 
         }
         
         return {
