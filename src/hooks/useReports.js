@@ -267,36 +267,49 @@ export function useReports(initialFilters = {}) {
 
   // fetchDashboardData aceita currentFilters pra evitar problemas com closures
 const fetchDashboardData = useCallback(async (currentFilters = {}) => {
-  setLoading(true);
-  setError(null);
-  try {
-    const raw = await fetchFilteredReport(currentFilters || filters);
+    setLoading(true);
+    setError(null);
+    try {
+      const raw = await fetchFilteredReport(currentFilters || filters);
 
-    if (!raw) {
+      if (!raw) {
+        setData(null);
+        setLostReasonsData({ reasons: [], totalLost: 0 });
+      } else {
+        const formatted = formatDashboardData(raw);
+        setData(formatted);
+
+        // CARREGA MOTIVOS DE PERDA SEPARADAMENTE
+        try {
+          const response = await fetchLossReasons(currentFilters || filters);
+          
+          // --- INÍCIO DA NORMALIZAÇÃO ---
+          // Mapeamos o 'total' do backend para o 'count' que a tabela espera
+          const normalizedLoss = {
+            totalLost: response?.totalLost || 0,
+            reasons: (response?.data || response?.reasons || []).map(r => ({
+              reason: r.reason,
+              count: Number(r.total || 0), // Conversão essencial aqui
+              percent: Number(r.percent || 0)
+            }))
+          };
+          // --- FIM DA NORMALIZAÇÃO ---
+
+          setLostReasonsData(normalizedLoss);
+        } catch (lossErr) {
+          console.error('Erro ao carregar motivos de perda:', lossErr);
+          setLostReasonsData({ reasons: [], totalLost: 0 });
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados do dashboard:', err);
+      setError('Falha ao carregar dados do relatório.');
       setData(null);
       setLostReasonsData({ reasons: [], totalLost: 0 });
-    } else {
-      const formatted = formatDashboardData(raw);
-      setData(formatted);
-
-      // CARREGA MOTIVOS DE PERDA SEPARADAMENTE
-      try {
-        const lossRaw = await fetchLossReasons(currentFilters || filters);
-        setLostReasonsData(lossRaw || { reasons: [], totalLost: 0 });
-      } catch (lossErr) {
-        console.error('Erro ao carregar motivos de perda:', lossErr);
-        setLostReasonsData({ reasons: [], totalLost: 0 });
-      }
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Erro ao buscar dados do dashboard:', err);
-    setError('Falha ao carregar dados do relatório.');
-    setData(null);
-    setLostReasonsData({ reasons: [], totalLost: 0 });
-  } finally {
-    setLoading(false);
-  }
-}, [filters]);
+  }, [filters]);
 
   const applyFilters = useCallback(() => {
     fetchDashboardData(filters);
