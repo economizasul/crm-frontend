@@ -105,23 +105,31 @@ export default function ReportsDashboard({
 
   // Lógica de filtragem dinâmica (Nome, Telefone, UC, Documento ou Email)
   const leadsVisiveis = useMemo(() => {
-    let filtrados = leadsMapa;
+    let filtrados = Array.isArray(leadsMapa) ? leadsMapa : [];
 
-    // 1. Filtro por Região (clique no mapa)
+    // 1. Filtro por Região (Clique no Mapa)
     if (regiaoSelecionada) {
       filtrados = filtrados.filter(l => l.regiao === regiaoSelecionada);
     }
 
-    // 2. Filtro pela Barra de Pesquisa (dinâmico)
-    const termo = filtrosBase.searchTerm?.toLowerCase();
+    // 2. Filtro Dinâmico (Nome, Telefone, CPF/CNPJ, UC)
+    const termo = filtrosBase.searchTerm?.trim().toLowerCase();
+    
     if (termo) {
-      filtrados = filtrados.filter(lead => 
-        lead.name?.toLowerCase().includes(termo) ||
-        lead.phone?.includes(termo) ||
-        lead.email?.toLowerCase().includes(termo) ||
-        lead.uc?.toLowerCase().includes(termo) ||
-        lead.document?.includes(termo)
-      );
+      filtrados = filtrados.filter(lead => {
+        // Remove caracteres especiais para comparar Telefone e CPF/CNPJ puramente
+        const termoLimpo = termo.replace(/\D/g, ''); 
+        const docLimpo = lead.document?.replace(/\D/g, '') || '';
+        const telLimpo = lead.phone?.replace(/\D/g, '') || '';
+
+        return (
+          lead.name?.toLowerCase().includes(termo) ||
+          docLimpo.includes(termoLimpo) || // CPF ou CNPJ
+          telLimpo.includes(termoLimpo) || // Telefone
+          lead.uc?.toLowerCase().includes(termo) || // Unidade Consumidora
+          lead.email?.toLowerCase().includes(termo)
+        );
+      });
     }
 
     return filtrados;
