@@ -138,6 +138,17 @@ function FilterBar({
           </button>
         </div>
       </div>
+      {/* Pesquisa Dinâmica */}
+      <div className="flex flex-col">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Pesquisar Lead</label>
+        <input
+          type="text"
+          placeholder="Nome, Telefone, UC, Doc..."
+          value={currentFilters.searchTerm || ''}
+          onChange={(e) => onFilterChange('searchTerm', e.target.value)}
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border bg-white"
+        />
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // src/components/reports/ReportsDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaDollarSign, FaChartLine, FaTags, FaClock, FaUserTie, FaTimes, FaMapMarkedAlt, FaSpinner } from 'react-icons/fa';
 
@@ -103,7 +103,29 @@ export default function ReportsDashboard({
     carregarMapa();
   }, []);
 
-  const leadsVisiveis = regiaoSelecionada ? leadsMapa.filter(l => l.regiao === regiaoSelecionada) : leadsMapa;
+  // Lógica de filtragem dinâmica (Nome, Telefone, UC, Documento ou Email)
+  const leadsVisiveis = useMemo(() => {
+    let filtrados = leadsMapa;
+
+    // 1. Filtro por Região (clique no mapa)
+    if (regiaoSelecionada) {
+      filtrados = filtrados.filter(l => l.regiao === regiaoSelecionada);
+    }
+
+    // 2. Filtro pela Barra de Pesquisa (dinâmico)
+    const termo = filtrosBase.searchTerm?.toLowerCase();
+    if (termo) {
+      filtrados = filtrados.filter(lead => 
+        lead.name?.toLowerCase().includes(termo) ||
+        lead.phone?.includes(termo) ||
+        lead.email?.toLowerCase().includes(termo) ||
+        lead.uc?.toLowerCase().includes(termo) ||
+        lead.document?.includes(termo)
+      );
+    }
+
+    return filtrados;
+  }, [leadsMapa, regiaoSelecionada, filtrosBase.searchTerm]);
 
   const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
   const fmtKw = (v) => `${Number(v || 0).toLocaleString('pt-BR')} kW`;
