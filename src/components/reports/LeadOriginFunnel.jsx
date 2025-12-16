@@ -47,7 +47,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
             />
 
             {/* SEÇÕES DO FUNIL */}
-            <div className="w-full max-w-xs flex flex-col items-center relative mt-8" style={{ transform: 'rotateX(15deg)' }}>
+            <div className="w-full max-w-xs flex flex-col items-center relative mt-12" style={{ transform: 'rotateX(15deg)' }}>
                 {funnelData.map((item, index) => {
                     const currentWidth = Math.max(40, baseWidth - (index * reductionPerStep)); 
                     const opacity = item.count > 0 ? 1 : 0.75; 
@@ -79,9 +79,9 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     `,
                                 }}
                             >
-                                <div className="absolute inset-0 flex items-center justify-center px-4 text-center">
+                                <div className="absolute inset-0 flex items-center justify-center px-4 text-center pt-2">
                                     <span className="font-bold text-md truncate" style={{ textShadow: '0 2px 5px rgba(0,0,0,0.7)' }}>
-                                        {item.name}...: {item.count} {item.percent.toFixed(1)}%
+                                        {item.name}..: {item.count} {item.percent.toFixed(1)}%
                                     </span>
                                 </div>
                             </div>
