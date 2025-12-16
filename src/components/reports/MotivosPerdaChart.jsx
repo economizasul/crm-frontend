@@ -16,16 +16,25 @@ const ALL_LOST_REASONS = [
     { name: 'Outro Estado', field: 'outro estado', color: '#14B8A6', colorLight: '#2DD4BF', shadow: '0 6px 16px rgba(20, 184, 166, 0.7)' },
 ];
 
-const MotivosPerdaChart = ({ lostReasons }) => {
-    
-    const { reasons = [], totalLost = 0 } = lostReasons;
+const MotivosPerdaChart = ({ data }) => {
+
+    const reasons = data?.reasons ?? [];
+    const totalLost = data?.totalLost ?? 0;
+
+        if (!Array.isArray(reasons) || reasons.length === 0) {
+        return (
+            <div className="text-center text-gray-500 py-10">
+                Nenhum motivo de perda encontrado no período
+            </div>
+        );
+    }
     
     // Normalização robusta para match (remove acentos, minúsculo, espaços simples)
     const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
 
     const reasonsMap = reasons.reduce((acc, r) => {
         const normalizedKey = normalize(r.reason || '');
-        acc[normalizedKey] = Number(r.count || 0);
+        acc[normalizedKey] = Number(r.total || 0);
         return acc;
     }, {});
 
