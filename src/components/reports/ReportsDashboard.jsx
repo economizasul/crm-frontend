@@ -105,26 +105,27 @@ export default function ReportsDashboard({
 
   // Lógica de filtragem dinâmica (Nome, Telefone, UC, Documento ou Email)
   const leadsVisiveis = useMemo(() => {
-    // Primeiro, aplicamos o filtro de região (se houver clique no mapa)
-    let baseLeads = regiaoSelecionada 
+    // 1. Pega a base de leads (respeitando a região do mapa, se houver)
+    let base = regiaoSelecionada 
       ? leadsMapa.filter(l => l.regiao === regiaoSelecionada) 
       : leadsMapa;
 
-    // Se não houver nada digitado na pesquisa, retorna os leads da região (ou todos)
+    // 2. Se não tiver termo de busca, retorna a base limpa
+    // Nota: filtrosBase.searchTerm vem lá do seu hook de filtros
     const termo = filtrosBase.searchTerm;
-    if (!termo) return baseLeads;
+    if (!termo) return base;
 
     const lowerCaseSearch = termo.toLowerCase();
 
-    // Filtro idêntico ao LeadSearch.jsx
-    return baseLeads.filter(
-        (lead) =>
-            lead.name?.toLowerCase().includes(lowerCaseSearch) ||
-            lead.phone?.includes(termo) ||
-            lead.email?.toLowerCase().includes(lowerCaseSearch) ||
-            lead.uc?.toLowerCase().includes(lowerCaseSearch) ||
-            lead.document?.includes(termo)
+    // 3. Filtro por múltiplos campos (Nome, Telefone, Email, UC, Documento)
+    return base.filter((lead) =>
+        lead.name?.toLowerCase().includes(lowerCaseSearch) ||
+        lead.phone?.includes(termo) ||
+        lead.email?.toLowerCase().includes(lowerCaseSearch) ||
+        lead.uc?.toLowerCase().includes(lowerCaseSearch) ||
+        lead.document?.includes(termo)
     );
+  // O filtro vai rodar toda vez que o termo de busca mudar (ao digitar)
   }, [leadsMapa, regiaoSelecionada, filtrosBase.searchTerm]);
 
   const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
