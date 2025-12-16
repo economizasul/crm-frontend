@@ -105,28 +105,38 @@ export default function ReportsDashboard({
 
   // Lógica de filtragem dinâmica (Nome, Telefone, UC, Documento ou Email)
   const leadsVisiveis = useMemo(() => {
-    // 1. Pega a base de leads (respeitando a região do mapa, se houver)
-    let base = regiaoSelecionada 
-      ? leadsMapa.filter(l => l.regiao === regiaoSelecionada) 
-      : leadsMapa;
+      // 1. Filtro base de região
+      let base = regiaoSelecionada 
+        ? leadsMapa.filter(l => l.regiao === regiaoSelecionada) 
+        : leadsMapa;
 
-    // 2. Se não tiver termo de busca, retorna a base limpa
-    // Nota: filtrosBase.searchTerm vem lá do seu hook de filtros
-    const termo = filtrosBase.searchTerm;
-    if (!termo) return base;
+      const termo = filtrosBase.searchTerm?.toString().toLowerCase().trim();
+      if (!termo) return base;
 
-    const lowerCaseSearch = termo.toLowerCase();
+      // 2. BUSCA DINÂMICA (Nome, Telefone, CPF/CNPJ, UC)
+      return base.filter((lead) => {
+          // Criamos uma "super string" com tudo o que o lead tem
+          // Isso garante que se o campo se chamar 'documento' ou 'cpf', ele vai achar
+          const dadosDoLead = [
+              lead.name,
+              lead.phone,
+              lead.document,
+              lead.uc,
+              lead.email,
+              lead.cidade
+          ].join(' ').toLowerCase();
 
-    // 3. Filtro por múltiplos campos (Nome, Telefone, Email, UC, Documento)
-    return base.filter((lead) =>
-        lead.name?.toLowerCase().includes(lowerCaseSearch) ||
-        lead.phone?.includes(termo) ||
-        lead.email?.toLowerCase().includes(lowerCaseSearch) ||
-        lead.uc?.toLowerCase().includes(lowerCaseSearch) ||
-        lead.document?.includes(termo)
-    );
-  // O filtro vai rodar toda vez que o termo de busca mudar (ao digitar)
-  }, [leadsMapa, regiaoSelecionada, filtrosBase.searchTerm]);
+          // Verificamos se o termo está em algum desses campos
+          const porTexto = dadosDoLead.includes(termo);
+
+          // Verificamos também apenas os números (útil para CPF/CNPJ e Telefone)
+          const apenasNumerosTermo = termo.replace(/\D/g, '');
+          const apenasNumerosLead = dadosDoLead.replace(/\D/g, '');
+          const porNumero = apenasNumerosTermo !== '' && apenasNumerosLead.includes(apenasNumerosTermo);
+
+          return porTexto || porNumero;
+      });
+    }, [leadsMapa, regiaoSelecionada, filtrosBase.searchTerm]);
 
   const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
   const fmtKw = (v) => `${Number(v || 0).toLocaleString('pt-BR')} kW`;
