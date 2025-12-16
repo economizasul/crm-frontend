@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 // Adicionei colorLight
 const ALL_LOST_REASONS = [
     { name: 'Oferta Melhor..:', field: 'oferta melhor', color: '#DC2626', colorLight: '#EF4444', shadow: '0 6px 16px rgba(220, 38, 38, 0.7)' },
-    { name: 'Incerteza..:', field: 'incerteza', color: '#F59E0B', colorLight: '#FBBF24', shadow: '0 6px 16px rgba(245, 158, 11, 0.7)' },
+    { name: 'Incerteza..:', field: 'Incerteza', color: '#F59E0B', colorLight: '#FBBF24', shadow: '0 6px 16px rgba(245, 158, 11, 0.7)' },
     { name: 'Geração Própria..:', field: 'geracao propria', color: '#10B981', colorLight: '#34D399', shadow: '0 6px 16px rgba(16, 185, 129, 0.7)' },
     { name: 'Burocracia..:', field: 'burocracia', color: '#4F46E5', colorLight: '#818CF8', shadow: '0 6px 16px rgba(79, 70, 229, 0.7)' },
     { name: 'Contrato..:', field: 'contrato', color: '#9333EA', colorLight: '#C084FC', shadow: '0 6px 16px rgba(147, 51, 234, 0.7)' },
