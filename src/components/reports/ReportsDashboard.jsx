@@ -105,34 +105,26 @@ export default function ReportsDashboard({
 
   // Lógica de filtragem dinâmica (Nome, Telefone, UC, Documento ou Email)
   const leadsVisiveis = useMemo(() => {
-    let filtrados = Array.isArray(leadsMapa) ? leadsMapa : [];
+    // Primeiro, aplicamos o filtro de região (se houver clique no mapa)
+    let baseLeads = regiaoSelecionada 
+      ? leadsMapa.filter(l => l.regiao === regiaoSelecionada) 
+      : leadsMapa;
 
-    // 1. Filtro por Região (Clique no Mapa)
-    if (regiaoSelecionada) {
-      filtrados = filtrados.filter(l => l.regiao === regiaoSelecionada);
-    }
+    // Se não houver nada digitado na pesquisa, retorna os leads da região (ou todos)
+    const termo = filtrosBase.searchTerm;
+    if (!termo) return baseLeads;
 
-    // 2. Filtro Dinâmico (Nome, Telefone, CPF/CNPJ, UC)
-    const termo = filtrosBase.searchTerm?.trim().toLowerCase();
-    
-    if (termo) {
-      filtrados = filtrados.filter(lead => {
-        // Remove caracteres especiais para comparar Telefone e CPF/CNPJ puramente
-        const termoLimpo = termo.replace(/\D/g, ''); 
-        const docLimpo = lead.document?.replace(/\D/g, '') || '';
-        const telLimpo = lead.phone?.replace(/\D/g, '') || '';
+    const lowerCaseSearch = termo.toLowerCase();
 
-        return (
-          lead.name?.toLowerCase().includes(termo) ||
-          docLimpo.includes(termoLimpo) || // CPF ou CNPJ
-          telLimpo.includes(termoLimpo) || // Telefone
-          lead.uc?.toLowerCase().includes(termo) || // Unidade Consumidora
-          lead.email?.toLowerCase().includes(termo)
-        );
-      });
-    }
-
-    return filtrados;
+    // Filtro idêntico ao LeadSearch.jsx
+    return baseLeads.filter(
+        (lead) =>
+            lead.name?.toLowerCase().includes(lowerCaseSearch) ||
+            lead.phone?.includes(termo) ||
+            lead.email?.toLowerCase().includes(lowerCaseSearch) ||
+            lead.uc?.toLowerCase().includes(lowerCaseSearch) ||
+            lead.document?.includes(termo)
+    );
   }, [leadsMapa, regiaoSelecionada, filtrosBase.searchTerm]);
 
   const fmtNumber = (v) => Number(v || 0).toLocaleString('pt-BR');
