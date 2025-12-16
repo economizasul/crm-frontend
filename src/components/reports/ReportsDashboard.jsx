@@ -3,11 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaDollarSign, FaChartLine, FaTags, FaClock, FaUserTie, FaTimes, FaMapMarkedAlt, FaSpinner } from 'react-icons/fa';
 
-//import ProductivityTable from './ProductivityTable.jsx';
-//import LostReasonsTable from './LostReasonsTable.jsx';
-//import DailyActivity from './DailyActivity.jsx';
+import ProductivityTable from './ProductivityTable.jsx';
+import LostReasonsTable from './LostReasonsTable.jsx';
+import DailyActivity from './DailyActivity.jsx';
 import ParanaMap from './ParanaMap.jsx';
-//import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
+import { buscarLeadsGanhoParaMapa } from '../../services/ReportService';
 import MotivosPerdaChart from './MotivosPerdaChart.jsx';
 import LeadOriginFunnel from './LeadOriginFunnel.jsx';
 
