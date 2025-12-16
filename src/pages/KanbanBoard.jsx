@@ -6,7 +6,6 @@ import api from '../services/api.js';
 import { useAuth } from '../AuthContext.jsx';
 import LeadEditModal from '../components/LeadEditModal.jsx';
 
-// 🟢 CORREÇÃO: Adicionado 'export' para que LeadEditModal possa importar.
 export const STAGES = {
   'Novo': 'bg-gray-600 text-gray-200 border-gray-300',
   'Contato': 'bg-blue-200 text-blue-400 border-blue-300',
@@ -38,7 +37,7 @@ const LeadCard = ({ lead, onClick }) => (
     className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
     draggable="true"
     onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', String(lead.id)); // GARANTE STRING
+      e.dataTransfer.setData('leadId', String(lead.id));
       e.currentTarget.style.opacity = '0.5';
     }}
     onDragEnd={(e) => {
@@ -65,14 +64,18 @@ const KanbanBoard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   const navigate = useNavigate();
-  const { logout, user, token } = useAuth(); // token é necessário para o Modal
+  const { logout, user, token } = useAuth();
 
-  const [leadData, setLeadData] = useState({
-    name: '', phone: '', email: '', document: '', address: '', status: 'Novo',
-    origin: '', uc: '', avgConsumption: '', estimatedSavings: '', qsa: '', notes: [], owner_id: ''
-  });
+  // Debounce no termo de busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchUsers = useCallback(async () => {
     if (user?.role !== 'Admin') return;
@@ -92,12 +95,17 @@ const KanbanBoard = () => {
     }
   }, [user]);
 
-  const fetchLeads = useCallback(async () => {
+  const fetchLeads = useCallback(async (searchQuery = '') => {
     setIsLoading(true);
     try {
-      const response = await api.get('/leads');
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim());
+      }
+
+      const response = await api.get(`/leads?${params.toString()}`);
       const rawLeads = response.data || [];
-      
+
       const userId = user?.id || user?._id;
       if (userId === undefined) {
         setLeads([]);
@@ -120,19 +128,18 @@ const KanbanBoard = () => {
         qsa: lead.qsa || '',
         address: lead.address || '',
         origin: lead.origin || '',
-        notes: Array.isArray(lead.notes) 
-          ? lead.notes 
+        notes: Array.isArray(lead.notes)
+          ? lead.notes
           : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : []),
-        createdAt: lead.createdAt,
-        // Garante que o campo 'reasonForLoss' venha no objeto
-        reasonForLoss: lead.reason_for_loss || lead.reasonForLoss || '', 
+        createdAt: lead.createdAt || lead.created_at,
+        reasonForLoss: lead.reason_for_loss || lead.reasonForLoss || '',
       }));
 
-      const filteredLeads = user.role === 'Admin'
+      const filteredByPermission = user.role === 'Admin'
         ? mappedLeads
         : mappedLeads.filter(lead => Number(lead.owner_id) === Number(userId));
 
-      setLeads(filteredLeads);
+      setLeads(filteredByPermission);
     } catch (error) {
       console.error('Erro ao carregar leads:', error);
       if (error.response?.status === 401) {
@@ -144,33 +151,27 @@ const KanbanBoard = () => {
     }
   }, [user, logout, navigate]);
 
+  // Carrega leads quando o usuário entra ou quando o termo de busca muda
   useEffect(() => {
     if (user) {
-      fetchLeads();
+      fetchLeads(debouncedSearchTerm);
       fetchUsers();
     }
-  }, [user, fetchLeads, fetchUsers]);
+  }, [user, debouncedSearchTerm, fetchLeads, fetchUsers]);
 
   const openLeadModal = (lead) => {
     setSelectedLead(lead);
-    // O leadData setado aqui é redundante, mas mantemos a chamada para não quebrar.
-    setLeadData({
-      ...lead,
-      avgConsumption: lead.avgConsumption || '',
-      estimatedSavings: lead.estimatedSavings || '',
-      owner_id: lead.owner_id || ''
-    });
     setIsModalOpen(true);
   };
 
   const closeLeadModal = () => {
     setIsModalOpen(false);
     setSelectedLead(null);
-    fetchLeads(); // RECARREGA APÓS FECHAR
+    fetchLeads(debouncedSearchTerm); // Recarrega após edição
   };
 
   const handleDrop = async (leadId, newStatus) => {
-    const id = Number(leadId); // Garante número
+    const id = Number(leadId);
     const lead = leads.find(l => l.id === id);
     if (!lead || lead.status === newStatus) return;
 
@@ -183,12 +184,12 @@ const KanbanBoard = () => {
       await api.put(`/leads/${id}`, { status: newStatus });
       setToast({ message: `Lead movido para "${newStatus}"!`, type: 'success' });
     } catch (error) {
-      // Reverte UI
+      // Reverte UI em caso de erro
       setLeads(prev => prev.map(l => l.id === id ? { ...l, status: oldStatus } : l));
       setToast({ message: 'Erro ao mover lead', type: 'error' });
     }
-    // SEMPRE RECARREGA
-    fetchLeads();
+    // Recarrega para garantir consistência
+    fetchLeads(debouncedSearchTerm);
   };
 
   if (isLoading) return <div className="flex justify-center items-center h-screen text-3xl text-indigo-600">Carregando...</div>;
@@ -209,7 +210,7 @@ const KanbanBoard = () => {
           <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar lead..."
+            placeholder="Buscar por Nome, Telefone, Email, UC ou Documento..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg"
@@ -219,14 +220,13 @@ const KanbanBoard = () => {
 
       <div className="flex gap-4 overflow-x-auto pb-8">
         {Object.keys(STAGES).map(status => {
-          // Filtra leads da coluna + busca
+          // Apenas filtra por status (a busca já foi feita no backend)
           let statusLeads = leads
             .filter(l => l.status === status)
-            .filter(l => !searchTerm || l.name.toLowerCase().includes(searchTerm.toLowerCase()))
-            // Ordena do mais recente para o mais antigo (baseado em createdAt ou id)
+            // Ordena do mais recente para o mais antigo
             .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
 
-          // LIMITA APENAS "Ganho" e "Perdido" aos 10 mais recentes
+          // Limita apenas colunas finais aos 10 mais recentes
           if (status === 'Ganho' || status === 'Perdido' || status === 'Inapto') {
             statusLeads = statusLeads.slice(0, 10);
           }
@@ -256,12 +256,11 @@ const KanbanBoard = () => {
                 {status}{' '}
                 <span className="ml-2 bg-white px-2 py-1 rounded-full text-sm font-bold">
                   {statusLeads.length}
-                  {/* Mostra "+" se tiver mais de 10 ocultos */}
-                  {(status === 'Ganho' || status === 'Perdido' || status === 'Inapto') && 
-                  leads.filter(l => l.status === status).length > 10 && '+'}
+                  {(status === 'Ganho' || status === 'Perdido' || status === 'Inapto') &&
+                    leads.filter(l => l.status === status).length > 10 && '+'}
                 </span>
               </h2>
-              
+
               <div className="space-y-3">
                 {statusLeads.map(lead => (
                   <LeadCard key={lead.id} lead={lead} onClick={openLeadModal} />
@@ -272,19 +271,18 @@ const KanbanBoard = () => {
               </div>
             </div>
           );
-          })}
+        })}
       </div>
 
-      {/* MODAL DE EDIÇÃO EXTERNA */}
       {isModalOpen && selectedLead && (
-        <LeadEditModal 
+        <LeadEditModal
           selectedLead={selectedLead}
           isModalOpen={isModalOpen}
           onClose={closeLeadModal}
-          onSave={fetchLeads} // Passa a função para que a modal recarregue os leads após salvar
-          token={token} // Passa o token
-          fetchLeads={fetchLeads} // Para recarregar após drag and drop
-          users={users} // Passa a lista de usuários para a transferência
+          onSave={fetchLeads}
+          token={token}
+          fetchLeads={() => fetchLeads(debouncedSearchTerm)}
+          users={users}
         />
       )}
     </div>
