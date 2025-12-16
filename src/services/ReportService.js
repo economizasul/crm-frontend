@@ -78,42 +78,32 @@ export const fetchLossReasons = async (filters = {}) => {
       }
     };
 
-    let response = await api.post('/reports/motivos-perda', payload);
-
-    if (!response?.data || !response.data.success) {
-      response = await api.post('/reports/motivos-perda', {
-        startDate: filters.startDate,
-        endDate: filters.endDate,
-        ownerId: filters.ownerId === 'all' ? null : filters.ownerId,
-        source: filters.source === 'all' ? null : filters.source,
-        ...(filters.extra || {})
-      });
-    }
+    const response = await api.post('/reports/motivos-perda', payload);
 
     if (!response?.data?.success) {
-      throw new Error('Erro ao carregar motivos de perda');
+      throw new Error(response?.data?.message || 'Erro ao carregar motivos de perda');
     }
 
     const rawData = response.data.data || [];
 
-    const totalLost = rawData.reduce((sum, item) => sum + (item.total || 0), 0);
+    const totalLost = rawData.reduce(
+      (sum, item) => sum + Number(item.total || 0),
+      0
+    );
 
-    const reasons = rawData.map(item => ({
-      reasonField: item.reason
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim()
-        .replace(/\s+/g, ' '),  // Mantém espaços simples, sem '_'
-      count: item.total || 0
-    }));
+    // ✅ NÃO TRANSFORMA
+    // ✅ MANTÉM reason / total / percent
+    return {
+      reasons: rawData,
+      totalLost
+    };
 
-    return { reasons, totalLost };
   } catch (error) {
     console.error('Erro ao buscar motivos de perda:', error);
     return { reasons: [], totalLost: 0 };
   }
 };
+
 
 
 // ==========================================================

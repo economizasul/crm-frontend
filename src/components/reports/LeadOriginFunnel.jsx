@@ -79,7 +79,7 @@ const LeadOriginFunnel = ({ originStats, totalLeads }) => {
                                     `,
                                 }}
                             >
-                                <div className="absolute inset-0 flex items-center justify-center px-4 text-center pt-2">
+                                <div className="absolute inset-0 flex items-center justify-center px-4 text-center pt-4">
                                     <span className="font-bold text-md truncate" style={{ textShadow: '0 2px 5px rgba(0,0,0,0.7)' }}>
                                         {item.name}..: {item.count} {item.percent.toFixed(1)}%
                                     </span>
