@@ -20,6 +20,8 @@ const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
 
     const { reasons, totalLost } = lostReasons;
 
+    console.log('Dados recebidos no MotivosPerdaChart:', { reasons, totalLost });
+
     if (!Array.isArray(reasons) || reasons.length === 0) {
         return (
             <div className="text-center text-gray-500 py-10">
@@ -29,29 +31,27 @@ const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
     }
     
     // Normalização robusta para match (remove acentos, minúsculo, espaços simples)
-    const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+        const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
 
     const reasonsMap = reasons.reduce((acc, r) => {
-        const key = normalize(r.reasonField || '');  // ← note que aqui é reasonField (vem do fetchLossReasons)
+        const key = normalize(r.reason || '');  // ← usa "reason" do backend
         acc[key] = {
-            count: Number(r.count || 0),
-            percent: Number(r.percent || 0) || (totalLost > 0 ? (r.count / totalLost * 100) : 0),
+            count: Number(r.total || 0),
+            percent: Number(r.percent || 0),
         };
         return acc;
     }, {});
 
-    
-     let processedData = ALL_LOST_REASONS.map(reason => {
+    let processedData = ALL_LOST_REASONS.map(reason => {
         const normalizedField = normalize(reason.field || '');
-        const matched = reasonsMap[normalizedField];
-        const count = matched?.count || 0;
-        const percent = matched?.percent || 0;
+        const matched = reasonsMap[normalizedField] || { count: 0, percent: 0 };
+        const count = matched.count;
+        const percent = totalLost > 0 ? (count / totalLost * 100).toFixed(1) : 0;
 
-        
         return {
             ...reason,
-            count: count,
-            percent: percent,
+            count,
+            percent,
         };
     });
 
