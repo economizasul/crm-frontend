@@ -10,7 +10,20 @@ import {
   Cell,
 } from "recharts";
 
-export default function LossReasonsChart({ data }) {
+export default function LossReasonsChart({ data = [] }) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="bg-white shadow-md rounded-xl p-4 mt-4">
+        <h2 className="text-lg font-semibold mb-3 text-gray-800">
+          Motivos de Perda
+        </h2>
+        <div className="text-center text-gray-500 py-10">
+          Nenhum motivo de perda no período selecionado
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white shadow-md rounded-xl p-4 mt-4">
       <h2 className="text-lg font-semibold mb-3 text-gray-800">
@@ -29,7 +42,7 @@ export default function LossReasonsChart({ data }) {
             <Tooltip />
 
             <Bar dataKey="total" radius={[8, 8, 8, 8]}>
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill="#0099ff"
