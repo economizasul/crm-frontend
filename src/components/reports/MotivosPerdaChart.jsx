@@ -9,10 +9,10 @@ const ALL_LOST_REASONS = [
     { name: 'Geração Própria', field: 'geracao propria', color: '#10B981', colorLight: '#34D399', shadow: '0 6px 16px rgba(16, 185, 129, 0.7)' },
     { name: 'Burocracia', field: 'burocracia', color: '#4F46E5', colorLight: '#818CF8', shadow: '0 6px 16px rgba(79, 70, 229, 0.7)' },
     { name: 'Contrato', field: 'contrato', color: '#9333EA', colorLight: '#C084FC', shadow: '0 6px 16px rgba(147, 51, 234, 0.7)' },
-    { name: 'Restrições Técnicas', field: 'restricoes tecnicas', color: '#3B82F6', colorLight: '#60A5FA', shadow: '0 6px 16px rgba(59, 130, 246, 0.7)' },
-    { name: 'Não é o Responsável', field: 'nao e o responsavel', color: '#F472B6', colorLight: '#FCA5D7', shadow: '0 6px 16px rgba(244, 114, 182, 0.7)' },
+    { name: 'Restrições Técnicas..:', field: 'restricoes tecnicas', color: '#3B82F6', colorLight: '#60A5FA', shadow: '0 6px 16px rgba(59, 130, 246, 0.7)' },
+    { name: 'Não é o Responsável..:', field: 'nao e o responsavel', color: '#F472B6', colorLight: '#FCA5D7', shadow: '0 6px 16px rgba(244, 114, 182, 0.7)' },
     { name: 'Silêncio', field: 'silencio', color: '#6B7280', colorLight: '#9CA3AF', shadow: '0 6px 16px rgba(107, 114, 128, 0.7)' },
-    { name: 'Já Possui GD', field: 'ja possui gd', color: '#EAB308', colorLight: '#FCD34D', shadow: '0 6px 16px rgba(234, 179, 8, 0.7)' },
+    { name: 'Já Possui GD..:', field: 'ja possui gd', color: '#EAB308', colorLight: '#FCD34D', shadow: '0 6px 16px rgba(234, 179, 8, 0.7)' },
     { name: 'Outro Estado', field: 'outro estado', color: '#14B8A6', colorLight: '#2DD4BF', shadow: '0 6px 16px rgba(20, 184, 166, 0.7)' },
 ];
 
