@@ -46,10 +46,13 @@ const MotivosPerdaChart = ({ data }) => {
     const reasonsMap = {};
     reasons.forEach(r => {
         const key = normalize(r.reason || '');
-        console.log('Normalizando reason:', r.reason, '→', key); // ← veja no console
+        // Aceita 'count' ou 'total' | Aceita 'percentage' ou 'percent'
+        const countValue = r.count !== undefined ? r.count : (r.total || 0);
+        const percentValue = r.percentage !== undefined ? r.percentage : (r.percent || 0);
+
         reasonsMap[key] = {
-            count: Number(r.total || 0),
-            percent: Number(r.percent || 0),
+            count: Number(countValue),
+            percent: Number(percentValue),
         };
     });
 
@@ -61,7 +64,7 @@ const MotivosPerdaChart = ({ data }) => {
 
         const matched = reasonsMap[normalizedField];
         const count = matched ? matched.count : 0;
-        const percent = totalLost > 0 ? Number((count / totalLost * 100).toFixed(1)) : 0;
+        const percent = totalLost > 0 ? (count / totalLost) * 100 : 0;
 
         return {
             ...reason,
@@ -161,7 +164,7 @@ const MotivosPerdaChart = ({ data }) => {
                                         {item.count}
                                     </span>
                                     <span className={`text-base font-semibold ${isActive ? 'text-white opacity-90' : 'text-gray-500 dark:text-gray-400'}`}>
-                                        ({item.percent.toFixed(1)}%)
+                                        ({Number(item.percent).toFixed(1)}%)
                                     </span>
                                 </div>
                             </div>
