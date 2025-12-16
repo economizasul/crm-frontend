@@ -16,13 +16,12 @@ const ALL_LOST_REASONS = [
     { name: 'Outro Estado..:', field: 'outro estado', color: '#14B8A6', colorLight: '#2DD4BF', shadow: '0 6px 16px rgba(20, 184, 166, 0.7)' },
 ];
 
-const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
+const MotivosPerdaChart = ({ data }) => {
 
-    const { reasons, totalLost } = lostReasons;
+    const reasons = data?.reasons ?? [];
+    const totalLost = data?.totalLost ?? 0;
 
-    console.log('Dados recebidos no MotivosPerdaChart:', { reasons, totalLost });
-
-    if (!Array.isArray(reasons) || reasons.length === 0) {
+        if (!Array.isArray(reasons) || reasons.length === 0) {
         return (
             <div className="text-center text-gray-500 py-10">
                 Nenhum motivo de perda encontrado no período
@@ -31,10 +30,10 @@ const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
     }
     
     // Normalização robusta para match (remove acentos, minúsculo, espaços simples)
-        const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+    const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
 
     const reasonsMap = reasons.reduce((acc, r) => {
-        const key = normalize(r.reason || '');  // ← usa "reason" do backend
+        const key = normalize(r.reason);
         acc[key] = {
             count: Number(r.total || 0),
             percent: Number(r.percent || 0),
@@ -42,16 +41,19 @@ const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
         return acc;
     }, {});
 
+
+
     let processedData = ALL_LOST_REASONS.map(reason => {
         const normalizedField = normalize(reason.field || '');
-        const matched = reasonsMap[normalizedField] || { count: 0, percent: 0 };
-        const count = matched.count;
-        const percent = totalLost > 0 ? (count / totalLost * 100).toFixed(1) : 0;
+        const matched = reasonsMap[normalizedField];
+        const count = matched?.count || 0;
+        const percent = matched?.percent || 0;
 
+        
         return {
             ...reason,
-            count,
-            percent,
+            count: count,
+            percent: percent,
         };
     });
 
