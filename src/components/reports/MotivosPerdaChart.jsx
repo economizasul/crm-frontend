@@ -29,31 +29,43 @@ const MotivosPerdaChart = ({ data }) => {
         );
     }
     
-    // Normalização robusta para match (remove acentos, minúsculo, espaços simples)
-    const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
+        // Normalização robusta
+    const normalize = (str) => {
+        if (!str) return '';
+        return str.toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .replace(/\s+/g, ' ');
+    };
 
-    const reasonsMap = reasons.reduce((acc, r) => {
-        const key = normalize(r.reason);
-        acc[key] = {
+    // DEBUG: vamos ver o que chega
+    console.log('Dados brutos do backend:', reasons);
+
+    const reasonsMap = {};
+    reasons.forEach(r => {
+        const key = normalize(r.reason || '');
+        console.log('Normalizando reason:', r.reason, '→', key); // ← veja no console
+        reasonsMap[key] = {
             count: Number(r.total || 0),
             percent: Number(r.percent || 0),
         };
-        return acc;
-    }, {});
+    });
 
-
+    console.log('reasonsMap final:', reasonsMap);
 
     let processedData = ALL_LOST_REASONS.map(reason => {
         const normalizedField = normalize(reason.field || '');
-        const matched = reasonsMap[normalizedField];
-        const count = matched?.count || 0;
-        const percent = matched?.percent || 0;
+        console.log('Buscando field:', reason.name, '→', normalizedField);
 
-        
+        const matched = reasonsMap[normalizedField];
+        const count = matched ? matched.count : 0;
+        const percent = totalLost > 0 ? Number((count / totalLost * 100).toFixed(1)) : 0;
+
         return {
             ...reason,
-            count: count,
-            percent: percent,
+            count,
+            percent,
         };
     });
 
