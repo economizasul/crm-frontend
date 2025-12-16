@@ -13,15 +13,14 @@ const ALL_LOST_REASONS = [
     { name: 'Não é o Responsável..:', field: 'nao e o responsavel', color: '#F472B6', colorLight: '#FCA5D7', shadow: '0 6px 16px rgba(244, 114, 182, 0.7)' },
     { name: 'Silêncio..:', field: 'silencio', color: '#6B7280', colorLight: '#9CA3AF', shadow: '0 6px 16px rgba(107, 114, 128, 0.7)' },
     { name: 'Já Possui GD..:', field: 'ja possui gd', color: '#EAB308', colorLight: '#FCD34D', shadow: '0 6px 16px rgba(234, 179, 8, 0.7)' },
-    { name: 'Outro Estado', field: 'outro estado', color: '#14B8A6', colorLight: '#2DD4BF', shadow: '0 6px 16px rgba(20, 184, 166, 0.7)' },
+    { name: 'Outro Estado..:', field: 'outro estado', color: '#14B8A6', colorLight: '#2DD4BF', shadow: '0 6px 16px rgba(20, 184, 166, 0.7)' },
 ];
 
-const MotivosPerdaChart = ({ data }) => {
+const MotivosPerdaChart = ({ lostReasons = { reasons: [], totalLost: 0 } }) => {
 
-    const reasons = data?.reasons ?? [];
-    const totalLost = data?.totalLost ?? 0;
+    const { reasons, totalLost } = lostReasons;
 
-        if (!Array.isArray(reasons) || reasons.length === 0) {
+    if (!Array.isArray(reasons) || reasons.length === 0) {
         return (
             <div className="text-center text-gray-500 py-10">
                 Nenhum motivo de perda encontrado no período
@@ -33,17 +32,16 @@ const MotivosPerdaChart = ({ data }) => {
     const normalize = (str) => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, ' ');
 
     const reasonsMap = reasons.reduce((acc, r) => {
-        const key = normalize(r.reason);
+        const key = normalize(r.reasonField || '');  // ← note que aqui é reasonField (vem do fetchLossReasons)
         acc[key] = {
-            count: Number(r.total || 0),
-            percent: Number(r.percent || 0),
+            count: Number(r.count || 0),
+            percent: Number(r.percent || 0) || (totalLost > 0 ? (r.count / totalLost * 100) : 0),
         };
         return acc;
     }, {});
 
-
-
-    let processedData = ALL_LOST_REASONS.map(reason => {
+    
+     let processedData = ALL_LOST_REASONS.map(reason => {
         const normalizedField = normalize(reason.field || '');
         const matched = reasonsMap[normalizedField];
         const count = matched?.count || 0;
