@@ -112,6 +112,9 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                 sellerName: selectedLead.sellerName || '',
                 metadata: selectedLead.metadata || {},
                 phone2: selectedLead.phone2 || '',
+                nextContactDate: selectedLead.nextContactDate 
+                    ? new Date(selectedLead.nextContactDate).toISOString().split('T')[0] 
+                    : '',
                 notes: leadNotes 
             });
             
@@ -223,6 +226,11 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
         delete payload.created_at;
         delete payload.updated_at;
         delete payload.__v;
+
+        // Adiciona o campo de data
+        if (leadData.nextContactDate !== undefined) {
+            payload.next_contact_date = leadData.nextContactDate || null; // string YYYY-MM-DD ou null
+        }
 
         // 🔧 Garante que notas e campos numéricos estejam no formato correto
         payload.notes = payload.notes || [];
@@ -432,6 +440,24 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             <div className="w-full md:w-1/3 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">UC</label>
                                 <input type="text" name="uc" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.uc || ''} onChange={handleInputChange} />
+                            </div>
+                            {/* ←←← NOVO CAMPO: Data do próximo contato */}
+                            <div className="flex flex-wrap -mx-2 mb-4">
+                                <div className="w-full md:w-1/3 px-2 mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
+                                        Data do próximo contato
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="nextContactDate"
+                                        className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        value={leadData.nextContactDate || ''}
+                                        onChange={handleInputChange}
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Deixe vazio para remover a data de retorno.
+                                    </p>
+                                </div>
                             </div>
                             <div className="w-full md:w-1/3 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">QSA</label>
