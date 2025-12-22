@@ -31,30 +31,51 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-const LeadCard = ({ lead, onClick }) => (
-  <div
-    onClick={() => onClick(lead)}
-    className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none"
-    draggable="true"
-    onDragStart={(e) => {
-      e.dataTransfer.setData('leadId', String(lead.id));
-      e.currentTarget.style.opacity = '0.5';
-    }}
-    onDragEnd={(e) => {
-      e.currentTarget.style.opacity = '1';
-    }}
-  >
-    <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
-    <p className="text-sm text-gray-600">{lead.phone}</p>
-    {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
-    <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-      <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+const LeadCard = ({ lead, onClick }) => {
+  const getContactBorderClass = (nextContactDate) => {
+    if (!nextContactDate) return 'border-gray-200';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const contactDate = new Date(nextContactDate);
+    contactDate.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.floor((today - contactDate) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'border-green-500 bg-green-50 border-4';     // Hoje
+    if (diffDays === 1) return 'border-yellow-500 bg-yellow-50 border-4';  // 1 dia atrasado
+    if (diffDays === 2) return 'border-orange-500 bg-orange-50 border-4';  // 2 dias
+    if (diffDays >= 3) return 'border-red-500 bg-red-50 border-4';         // 3+ dias
+
+    return 'border-gray-200';
+  };
+
+  return (
+    <div
+      onClick={() => onClick(lead)}
+      className={`bg-white p-4 rounded-lg shadow-md mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none ${getContactBorderClass(lead.nextContactDate)}`}
+      draggable="true"
+      onDragStart={(e) => {
+        e.dataTransfer.setData('leadId', String(lead.id));
+        e.currentTarget.style.opacity = '0.5';
+      }}
+      onDragEnd={(e) => {
+        e.currentTarget.style.opacity = '1';
+      }}
+    >
+      <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
+      <p className="text-sm text-gray-600">{lead.phone}</p>
+      {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
+      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+        <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
+      </div>
+      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
+        {lead.status}
+      </span>
     </div>
-    <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
-      {lead.status}
-    </span>
-  </div>
-);
+  );
+};
 
 const KanbanBoard = () => {
   const [leads, setLeads] = useState([]);
@@ -133,6 +154,7 @@ const KanbanBoard = () => {
           : (typeof lead.notes === 'string' ? JSON.parse(lead.notes).catch(() => []) : []),
         createdAt: lead.createdAt || lead.created_at,
         reasonForLoss: lead.reason_for_loss || lead.reasonForLoss || '',
+          nextContactDate: lead.next_contact_date || lead.nextContactDate || null,
       }));
 
       const filteredByPermission = user.role === 'Admin'
@@ -224,7 +246,19 @@ const KanbanBoard = () => {
           let statusLeads = leads
             .filter(l => l.status === status)
             // Ordena do mais recente para o mais antigo
-            .sort((a, b) => (b.createdAt || b.id) - (a.createdAt || a.id));
+            .sort((a, b) => {
+              // Primeiro: leads com data de contato definida e mais urgentes (atrasados ou hoje)
+              const dateA = a.nextContactDate ? new Date(a.nextContactDate) : null;
+              const dateB = b.nextContactDate ? new Date(b.nextContactDate) : null;
+
+              if (dateA && !dateB) return -1; // A tem data → topo
+              if (!dateA && dateB) return 1;  // B tem data → A para baixo
+              if (dateA && dateB) {
+                return dateA - dateB; // mais antiga (atrasada) no topo
+              }
+              // Se nenhum tem data, ordena por criação (mais novo no topo)
+              return (b.createdAt || b.id) - (a.createdAt || a.id);
+            });
 
           // Limita apenas colunas finais aos 10 mais recentes
           if (status === 'Ganho' || status === 'Perdido' || status === 'Inapto') {
