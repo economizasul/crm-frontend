@@ -435,54 +435,22 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                             </div>
                         </div>
                         
-                        {/* Linha 4: UC, QSA e Origem */}
+                                                {/* ←←← NOVA ORGANIZAÇÃO: UC | Consumo Médio | Economia Estimada | Origem */}
                         <div className="flex flex-wrap -mx-2 mb-4">
-                            <div className="w-full md:w-1/3 px-2 mb-4">
+                            <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">UC</label>
                                 <input type="text" name="uc" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.uc || ''} onChange={handleInputChange} />
                             </div>
-                            {/* ←←← NOVO CAMPO: Data do próximo contato */}
-                            <div className="flex flex-wrap -mx-2 mb-4">
-                                <div className="w-full md:w-1/3 px-2 mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
-                                        Data do próximo contato
-                                    </label>
-                                    <input
-                                        type="date"
-                                        name="nextContactDate"
-                                        className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        value={leadData.nextContactDate || ''}
-                                        onChange={handleInputChange}
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Deixe vazio para remover a data de retorno.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="w-full md:w-1/3 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">QSA</label>
-                                <input type="text" name="qsa" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.qsa || ''} onChange={handleInputChange} />
-                            </div>
-                            <div className="w-full md:w-1/3 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Origem</label>
-                                <input type="text" name="origin" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.origin || ''} onChange={handleInputChange} />
-                            </div>
-                        </div>
-                        
-                        {/* Linha de 4 Colunas: Consumo, Economia, Status, KW/Motivo */}
-                        <div className="flex flex-wrap -mx-2 mb-4">
-                            {/* Consumo Médio (Kwh) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Consumo Médio (kWh)</label>
-                               <input
+                                <input
                                     type="number"
                                     name="avgConsumption"
                                     className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     value={leadData.avgConsumption ?? ''}
                                     onChange={handleInputChange}
-                                    />
+                                />
                             </div>
-                            {/* Economia Estimada (R$) - 25% */}
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Economia Estimada (R$)</label>
                                 <input
@@ -491,9 +459,31 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                     className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     value={leadData.estimatedSavings ?? ''}
                                     onChange={handleInputChange}
-                                    />
+                                />
                             </div>
-                            {/* Status/Fase (Conta) - 25% */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Origem</label>
+                                <input type="text" name="origin" className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={leadData.origin || ''} onChange={handleInputChange} />
+                            </div>
+                        </div>
+
+                        {/* ←←← QSA em linha própria com mais espaço */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
+                            <div className="w-full md:w-3/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">QSA</label>
+                                <textarea
+                                    name="qsa"
+                                    rows="3"
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white resize-none"
+                                    value={leadData.qsa || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Detalhes adicionais, observações, etc."
+                                />
+                            </div>
+                        </div>
+
+                        {/* ←←← LINHA FINAL: Fase | Motivo da Perda (condicional) | (espaço) | Data do próximo contato (direita) */}
+                        <div className="flex flex-wrap -mx-2 mb-4">
                             <div className="w-full md:w-1/4 px-2 mb-4">
                                 <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">Fase (Conta) <span className="text-red-500">*</span></label>
                                 <select 
@@ -508,8 +498,32 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                                     ))}
                                 </select>
                             </div>
-                            {/* KW Vendido / Motivo da Perda (Condicional) - 25% */}
-                            {renderConditionalFields()}
+
+                            {/* Motivo da Perda - condicional (aparece só se Perdido) */}
+                            {leadData.status === 'Perdido' && renderConditionalFields()}
+
+                            {/* KW Vendido - condicional para Ganho (já tratado dentro de renderConditionalFields) */}
+                            {leadData.status === 'Ganho' && renderConditionalFields()}
+
+                            {/* Espaço vazio para alinhar quando não há condicional */}
+                            {(leadData.status !== 'Perdido' && leadData.status !== 'Ganho') && (
+                                <div className="w-full md:w-1/4 px-2 mb-4"></div>
+                            )}
+
+                            {/* Data do próximo contato - sempre à direita */}
+                            <div className="w-full md:w-1/4 px-2 mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">
+                                    Data do próximo contato
+                                </label>
+                                <input
+                                    type="date"
+                                    name="nextContactDate"
+                                    className="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    value={leadData.nextContactDate || ''}
+                                    onChange={handleInputChange}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Deixe vazio para remover</p>
+                            </div>
                         </div>
 
                         {/* Transferência (Somente Admin) */}
