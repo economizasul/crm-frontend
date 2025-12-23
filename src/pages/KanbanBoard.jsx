@@ -33,7 +33,7 @@ const Toast = ({ message, type, onClose }) => {
 
 const LeadCard = ({ lead, onClick }) => {
   const getContactBorderClass = (nextContactDate) => {
-    if (!nextContactDate) return 'border-gray-600'; // Sem data ou futura → cinza visível
+    if (!nextContactDate) return 'border-gray-500'; // Sem data → cinza
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -41,17 +41,17 @@ const LeadCard = ({ lead, onClick }) => {
     const contactDate = new Date(nextContactDate);
     contactDate.setHours(0, 0, 0, 0);
 
+    // diffDays positivo = atrasado; negativo = futuro
     const diffDays = Math.floor((today - contactDate) / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return 'border-gray-600'; // Futuro → cinza (sem urgência)
+    if (diffDays < 0) return 'border-gray-500'; // Futuro → cinza (sem urgência)
 
-    // Cores fortes para dark mode
-    if (diffDays === 0) return 'border-4 border-green-500';      // Hoje: verde forte
-    if (diffDays === 1) return 'border-4 border-yellow-500';     // 1 dia atrasado: amarelo
-    if (diffDays === 2) return 'border-4 border-orange-500';     // 2 dias atrasado: laranja
-    if (diffDays >= 3) return 'border-4 border-red-500';         // 3+ dias: vermelho forte
+    if (diffDays === 0) return 'border-4 border-green-600';         // Hoje: verde forte
+    if (diffDays === 1) return 'border-4 border-yellow-400';        // 1 dia atrasado: amarelo claro
+    if (diffDays === 2) return 'border-4 border-orange-600';        // 2 dias atrasado: laranja forte
+    if (diffDays >= 3) return 'border-4 border-red-600';            // 3+ dias: vermelho forte
 
-    return 'border-gray-600';
+    return 'border-gray-500';
   };
 
   return (
