@@ -47,9 +47,9 @@ const LeadCard = ({ lead, onClick }) => {
     if (diffDays < 0) return 'border-gray-500'; // Futuro → cinza (sem urgência)
 
     if (diffDays === 0) return 'border-4 border-green-600';         // Hoje: verde forte
-    if (diffDays === 1) return 'border-4 border-yellow-400';        // 1 dia atrasado: amarelo claro
-    if (diffDays === 2) return 'border-4 border-orange-600';        // 2 dias atrasado: laranja forte
-    if (diffDays >= 3) return 'border-4 border-red-600';            // 3+ dias: vermelho forte
+    if (diffDays === 2) return 'border-4 border-yellow-400';        // 1 dia atrasado: amarelo claro
+    if (diffDays === 3) return 'border-4 border-orange-600';        // 2 dias atrasado: laranja forte
+    if (diffDays >= 4) return 'border-4 border-red-600';            // 3+ dias: vermelho forte
 
     return 'border-gray-500';
   };
