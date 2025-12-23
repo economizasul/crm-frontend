@@ -33,7 +33,7 @@ const Toast = ({ message, type, onClose }) => {
 
 const LeadCard = ({ lead, onClick }) => {
   const getContactBorderClass = (nextContactDate) => {
-    if (!nextContactDate) return 'border-gray-500'; // Sem data → cinza
+    if (!nextContactDate) return 'border-gray-600'; // Sem data ou futura → cinza visível
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -43,21 +43,21 @@ const LeadCard = ({ lead, onClick }) => {
 
     const diffDays = Math.floor((today - contactDate) / (1000 * 60 * 60 * 24));
 
-    // Só aplica cor se a data já passou ou é hoje (diffDays >= 0)
-    if (diffDays < 0) return 'border-gray-500'; // Data futura → cinza (sem urgência)
+    if (diffDays < 0) return 'border-gray-600'; // Futuro → cinza (sem urgência)
 
-    if (diffDays === 0) return 'border-4 border-green-600';     // Hoje: verde forte
-    if (diffDays === 1) return 'border-4 border-yellow-600';    // 1 dia atrasado: amarelo
-    if (diffDays === 2) return 'border-4 border-orange-600';    // 2 dias atrasado: laranja
-    if (diffDays >= 3) return 'border-4 border-red-600';        // 3+ dias: vermelho forte
+    // Cores fortes para dark mode
+    if (diffDays === 0) return 'border-4 border-green-500';      // Hoje: verde forte
+    if (diffDays === 1) return 'border-4 border-yellow-500';     // 1 dia atrasado: amarelo
+    if (diffDays === 2) return 'border-4 border-orange-500';     // 2 dias atrasado: laranja
+    if (diffDays >= 3) return 'border-4 border-red-500';         // 3+ dias: vermelho forte
 
-    return 'border-gray-500';
+    return 'border-gray-600';
   };
 
   return (
     <div
       onClick={() => onClick(lead)}
-      className={`bg-white p-4 rounded-lg shadow-md mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none border-2 ${getContactBorderClass(lead.nextContactDate)}`}
+      className={`bg-gray-900 p-4 rounded-lg shadow-md mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none border-2 ${getContactBorderClass(lead.nextContactDate)}`}
       draggable="true"
       onDragStart={(e) => {
         e.dataTransfer.setData('leadId', String(lead.id));
@@ -67,10 +67,10 @@ const LeadCard = ({ lead, onClick }) => {
         e.currentTarget.style.opacity = '1';
       }}
     >
-      <h4 className="font-bold text-gray-600 truncate">{lead.name}</h4>
-      <p className="text-sm text-gray-600">{lead.phone}</p>
-      {lead.uc && <p className="text-xs text-gray-500 mt-1">UC: {lead.uc}</p>}
-      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+      <h4 className="font-bold text-gray-100 truncate">{lead.name}</h4>
+      <p className="text-sm text-gray-300">{lead.phone}</p>
+      {lead.uc && <p className="text-xs text-gray-400 mt-1">UC: {lead.uc}</p>}
+      <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
         <FaUserTie /> <span className="truncate">{lead.ownerName || 'Sem vendedor'}</span>
       </div>
       <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold ${STAGES[lead.status] || STAGES.Novo}`}>
