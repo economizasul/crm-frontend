@@ -33,7 +33,7 @@ const Toast = ({ message, type, onClose }) => {
 
 const LeadCard = ({ lead, onClick }) => {
   const getContactBorderClass = (nextContactDate) => {
-    if (!nextContactDate) return 'border-gray-200';
+    if (!nextContactDate) return 'border-gray-500'; // Sem data → cinza
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -43,18 +43,21 @@ const LeadCard = ({ lead, onClick }) => {
 
     const diffDays = Math.floor((today - contactDate) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'border-green-500 bg-green-50 border-4';     // Hoje
-    if (diffDays === 1) return 'border-yellow-500 bg-yellow-50 border-4';  // 1 dia atrasado
-    if (diffDays === 2) return 'border-orange-500 bg-orange-50 border-4';  // 2 dias
-    if (diffDays >= 3) return 'border-red-500 bg-red-50 border-4';         // 3+ dias
+    // Só aplica cor se a data já passou ou é hoje (diffDays >= 0)
+    if (diffDays < 0) return 'border-gray-500'; // Data futura → cinza (sem urgência)
 
-    return 'border-gray-200';
+    if (diffDays === 0) return 'border-4 border-green-600';     // Hoje: verde forte
+    if (diffDays === 1) return 'border-4 border-yellow-600';    // 1 dia atrasado: amarelo
+    if (diffDays === 2) return 'border-4 border-orange-600';    // 2 dias atrasado: laranja
+    if (diffDays >= 3) return 'border-4 border-red-600';        // 3+ dias: vermelho forte
+
+    return 'border-gray-500';
   };
 
   return (
     <div
       onClick={() => onClick(lead)}
-      className={`bg-white p-4 rounded-lg shadow-md mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none ${getContactBorderClass(lead.nextContactDate)}`}
+      className={`bg-white p-4 rounded-lg shadow-md mb-3 cursor-move hover:shadow-xl hover:border-indigo-500 transition-all transform hover:scale-105 select-none border-2 ${getContactBorderClass(lead.nextContactDate)}`}
       draggable="true"
       onDragStart={(e) => {
         e.dataTransfer.setData('leadId', String(lead.id));
