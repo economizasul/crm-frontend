@@ -470,7 +470,7 @@ const LeadEditModal = ({ selectedLead, isModalOpen, onClose, onSave, token, fetc
                         {/* ←←← QSA em linha própria com mais espaço */}
                         <div className="flex flex-wrap -mx-2 mb-4">
                             <div className="w-full md:w-3/4 px-2 mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">QSA</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-300">OBSERVAÇÃO</label>
                                 <textarea
                                     name="qsa"
                                     rows="3"
